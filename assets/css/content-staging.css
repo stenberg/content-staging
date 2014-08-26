@@ -1,0 +1,37 @@
+
+.wrap div.sme-cs-message {
+	margin: 5px 0 15px;
+}
+
+div.sme-cs-message {
+	padding: 1px 12px;
+	background-color: #fff;
+	border-left-width: 4px;
+	border-left-style: solid;
+	box-shadow: 0 1px 1px 0 rgba(0, 0, 0, .1);
+	-webkit-box-shadow: 0 1px 1px 0 rgba(0, 0, 0, .1);
+}
+
+div.sme-cs-error {
+	border-left-color: #dd3d36;
+}
+
+div.sme-cs-warning {
+	border-left-color: #ffba00;
+}
+
+div.sme-cs-info {
+	border-left-color: #5bc0de;
+}
+
+div.sme-cs-success {
+	border-left-color: #7ad03a;
+}
+
+.sme-input-text {
+	width: 100%;
+	padding: 6px 8px;
+	margin: 0;
+	line-height: 150%;
+	font-size: 1.7em;
+}
