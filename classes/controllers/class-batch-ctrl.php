@@ -176,13 +176,6 @@ class Batch_Ctrl {
 		// Get batch ID from URL query param.
 		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
 
-		// Delete batch.
-		if ( isset( $_POST['delete'] ) && $_POST['delete'] === 'delete' ) {
-			$this->batch_dao->delete_batch( $batch );
-			wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
-			exit();
-		}
-
 		// Data to be passed to view.
 		$data = array( 'batch' => $batch );
 
@@ -268,6 +261,9 @@ class Batch_Ctrl {
 	 * Display any messages that is returned by production.
 	 */
 	public function deploy_batch() {
+
+		// Check that the current request carries a valid nonce.
+		check_admin_referer( 'sme-deploy-batch', 'sme_deploy_batch_nonce' );
 
 		// Determine plugin path and plugin URL of this plugin.
 		$plugin_path = dirname( __FILE__ );
