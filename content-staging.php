@@ -158,6 +158,7 @@ class Content_Staging {
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
 		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );
+		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );
 		add_action( 'sme_import_batch', array( $import_batch, 'init' ) );
 
 		// Filters.

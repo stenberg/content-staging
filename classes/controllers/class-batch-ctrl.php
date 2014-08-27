@@ -76,6 +76,57 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Confirm that we want to delete a batch.
+	 */
+	public function confirm_delete_batch() {
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Get batch ID from URL query param.
+		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+
+		// Delete batch.
+		if ( isset( $_POST['delete'] ) && $_POST['delete'] === 'delete' ) {
+			$this->batch_dao->delete_batch( $batch );
+			wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
+			exit();
+		}
+
+		// Data to be passed to view.
+		$data = array( 'batch' => $batch );
+
+		// Render view.
+		$this->template->render( 'delete-batch', $data );
+	}
+
+	/**
+	 * Delete a batch.
+	 */
+	public function delete_batch() {
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Make sure user has sent in a request to delete batch.
+		if ( ! isset( $_POST['delete'] ) || $_POST['delete'] !== 'delete' ) {
+			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
+		}
+
+		// Get batch ID from URL query param.
+		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+
+		// Delete batch.
+		$this->batch_dao->delete_batch( $batch );
+		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
+		exit();
+	}
+
+	/**
 	 * Edit a content batch. Lets the user decide what posts to put in the
 	 * batch.
 	 */

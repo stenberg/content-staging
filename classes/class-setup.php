@@ -71,10 +71,11 @@ class Setup {
 
 	public function register_menu_pages() {
 		add_menu_page( 'Content Staging', 'Content Staging', 'manage_options', 'sme-list-batches', array( $this->batch_ctrl, 'list_batches' ) );
-		add_submenu_page( null, 'Batch', 'Batch', 'manage_options', 'sme-edit-batch', array( $this->batch_ctrl, 'edit_batch' ) );
-		add_submenu_page( null, 'Quick Deploy', 'Quick Deploy', 'manage_options', 'sme-quick-deploy-batch', array( $this->batch_ctrl, 'quick_deploy_batch' ) );
-		add_submenu_page( null, 'Pre-Flight', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->batch_ctrl, 'preflight_batch' ) );
-		add_submenu_page( null, 'Send', 'Send', 'manage_options', 'sme-send-batch', array( $this->batch_ctrl, 'deploy_batch' ) );
+		add_submenu_page( null, 'Edit Batch', 'Edit', 'manage_options', 'sme-edit-batch', array( $this->batch_ctrl, 'edit_batch' ) );
+		add_submenu_page( null, 'Delete Batch', 'Delete', 'manage_options', 'sme-delete-batch', array( $this->batch_ctrl, 'confirm_delete_batch' ) );
+		add_submenu_page( null, 'Quick Deploy Batch', 'Quick Deploy', 'manage_options', 'sme-quick-deploy-batch', array( $this->batch_ctrl, 'quick_deploy_batch' ) );
+		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->batch_ctrl, 'preflight_batch' ) );
+		add_submenu_page( null, 'Deploy Batch', 'Deploy', 'manage_options', 'sme-send-batch', array( $this->batch_ctrl, 'deploy_batch' ) );
 	}
 
 	public function quick_deploy_batch() {

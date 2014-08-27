@@ -159,6 +159,15 @@ class Batch_DAO extends DAO {
 	}
 
 	/**
+	 * Delete provided batch.
+	 *
+	 * @param Batch $batch
+	 */
+	public function delete_batch( Batch $batch ) {
+		wp_delete_post( $batch->get_id() );
+	}
+
+	/**
 	 * @param Batch $batch
 	 * @return array
 	 */
