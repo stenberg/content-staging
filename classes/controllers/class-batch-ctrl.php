@@ -76,60 +76,6 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Confirm that we want to delete a batch.
-	 */
-	public function confirm_delete_batch() {
-
-		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) ) {
-			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
-		}
-
-		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
-
-		// Delete batch.
-		if ( isset( $_POST['delete'] ) && $_POST['delete'] === 'delete' ) {
-			$this->batch_dao->delete_batch( $batch );
-			wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
-			exit();
-		}
-
-		// Data to be passed to view.
-		$data = array( 'batch' => $batch );
-
-		// Render view.
-		$this->template->render( 'delete-batch', $data );
-	}
-
-	/**
-	 * Delete a batch.
-	 */
-	public function delete_batch() {
-
-		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) ) {
-			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
-		}
-
-		// Make sure user has sent in a request to delete batch.
-		if ( ! isset( $_POST['delete'] ) || $_POST['delete'] !== 'delete' ) {
-			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
-		}
-
-		// Check that the current request carries a valid nonce.
-		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
-
-		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
-
-		// Delete batch.
-		$this->batch_dao->delete_batch( $batch );
-		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
-		exit();
-	}
-
-	/**
 	 * Edit a content batch. Lets the user decide what posts to put in the
 	 * batch.
 	 */
@@ -152,17 +98,6 @@ class Batch_Ctrl {
 		}
 
 		$batch = $this->batch_mgr->get_batch( $batch_id, true );
-
-		// Check if edit batch form has been submitted by the user.
-		if ( isset( $_POST['submit'] ) ) {
-			$this->handle_edit_batch_form_data( $batch, $_POST );
-
-			// Check if we should go to Pre-Flight.
-			if ( $_POST['submit'] === 'Pre-Flight Batch' ) {
-				$this->preflight_batch();
-				return;
-			}
-		}
 
 		if ( isset( $_GET['orderby'] ) ) {
 			$order_by = $_GET['orderby'];
@@ -223,7 +158,36 @@ class Batch_Ctrl {
 		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
 		$batch->set_id( $this->batch_dao->insert_batch( $batch ) );
 
-		$this->preflight_batch( $batch );
+		// Redirect user to pre-flight page.
+		wp_redirect( admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() ) );
+		exit();
+	}
+
+	/**
+	 * Confirm that we want to delete a batch.
+	 */
+	public function confirm_delete_batch() {
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Get batch ID from URL query param.
+		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+
+		// Delete batch.
+		if ( isset( $_POST['delete'] ) && $_POST['delete'] === 'delete' ) {
+			$this->batch_dao->delete_batch( $batch );
+			wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
+			exit();
+		}
+
+		// Data to be passed to view.
+		$data = array( 'batch' => $batch );
+
+		// Render view.
+		$this->template->render( 'delete-batch', $data );
 	}
 
 	/**
@@ -328,6 +292,79 @@ class Batch_Ctrl {
 		);
 
 		$this->template->render( 'deploy-batch', $data );
+	}
+
+	/**
+	 * Save batch data user has submitted through form.
+	 */
+	public function save_batch() {
+
+		$batch_id = null;
+
+		// Check that the current request carries a valid nonce.
+		check_admin_referer( 'sme-save-batch', 'sme_save_batch_nonce' );
+
+		// Make sure post data has been provided.
+		if ( ! isset( $_POST['submit'] ) ) {
+			wp_die( __( 'No data been provided.', 'sme-content-staging' ) );
+		}
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Get batch ID from URL query param.
+		if ( $_GET['id'] > 0 ) {
+			$batch_id = intval( $_GET['id'] );
+		}
+
+		// Get batch.
+		$batch = $this->batch_mgr->get_batch( $batch_id, true );
+
+		// Handle input data.
+		$this->handle_edit_batch_form_data( $batch, $_POST );
+
+		// Default redirect URL on successful batch update.
+		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch_id . '&updated' );
+
+		// Set different redirect URL if user has requested a pre-flight.
+		if ( $_POST['submit'] === 'Pre-Flight Batch' ) {
+			$redirect_url = admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() );
+		}
+
+		// Redirect user.
+		wp_redirect( $redirect_url );
+		exit();
+	}
+
+	/**
+	 * Delete a batch.
+	 */
+	public function delete_batch() {
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Make sure user has sent in a request to delete batch.
+		if ( ! isset( $_POST['delete'] ) || $_POST['delete'] !== 'delete' ) {
+			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
+		}
+
+		// Check that the current request carries a valid nonce.
+		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
+
+		// Get batch ID from URL query param.
+		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+
+		// Delete batch.
+		$this->batch_dao->delete_batch( $batch );
+
+		// Redirect user.
+		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
+		exit();
 	}
 
 	/**
