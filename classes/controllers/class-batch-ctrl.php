@@ -117,6 +117,9 @@ class Batch_Ctrl {
 			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
 		}
 
+		// Check that the current request carries a valid nonce.
+		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
+
 		// Get batch ID from URL query param.
 		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
 
