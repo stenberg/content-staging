@@ -36,6 +36,35 @@ class DAO {
 	}
 
 	/**
+	 * Wrapper for WordPress function get_post_meta.
+	 *
+	 * @see http://codex.wordpress.org/Function_Reference/get_post_meta
+	 *
+	 * @param int $post_id
+	 * @param string $key
+	 * @param bool $single
+	 * @return mixed
+	 */
+	public function get_post_meta( $post_id, $key = '', $single = false ) {
+		return get_post_meta( $post_id, $key, $single );
+	}
+
+	/**
+	 * Wrapper for WordPress function update_post_meta.
+	 *
+	 * @see http://codex.wordpress.org/Function_Reference/update_post_meta
+	 *
+	 * @param int $post_id
+	 * @param string $meta_key
+	 * @param mixed $meta_value
+	 * @param mixed $prev_value
+	 * @return bool|int
+	 */
+	public function update_post_meta( $post_id, $meta_key, $meta_value, $prev_value = null ) {
+		return update_post_meta( $post_id, $meta_key, $meta_value, $prev_value );
+	}
+
+	/**
 	 * Take an array of values that will be used in a SQL IN clause and
 	 * create placeholders that can be used together with wpdb->prepare.
 	 *

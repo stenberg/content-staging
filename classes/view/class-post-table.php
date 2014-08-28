@@ -13,9 +13,15 @@ class Post_Table extends WP_List_Table {
 	private $batch;
 
 	/**
-	 * @param Batch $batch
+	 * @var array Post IDs in batch
 	 */
-	public function __construct( Batch $batch ) {
+	private $post_ids;
+
+	/**
+	 * @param Batch $batch
+	 * @param array $post_ids
+	 */
+	public function __construct( Batch $batch, array $post_ids = array() ) {
 
 		// Set parent defaults.
 		parent::__construct( array(
@@ -24,7 +30,8 @@ class Post_Table extends WP_List_Table {
 			'ajax'      => false
 		) );
 
-		$this->batch = $batch;
+		$this->batch    = $batch;
+		$this->post_ids = $post_ids;
 	}
 
 	/**
@@ -75,7 +82,7 @@ class Post_Table extends WP_List_Table {
 		 * is not part of this batch or to a string indicating that the post
 		 * should be checked in the HTML form.
 		 */
-		if ( in_array( $post->get_id(), $this->batch->get_content() ) ) {
+		if ( in_array( $post->get_id(), $this->post_ids ) ) {
 			$checked = 'checked="checked" ';
 		}
 

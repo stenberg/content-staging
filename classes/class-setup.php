@@ -78,11 +78,14 @@ class Setup {
 		add_submenu_page( null, 'Deploy Batch', 'Deploy', 'manage_options', 'sme-send-batch', array( $this->batch_ctrl, 'deploy_batch' ) );
 	}
 
+	/**
+	 * Display a "Deploy To Production" button whenever a post is updated.
+	 */
 	public function quick_deploy_batch() {
 		if ( isset( $_GET['post'] ) && isset( $_GET['action'] ) && isset( $_GET['message'] ) && $_GET['action'] == 'edit' ) {
 			?>
 			<div class="updated">
-				  <p><?php echo '<a href="' . admin_url( 'admin.php?page=sme-quick-deploy-batch&post_id=' . $_GET['post'] ) . '">Send To Production</a>'; ?></p>
+				  <p><?php echo '<a href="' . admin_url( 'admin-post.php?action=sme-quick-deploy-batch&post_id=' . $_GET['post'] ) . '">Deploy To Production</a>'; ?></p>
 			</div>
 			<?php
 		}

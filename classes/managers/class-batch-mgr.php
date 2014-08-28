@@ -70,8 +70,8 @@ class Batch_Mgr {
 		// Populate batch with data (posts, terms, etc.).
 		if ( ! $lazy ) {
 
-			// Get all post IDs in this batch.
-			$post_ids = unserialize( $this->batch->get_content() );
+			// Get IDs of posts user has selected to include in this batch.
+			$post_ids = $this->batch_dao->get_post_meta( $this->batch->get_id(), 'sme_selected_post_ids', true );
 
 			$this->add_posts( $post_ids );
 			$this->add_terms();

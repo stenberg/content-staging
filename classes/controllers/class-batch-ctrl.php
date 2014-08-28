@@ -97,7 +97,7 @@ class Batch_Ctrl {
 			$batch_id = intval( $_GET['id'] );
 		}
 
-		$batch = $this->batch_mgr->get_batch( $batch_id, true );
+		$batch = $this->batch_mgr->get_batch( $batch_id );
 
 		if ( isset( $_GET['orderby'] ) ) {
 			$order_by = $_GET['orderby'];
@@ -115,22 +115,25 @@ class Batch_Ctrl {
 			$paged = $_GET['paged'];
 		}
 
-		// Get posts.
+		// Get posts user can select to include in the batch.
 		$posts = $this->post_dao->get_published_posts( $order_by, $order, $per_page, $paged );
 		$posts = $this->sort_posts( $posts );
 
-		// Get posts that has previously been added to batch.
-		$batch->set_content( unserialize( $batch->get_content() ) );
+		// Get IDs of posts user has selected to include in this batch.
+		$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
 
 		/*
-		 * Check if any posts exist in batch, if not, reset.
+		 * When fetching post IDs an empty string could be returned if no
+		 * post meta record with the given key exist since before. To prevent
+		 * ensure the system can rely on us working with an array we perform a
+		 * check setting $post_ids to array if it is currently an empty.
 		 */
-		if ( ! is_array( $batch->get_content() ) ) {
-			$batch->set_content( array() );
+		if ( ! $post_ids ) {
+			$post_ids = array();
 		}
 
 		// Create and prepare table of posts.
-		$table        = new Post_Table( $batch );
+		$table        = new Post_Table( $batch, $post_ids );
 		$table->items = $posts;
 		$table->prepare_items();
 
@@ -140,27 +143,6 @@ class Batch_Ctrl {
 		);
 
 		$this->template->render( 'edit-batch', $data );
-	}
-
-	/**
-	 * Send post directly to production.
-	 */
-	public function quick_deploy_batch() {
-
-		// Make sure a query param 'post_id' exists in current URL.
-		if ( ! isset( $_GET['post_id'] ) ) {
-			wp_die( __( 'No post ID has been provided.', 'sme-content-staging' ) );
-		}
-
-		$batch = $this->batch_mgr->get_batch( null, true );
-
-		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
-		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
-		$batch->set_id( $this->batch_dao->insert_batch( $batch ) );
-
-		// Redirect user to pre-flight page.
-		wp_redirect( admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() ) );
-		exit();
 	}
 
 	/**
@@ -192,6 +174,11 @@ class Batch_Ctrl {
 	 *
 	 * Display any pre-flight messages that is returned by production.
 	 *
+	 * @todo The complete batch is prepared to be sent through a form to the
+	 * 'Deploy Batch' page. This could potentially result in problems with
+	 * the PHP 'post_max_size'. In this case a better option might be to e.g.
+	 * store data in database and send something else with the form.
+	 *
 	 * @param Batch $batch
 	 */
 	public function preflight_batch( $batch = null ) {
@@ -205,51 +192,55 @@ class Batch_Ctrl {
 			$batch = $this->batch_mgr->get_batch( $_GET['id'] );
 		}
 
-		// Get data in batch and let third-party developers filter data.
-		$posts       = apply_filters( 'sme_posts', $batch->get_posts() );
-		$attachments = apply_filters( 'sme_attachment_urls', $batch->get_attachments() );
-		$terms       = apply_filters( 'sme_terms', $batch->get_terms() );
-		$users       = apply_filters( 'sme_users', $batch->get_users() );
-
-		$batch_data = array(
-			'batch_guid'    => $batch->get_guid(),
-			'batch_title'   => $batch->get_title(),
-			'batch_creator' => $batch->get_creator_id(),
-			'users'         => $users,
-			'posts'         => $posts,
-			'attachments'   => $attachments,
-			'terms'         => $terms,
-			'custom'        => array(),
-		);
-
-		$custom_data = apply_filters( 'sme_custom_data', array(), $batch_data );
-
-		$batch_data['custom'] = $custom_data;
+		// Let third-party developers filter batch data.
+		$batch->set_posts( apply_filters( 'sme_posts', $batch->get_posts() ) );
+		$batch->set_attachments( apply_filters( 'sme_attachment_urls', $batch->get_attachments() ) );
+		$batch->set_terms( apply_filters( 'sme_terms', $batch->get_terms() ) );
+		$batch->set_users( apply_filters( 'sme_users', $batch->get_users() ) );
+		$batch->set_custom_data( apply_filters( 'sme_custom_data', $batch->get_custom_data(), $batch ) );
 
 		$request = array(
-			'body'   => $batch_data,
+			'batch'  => $batch,
 			'action' => 'preflight'
 		);
 
 		$this->xmlrpc_client->query( 'content.staging', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
-		/*
-		 * @todo Here batch data is prepared to be used in a form so it can
-		 * easily be sent to sending page. In this case a better option
-		 * would probably be to e.g. store data in database and send
-		 * something else with the form.
-		 *
-		 * Another option is to prepare the data in a different way, e.g.
-		 * encoding the same way we do before sending it off with XMLRPC.
-		 */
+		// Prepare data we want to pass to view.
 		$data = array(
-			'batch_id'   => $batch->get_id(),
-			'batch_data' => base64_encode( serialize( $batch_data ) ),
+			'batch'      => $batch,
+			'batch_data' => base64_encode( serialize( $batch ) ),
 			'response'   => $response,
 		);
 
 		$this->template->render( 'preflight-batch', $data );
+	}
+
+	/**
+	 * Send post directly to production.
+	 */
+	public function quick_deploy_batch() {
+
+		// Make sure a query param 'post_id' exists in current URL.
+		if ( ! isset( $_GET['post_id'] ) ) {
+			wp_die( __( 'No post ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Get as integer.
+		$post_id = intval( $_GET['post_id'] );
+
+		$batch = $this->batch_mgr->get_batch( null, true );
+
+		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
+		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
+		$batch->set_id( $this->batch_dao->insert_batch( $batch ) );
+
+		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', array( $post_id ) );
+
+		// Redirect user to pre-flight page.
+		wp_redirect( admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() ) );
+		exit();
 	}
 
 	/**
@@ -259,6 +250,11 @@ class Batch_Ctrl {
 	 * stored on the production environment.
 	 *
 	 * Display any messages that is returned by production.
+	 *
+	 * @todo Consider sending form data to a different method responsible for
+	 * saving the pre-flighted batch data. When data has been saved, redirect
+	 * user here, fetch data from database and send it to production. This
+	 * would more closely resemble how we handle e.g. editing a batch.
 	 */
 	public function deploy_batch() {
 
@@ -273,15 +269,21 @@ class Batch_Ctrl {
 		 * Batch data is sent through a form on the pre-flight page and picked up
 		 * here. Decode data.
 		 */
-		$batch_data = unserialize( base64_decode( $_POST['batch_data'] ) );
+		$batch = unserialize( base64_decode( $_POST['batch_data'] ) );
 
 		$request = array(
-			'body'   => $batch_data,
+			'batch'  => $batch,
 			'action' => 'send',
 		);
 
 		$this->xmlrpc_client->query( 'content.staging', $request );
 		$response = $this->xmlrpc_client->get_response_data();
+
+		/*
+		 * Batch has been deployed and should no longer be accessible by user,
+		 * delete it.
+		 */
+//		$this->batch_dao->delete_batch( $batch );
 
 		$data = array(
 			'response' => $response,
@@ -375,6 +377,9 @@ class Batch_Ctrl {
 	 */
 	private function handle_edit_batch_form_data( Batch $batch, $request_data ) {
 
+		// IDs of posts user has selected to include in this batch.
+		$post_ids = array();
+
 		// Check if a title has been set.
 		if ( isset( $request_data['batch_title'] ) ) {
 			$batch->set_title( $request_data['batch_title'] );
@@ -382,7 +387,7 @@ class Batch_Ctrl {
 
 		// Check if any posts to include in batch has been selected.
 		if ( isset( $request_data['posts'] ) && is_array( $request_data['posts'] ) ) {
-			$batch->set_content( serialize( $request_data['posts'] ) );
+			$post_ids = $request_data['posts'];
 		}
 
 		if ( $batch->get_id() <= 0 ) {
@@ -392,6 +397,9 @@ class Batch_Ctrl {
 			// Update existing batch.
 			$this->batch_dao->update_batch( $batch );
 		}
+
+		// Update batch meta with IDs of posts user selected to include in batch.
+		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
 	}
 
 	/**

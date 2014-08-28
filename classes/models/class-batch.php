@@ -1,7 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Models;
 
-use stdClass;
+use Exception;
 
 class Batch {
 
@@ -99,15 +99,24 @@ class Batch {
 	private $terms;
 
 	/**
+	 * Custom data added by third-party developer.
+	 *
+	 * @var array
+	 */
+	private $custom_data;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param int $id
 	 */
 	public function __construct( $id = null ) {
-		$this->id             = $id;
-		$this->posts          = array();
-		$this->attachment_ids = array();
-		$this->users          = array();
+		$this->id          = $id;
+		$this->meta_data   = array();
+		$this->posts       = array();
+		$this->attachments = array();
+		$this->users       = array();
+		$this->custom_data = array();
 	}
 
 	/**
@@ -237,6 +246,13 @@ class Batch {
 	}
 
 	/**
+	 * @param array $posts
+	 */
+	public function set_posts( array $posts ) {
+		$this->posts = $posts;
+	}
+
+	/**
 	 * Add a Post object to array of posts in this batch.
 	 *
 	 * @param Post $post
@@ -255,11 +271,20 @@ class Batch {
 	}
 
 	/**
+	 * Replace attachments with attachments in provided array.
+	 *
+	 * @param array $attachments
+	 */
+	public function set_attachments( array $attachments ) {
+		$this->attachments = $attachments;
+	}
+
+	/**
 	 * Add an attachment.
 	 *
 	 * @param array $attachment
 	 */
-	public function add_attachment( $attachment ) {
+	public function add_attachment( array $attachment ) {
 		$this->attachments[] = $attachment;
 	}
 
@@ -275,7 +300,7 @@ class Batch {
 	/**
 	 * @param array $users
 	 */
-	public function set_users( $users ) {
+	public function set_users( array $users ) {
 		$this->users = $users;
 	}
 
@@ -291,7 +316,7 @@ class Batch {
 	/**
 	 * @param array $terms
 	 */
-	public function set_terms( $terms ) {
+	public function set_terms( array $terms ) {
 		$this->terms = $terms;
 	}
 
@@ -300,6 +325,57 @@ class Batch {
 	 */
 	public function get_terms() {
 		return $this->terms;
+	}
+
+	/**
+	 * Replace custom data with custom data in provided array.
+	 *
+	 * @param array $custom
+	 */
+	public function set_custom_data( array $custom ) {
+		$this->custom_data = $custom;
+	}
+
+	/**
+	 * Add custom data.
+	 *
+	 * Third-party developers can set a key for accessing specific data in
+	 * the custom data array.
+	 *
+	 * @param mixed $custom
+	 * @param string $key
+	 */
+	public function add_custom_data( $custom, $key = null ) {
+		if ( $key ) {
+			$this->custom_data[$key] = $custom;
+		} else {
+			$this->custom_data[] = $custom;
+		}
+	}
+
+	/**
+	 * Get custom data in this batch.
+	 *
+	 * If a 'key' has been provided, only value of corresponding array key
+	 * will be returned.
+	 *
+	 * @param string $key
+	 * @return array
+	 * @throws Exception
+	 */
+	public function get_custom_data( $key = null ) {
+
+		// No key has been provided, return all custom data.
+		if ( ! $key ) {
+			return $this->custom_data;
+		}
+
+		// Make sure provided key exists in our custom data array.
+		if ( ! array_key_exists( $key, $this->custom_data ) ) {
+			throw new Exception( 'Could not find custom data with key ' . $key . ' in batch with ID ' . $this->get_id() );
+		}
+
+		return $this->custom_data[$key];
 	}
 
 }

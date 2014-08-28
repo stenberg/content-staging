@@ -6,6 +6,7 @@ use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
 
 class Import_Batch {
@@ -113,33 +114,23 @@ class Import_Batch {
 		$batch = $this->post_dao->get_post_by_id( $batch_id );
 
 		// Decode and unserialize batch data.
-		$data = unserialize( base64_decode( $batch->get_post_content() ) );
+		$batch = unserialize( base64_decode( $batch->get_post_content() ) );
 
-		// Import images.
-		if ( isset( $data['body']['attachments'] ) ) {
-			$this->import_attachments( $data['body']['attachments'] );
-		}
+		// Import attachments.
+		$this->import_attachments( $batch->get_attachments() );
 
 		// Create/update users.
-		if ( isset( $data['body']['users'] ) ) {
-			$this->import_users( $data['body']['users'] );
-		}
+		$this->import_users( $batch->get_users() );
 
 		// Import terms/taxonomies.
-		if ( isset( $data['body']['terms'] ) ) {
-			$this->import_term_data( $data['body']['terms'] );
-		}
+		$this->import_term_data( $batch->get_terms() );
 
 		// Create/update posts.
-		if ( isset( $data['body']['posts'] ) ) {
-			$this->import_posts( $data['body']['posts'] );
-			$this->update_parent_post_relations();
-		}
+		$this->import_posts( $batch->get_posts() );
+		$this->update_parent_post_relations();
 
 		// Import custom data.
-		if ( isset( $data['body']['custom'] ) ) {
-			$this->import_custom_data( $data['body']['custom'], $data['body'] );
-		}
+		$this->import_custom_data( $batch->get_custom_data(), $batch );
 
 		// Publish posts.
 		$this->publish_posts();
@@ -335,8 +326,6 @@ class Import_Batch {
 				// Get file if it exists.
 				if ( $image = file_get_contents( $size ) ) {
 					file_put_contents( $filepath . $basename, $image );
-				} else {
-					error_log( $size . ' could not be found on content staging environment in ' . __FILE__ . ' on line ' . __LINE__ );
 				}
 			}
 		}
@@ -486,15 +475,10 @@ class Import_Batch {
 	 * Import data added by a third-party.
 	 *
 	 * @param array $custom_data Custom data added by third-party.
-	 * @param array $data Complete batch of data except for custom data.
+	 * @param Batch $batch
 	 */
-	private function import_custom_data( $custom_data, $data ) {
-
-		if ( isset( $data['custom'] ) ) {
-			unset( $data['custom'] );
-		}
-
-		do_action( 'sme_custom_data_sent', $custom_data, $data );
+	private function import_custom_data( $custom_data, Batch $batch ) {
+		do_action( 'sme_custom_data_sent', $custom_data, $batch );
 	}
 
 	/**

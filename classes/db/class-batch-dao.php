@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Mapper;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Post;
 
 class Batch_DAO extends DAO {
 
@@ -46,6 +47,27 @@ class Batch_DAO extends DAO {
 		);
 
 		return $this->batch_mapper->array_to_batch_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+	}
+
+	/**
+	 * Get batch ID by global unique identifier.
+	 *
+	 * @param $guid
+	 * @return int
+	 */
+	public function get_batch_id_by_guid( $guid ) {
+
+		$guid = $this->normalize_guid( $guid );
+
+		// Select post with a specific GUID ending.
+		$query = $this->wpdb->prepare(
+			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid LIKE %s',
+			'%' . $guid
+		);
+
+		$row = $this->wpdb->get_row( $query, ARRAY_A );
+
+		return $row['ID'];
 	}
 
 	/**
@@ -161,10 +183,28 @@ class Batch_DAO extends DAO {
 	/**
 	 * Delete provided batch.
 	 *
+	 * Set 'post_status' for provided batch to 'draft'. This will hide the
+	 * batch from users, but keeping it for future references.
+	 *
 	 * @param Batch $batch
 	 */
 	public function delete_batch( Batch $batch ) {
-		wp_delete_post( $batch->get_id() );
+		$this->wpdb->update(
+			$this->wpdb->posts,
+			array( 'post_status' => 'draft' ),
+			array( 'ID' => $batch->get_id() ),
+			array( '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * @param Batch $batch
+	 */
+	public function update_post_ids_in_batch( Batch $batch ) {
+		foreach ( $batch->get_meta_data() as $meta_key => $meta_value ) {
+			update_post_meta( $batch->get_id(), $meta_key, $meta_value );
+		}
 	}
 
 	/**

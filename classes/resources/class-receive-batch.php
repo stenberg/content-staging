@@ -35,10 +35,25 @@ class Receive_Batch implements Observer {
 		// Get incoming request data.
 		$data = $xmlrpc_client->get_request_data();
 
+		// Check if a batch has been provided.
+		if ( ! isset( $data['batch'] ) || ! ( $data['batch'] instanceof Batch ) ) {
+			return array(
+				'error' => array(
+					'Invalid batch!',
+				),
+			);
+		}
+
+		// Get batch.
+		$batch = $data['batch'];
+
+		// Make sure an action has been provided.
 		if ( ! isset( $data['action'] ) ) {
 			return array( 'error' => array( $_SERVER['HTTP_HOST'] . ': No action provided!' ) );
-		} else if ( $data['action'] === 'preflight' ) {
-			$status = $this->receive_preflight_data( $data );
+		}
+
+		if ( $data['action'] === 'preflight' ) {
+			$status = $this->receive_preflight_data( $batch );
 			if ( ! $status ) {
 				return array( 'success' => array( 'Pre-flight successful!' ) );
 			} else {
@@ -47,12 +62,12 @@ class Receive_Batch implements Observer {
 		} else if ( $data['action'] === 'send' ) {
 
 			// Store batch data in database.
-			$batch_id = $this->save_batch( $data );
+			$batch->set_id( $this->save_batch( $batch ) );
 
 			// Trigger import script.
 			$import_script = dirname( dirname( dirname( __FILE__ ) ) ) . '/scripts/import-batch.php';
 			$background_process = new Background_Process(
-				'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $batch_id
+				'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $batch->get_id()
 			);
 
 			if ( file_exists( $import_script ) ) {
@@ -63,7 +78,7 @@ class Receive_Batch implements Observer {
 
 			// Return batch ID.
 			return array(
-				'info' => array( 'Batch has been successfully sent! Batch ID: ' . $batch_id )
+				'info' => array( 'Batch has been successfully sent! Batch ID: ' . $batch->get_id() )
 			);
 
 		} else {
@@ -74,32 +89,22 @@ class Receive_Batch implements Observer {
 	/**
 	 * Runs on the production server when pre-flight data is received.
 	 *
-	 * @param array $data
+	 * @param Batch $batch
 	 * @return array
 	 */
-	private function receive_preflight_data( $data ) {
+	private function receive_preflight_data( Batch $batch ) {
 
-		$messages    = array();
-		$posts       = array();
-		$attachments = array();
+		$messages = array();
 
-		if ( isset( $data['body']['posts'] ) ) {
-			$posts = $data['body']['posts'];
-		}
-
-		if ( isset( $data['body']['attachments'] ) ) {
-			$attachments = $data['body']['attachments'];
-		}
-
-		foreach ( $posts as $post ) {
+		foreach ( $batch->get_posts() as $post ) {
 
 			// Check if parent post exist on production or in batch.
-			if ( ! $this->parent_post_exists( $post, $data['body']['posts'] ) ) {
+			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
 				$messages['error'][] = 'Post ID ' . $post->get_id() . ' is missing its parent post (ID ' . $post->get_post_parent() . '). Parent post does not exist on production and is not part of this batch';
 			}
 		}
 
-		foreach ( $attachments as $attachment ) {
+		foreach ( $batch->get_attachments() as $attachment ) {
 
 			foreach ( $attachment['sizes'] as $size ) {
 
@@ -117,27 +122,19 @@ class Receive_Batch implements Observer {
 	 * Store batch data. Called when production has received a batch.
 	 * The ID of the created batch is returned.
 	 *
-	 * @param array $data
+	 * @todo Should probably move serializing and encode of batch to some
+	 * more central place to make it reusable.
+	 *
+	 * @param Batch $batch
 	 * @return int
 	 */
-	private function save_batch( $data ) {
+	private function save_batch( Batch $batch ) {
 
-		$batch = $this->batch_dao->get_batch_by_guid( $data['body']['batch_guid'] );
+		// Set production ID for this batch.
+		$batch->set_id( $this->batch_dao->get_batch_id_by_guid( $batch->get_guid() ) );
 
-		if ( $batch === null ) {
-			$batch = new Batch();
-		}
-
-		/*
-		 * Serialize and encode batch data before storing in database.
-		 * @todo Should probably be moved to some more central place to make it
-		 * easy to reuse and so de-compressing, decoding and unserializing is
-		 * collected in the same place.
-		 */
-		$batch->set_content( base64_encode( serialize( $data ) ) );
-		$batch->set_title( $data['body']['batch_title'] );
-		$batch->set_guid( $data['body']['batch_guid'] );
-		$batch->set_creator_id( $data['body']['batch_creator'] );
+		// Store entire batch in content property of batch.
+		$batch->set_content( base64_encode( serialize( $batch ) ) );
 
 		if ( ! $batch->get_id() ) {
 			// New batch.
