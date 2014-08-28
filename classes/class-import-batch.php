@@ -2,6 +2,8 @@
 namespace Me\Stenberg\Content\Staging;
 
 use \Exception;
+use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
@@ -9,8 +11,18 @@ use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
 
+/**
+ * Class Import_Batch
+ *
+ * @package Me\Stenberg\Content\Staging
+ *
+ * @todo Consider moving 'import_*' methods in this class to the
+ * Batch_Importer model. Might want an import per import type though,
+ * e.g. a Post_Importer etc.
+ */
 class Import_Batch {
 
+	private $batch_importer_dao;
 	private $post_dao;
 	private $postmeta_dao;
 	private $term_dao;
@@ -81,17 +93,19 @@ class Import_Batch {
 	/**
 	 * Construct object, dependencies are injected.
 	 *
+	 * @param Batch_Importer_DAO $batch_importer_dao
 	 * @param Post_DAO $post_dao
 	 * @param Postmeta_DAO $postmeta_dao
 	 * @param Term_DAO $term_dao
 	 * @param User_DAO $user_dao
 	 */
-	public function __construct( Post_DAO $post_dao, Postmeta_DAO $postmeta_dao,
-								 Term_DAO $term_dao, User_DAO $user_dao ) {
-		$this->post_dao     = $post_dao;
-		$this->postmeta_dao = $postmeta_dao;
-		$this->term_dao     = $term_dao;
-		$this->user_dao     = $user_dao;
+	public function __construct( Batch_Importer_DAO $batch_importer_dao, Post_DAO $post_dao,
+								 Postmeta_DAO $postmeta_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
+		$this->batch_importer_dao = $batch_importer_dao;
+		$this->post_dao           = $post_dao;
+		$this->postmeta_dao       = $postmeta_dao;
+		$this->term_dao           = $term_dao;
+		$this->user_dao           = $user_dao;
 
 		$this->parent_post_relations   = array();
 		$this->user_relations          = array();
@@ -104,17 +118,17 @@ class Import_Batch {
 	/**
 	 * Runs on production server when a batch of data has been received.
 	 *
-	 * @param int $batch_id
+	 * @param int $batch_importer_id
 	 */
-	public function init( $batch_id ) {
+	public function init( $batch_importer_id ) {
 
-		error_log( 'Importing batch with ID ' . $batch_id . '...' );
+		error_log( 'Importing batch using importer with ID ' . $batch_importer_id . '...' );
 
-		// Get batch from database.
-		$batch = $this->post_dao->get_post_by_id( $batch_id );
+		// Get batch importer from database.
+		$importer = $this->batch_importer_dao->get_importer_by_id( $batch_importer_id );
 
-		// Decode and unserialize batch data.
-		$batch = unserialize( base64_decode( $batch->get_post_content() ) );
+		// Get the batch.
+		$batch = $importer->get_batch();
 
 		// Import attachments.
 		$this->import_attachments( $batch->get_attachments() );
@@ -134,6 +148,13 @@ class Import_Batch {
 
 		// Publish posts.
 		$this->publish_posts();
+
+		/*
+		 * Delete importer. Importer is not actually deleted, just set to draft
+		 * mode. This is important since we need to access e.g. meta data telling
+		 * us the status of the import even when import has finished.
+		 */
+		$this->batch_importer_dao->delete_importer( $importer );
 	}
 
 	/**

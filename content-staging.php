@@ -33,6 +33,7 @@ require_once( ABSPATH . WPINC . '/class-wp-http-ixr-client.php' );
 require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/db/mappers/class-mapper.php' );
+require_once( 'classes/db/mappers/class-batch-importer-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-mapper.php' );
 require_once( 'classes/db/mappers/class-post-mapper.php' );
 require_once( 'classes/db/mappers/class-taxonomy-mapper.php' );
@@ -40,12 +41,14 @@ require_once( 'classes/db/mappers/class-term-mapper.php' );
 require_once( 'classes/db/mappers/class-user-mapper.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
+require_once( 'classes/db/class-batch-importer-dao.php' );
 require_once( 'classes/db/class-post-dao.php' );
 require_once( 'classes/db/class-postmeta-dao.php' );
 require_once( 'classes/db/class-term-dao.php' );
 require_once( 'classes/db/class-user-dao.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/models/class-batch.php' );
+require_once( 'classes/models/class-batch-importer.php' );
 require_once( 'classes/models/class-post.php' );
 require_once( 'classes/models/class-taxonomy.php' );
 require_once( 'classes/models/class-term.php' );
@@ -67,6 +70,8 @@ require_once( 'functions/helpers.php' );
  * Import classes.
  */
 use Me\Stenberg\Content\Staging\API;
+use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
+use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Importer_Mapper;
 use Me\Stenberg\Content\Staging\Import_Batch;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
@@ -115,18 +120,20 @@ class Content_Staging {
 		$plugin_url  = plugins_url( basename( $plugin_path ), $plugin_path );
 
 		// Database mappers
-		$batch_mapper    = new Batch_Mapper();
-		$post_mapper     = new Post_Mapper();
-		$taxonomy_mapper = new Taxonomy_Mapper();
-		$term_mapper     = new Term_Mapper();
-		$user_mapper     = new User_Mapper();
+		$batch_importer_mapper = new Batch_Importer_Mapper();
+		$batch_mapper          = new Batch_Mapper();
+		$post_mapper           = new Post_Mapper();
+		$taxonomy_mapper       = new Taxonomy_Mapper();
+		$term_mapper           = new Term_Mapper();
+		$user_mapper           = new User_Mapper();
 
 		// Data access objects.
-		$batch_dao    = new Batch_DAO( $wpdb, $batch_mapper );
-		$post_dao     = new Post_DAO( $wpdb, $post_mapper );
-		$postmeta_dao = new Postmeta_DAO( $wpdb );
-		$term_dao     = new Term_DAO( $wpdb, $taxonomy_mapper, $term_mapper );
-		$user_dao     = new User_DAO( $wpdb, $user_mapper );
+		$batch_dao          = new Batch_DAO( $wpdb, $batch_mapper );
+		$batch_importer_dao = new Batch_Importer_DAO( $wpdb, $batch_importer_mapper );
+		$post_dao           = new Post_DAO( $wpdb, $post_mapper );
+		$postmeta_dao       = new Postmeta_DAO( $wpdb );
+		$term_dao           = new Term_DAO( $wpdb, $taxonomy_mapper, $term_mapper );
+		$user_dao           = new User_DAO( $wpdb, $user_mapper );
 
 		// XML-RPC client.
 		$xmlrpc_client = new Client( CONTENT_STAGING_REMOTE_SERVER, CONTENT_STAGING_SECRET_KEY );
@@ -139,7 +146,7 @@ class Content_Staging {
 
 		// Controllers / Resources.
 		$batch_ctrl    = new Batch_Ctrl( $template, $batch_mgr, $xmlrpc_client, $batch_dao, $post_dao );
-		$receive_batch = new Receive_Batch( $batch_dao, $post_dao );
+		$receive_batch = new Receive_Batch( $batch_importer_dao, $post_dao );
 
 		// APIs.
 		$sme_content_staging_api = new API( $post_dao, $postmeta_dao );
@@ -148,13 +155,13 @@ class Content_Staging {
 		$xmlrpc_client->attach( $receive_batch );
 
 		// Controller responsible for importing a batch to production.
-		$import_batch = new Import_Batch( $post_dao, $postmeta_dao, $term_dao, $user_dao );
+		$import_batch = new Import_Batch( $batch_importer_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
 
 		// Plugin setup.
 		$setup = new Setup( $batch_ctrl, $xmlrpc_client, $plugin_url );
 
 		// Actions.
-		add_action( 'init', array( $setup, 'register_post_type' ) );
+		add_action( 'init', array( $setup, 'register_post_types' ) );
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
 		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );

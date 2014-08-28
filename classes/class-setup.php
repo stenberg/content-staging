@@ -42,14 +42,16 @@ class Setup {
 	}
 
 	/**
-	 * Create the content batch post type.
+	 * Create custom post types.
+	 *
 	 * Should only be invoked through the 'init' action. It will not work if
 	 * called before 'init' and aspects of the newly created post type will
 	 * work incorrectly if called later.
 	 */
-	public function register_post_type() {
+	public function register_post_types() {
 
-		$args = array(
+		// Arguments for content batch post type
+		$batch = array(
 			'label'  => __( 'Content Batches', 'sme-content-staging' ),
 			'labels' => array(
 				'singular_name'      => __( 'Content Batch', 'sme-content-staging' ),
@@ -63,10 +65,31 @@ class Setup {
 			),
 			'description' => __( 'Content is divided into batches. Content Batches is a post type where each Content Batch is its own post.', 'sme-content-staging' ),
 			'public'      => false,
-			'supports'    => array( 'title', 'editor' )
+			'supports'    => array( 'title', 'editor' ),
 		);
 
-		register_post_type( 'sme_content_batch', $args );
+		// Arguments for batch importer post type
+		$importer = array(
+			'label'  => __( 'Batch Importers', 'sme-content-staging' ),
+			'labels' => array(
+				'singular_name'      => __( 'Batch Importers', 'sme-content-staging' ),
+				'add_new_item'       => __( 'Add New Batch Importer', 'sme-content-staging' ),
+				'edit_item'          => __( 'Edit Batch Importer', 'sme-content-staging' ),
+				'new_item'           => __( 'New Batch Importer', 'sme-content-staging' ),
+				'view_item'          => __( 'View Batch Importer', 'sme-content-staging' ),
+				'search_items'       => __( 'Search Batch Importers', 'sme-content-staging' ),
+				'not_found'          => __( 'No Batch Importers found', 'sme-content-staging' ),
+				'not_found_in_trash' => __( 'No Batch Importers found in Trash', 'sme-content-staging' )
+			),
+			'description' => __( 'Batches are imported by Batch Importers.', 'sme-content-staging' ),
+			'public'      => false,
+			'supports'    => array( 'editor' ),
+		);
+
+		register_post_type( 'sme_content_batch', $batch );
+		register_post_type( 'sme_batch_importer', $importer );
+
+
 	}
 
 	public function register_menu_pages() {

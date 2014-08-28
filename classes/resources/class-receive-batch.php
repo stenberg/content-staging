@@ -2,26 +2,27 @@
 namespace Me\Stenberg\Content\Staging\Resources;
 
 use Me\Stenberg\Content\Staging\Background_Process;
-use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Batch_Importer;
 use Me\Stenberg\Patterns\Observer\Observable;
 use Me\Stenberg\Patterns\Observer\Observer;
 
 class Receive_Batch implements Observer {
 
-	private $batch_dao;
+	private $batch_importer_dao;
 	private $post_dao;
 
 	/**
 	 * Construct object, dependencies are injected.
 	 *
-	 * @param Batch_DAO $batch_dao
+	 * @param Batch_Importer_DAO $batch_importer_dao
 	 * @param Post_DAO $post_dao
 	 */
-	public function __construct( Batch_DAO $batch_dao, Post_DAO $post_dao ) {
-		$this->batch_dao = $batch_dao;
-		$this->post_dao  = $post_dao;
+	public function __construct( Batch_Importer_DAO $batch_importer_dao, Post_DAO $post_dao ) {
+		$this->batch_importer_dao = $batch_importer_dao;
+		$this->post_dao           = $post_dao;
 	}
 
 	/**
@@ -61,13 +62,14 @@ class Receive_Batch implements Observer {
 			}
 		} else if ( $data['action'] === 'send' ) {
 
-			// Store batch data in database.
-			$batch->set_id( $this->save_batch( $batch ) );
+			$importer = new Batch_Importer();
+			$importer->set_batch( $batch );
+			$this->batch_importer_dao->insert_importer( $importer );
 
 			// Trigger import script.
 			$import_script = dirname( dirname( dirname( __FILE__ ) ) ) . '/scripts/import-batch.php';
 			$background_process = new Background_Process(
-				'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $batch->get_id()
+				'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id()
 			);
 
 			if ( file_exists( $import_script ) ) {
@@ -78,7 +80,7 @@ class Receive_Batch implements Observer {
 
 			// Return batch ID.
 			return array(
-				'info' => array( 'Batch has been successfully sent! Batch ID: ' . $batch->get_id() )
+				'info' => array( 'Import of batch has been started. Importer ID: ' . $importer->get_id() )
 			);
 
 		} else {
@@ -116,34 +118,6 @@ class Receive_Batch implements Observer {
 		}
 
 		return $messages;
-	}
-
-	/**
-	 * Store batch data. Called when production has received a batch.
-	 * The ID of the created batch is returned.
-	 *
-	 * @todo Should probably move serializing and encode of batch to some
-	 * more central place to make it reusable.
-	 *
-	 * @param Batch $batch
-	 * @return int
-	 */
-	private function save_batch( Batch $batch ) {
-
-		// Set production ID for this batch.
-		$batch->set_id( $this->batch_dao->get_batch_id_by_guid( $batch->get_guid() ) );
-
-		// Store entire batch in content property of batch.
-		$batch->set_content( base64_encode( serialize( $batch ) ) );
-
-		if ( ! $batch->get_id() ) {
-			// New batch.
-			return $this->batch_dao->insert_batch( $batch );
-		} else {
-			// Update existing batch.
-			$this->batch_dao->update_batch( $batch );
-			return $batch->get_id();
-		}
 	}
 
 	/**

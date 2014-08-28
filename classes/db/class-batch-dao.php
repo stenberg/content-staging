@@ -186,25 +186,26 @@ class Batch_DAO extends DAO {
 	 * Set 'post_status' for provided batch to 'draft'. This will hide the
 	 * batch from users, but keeping it for future references.
 	 *
+	 * Empty 'post_content'. Since batches can be huge this is just a
+	 * precaution so we do not fill the users database with a lot of
+	 * unnecessary data.
+	 *
 	 * @param Batch $batch
 	 */
 	public function delete_batch( Batch $batch ) {
+
 		$this->wpdb->update(
 			$this->wpdb->posts,
-			array( 'post_status' => 'draft' ),
-			array( 'ID' => $batch->get_id() ),
-			array( '%s' ),
+			array(
+				'post_content' => '',
+				'post_status'  => 'draft',
+			),
+			array(
+				'ID' => $batch->get_id(),
+			),
+			array( '%s', '%s' ),
 			array( '%d' )
 		);
-	}
-
-	/**
-	 * @param Batch $batch
-	 */
-	public function update_post_ids_in_batch( Batch $batch ) {
-		foreach ( $batch->get_meta_data() as $meta_key => $meta_value ) {
-			update_post_meta( $batch->get_id(), $meta_key, $meta_value );
-		}
 	}
 
 	/**
