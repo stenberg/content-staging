@@ -294,6 +294,28 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Triggered by an AJAX call. Returns the status of the import together
+	 * with any messages generated during import.
+	 */
+	public function get_import_status() {
+
+		$importer_id = intval( $_POST['importer_id'] );
+
+		$request = array(
+			'importer_id' => $importer_id,
+			'action'      => 'import_status',
+		);
+
+		$this->xmlrpc_client->query( 'content.staging', $request );
+		$response = $this->xmlrpc_client->get_response_data();
+
+		header( 'Content-Type: application/json' );
+		echo json_encode( $response );
+
+		die(); // Required to return a proper result.
+	}
+
+	/**
 	 * Save batch data user has submitted through form.
 	 */
 	public function save_batch() {

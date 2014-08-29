@@ -169,6 +169,7 @@ class Content_Staging {
 		add_action( 'admin_post_sme-quick-deploy-batch', array( $batch_ctrl, 'quick_deploy_batch' ) );
 		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );
 		add_action( 'sme_import_batch', array( $import_batch, 'init' ) );
+		add_action( 'wp_ajax_sme_batch_import_status', array( $batch_ctrl, 'get_import_status' ) );
 
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_method' ) );

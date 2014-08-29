@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Exception;
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Importer_Mapper;
 use Me\Stenberg\Content\Staging\Models\Batch_Importer;
 

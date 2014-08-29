@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB\Mappers;
 
+use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Importer;
 
 class Batch_Importer_Mapper extends Mapper {
@@ -57,19 +58,24 @@ class Batch_Importer_Mapper extends Mapper {
 			}
 
 			if ( isset( $post['post_content'] ) ) {
-				$importer->set_batch( unserialize( base64_decode( $post['post_content'] ) ) );
+				$content = unserialize( base64_decode( $post['post_content'] ) );
+				if ( $content instanceof Batch ) {
+					$importer->set_batch( $content );
+				}
 			}
 
 			if ( ! empty( $meta ) ) {
-				foreach ( $meta as $key => $value ) {
-					if ( $key == 'sme_import_messages' ) {
-						$messages = unserialize( $value );
-						foreach ( $messages as $level => $message ) {
-							$importer->add_message( $message, $level );
+				foreach ( $meta as $value ) {
+					if ( $value['meta_key'] == 'sme_import_messages' ) {
+						$meta_value = unserialize( $value['meta_value'] );
+						foreach ( $meta_value as $level => $messages ) {
+							foreach ( $messages as $message ) {
+								$importer->add_message( $message, $level );
+							}
 						}
 					}
-					if ( $key == 'sme_import_status' ) {
-						$importer->set_status( $value );
+					if ( $value['meta_key'] == 'sme_import_status' ) {
+						$importer->set_status( $value['meta_value'] );
 					}
 				}
 			}

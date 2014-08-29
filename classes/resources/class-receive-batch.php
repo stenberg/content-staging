@@ -28,6 +28,9 @@ class Receive_Batch implements Observer {
 	/**
 	 * Called by an Observable object whenever data has been updated.
 	 *
+	 * @todo Getting import status has nothing to do with receiving a batch,
+	 * should not be here!
+	 *
 	 * @param Observable $xmlrpc_client
 	 * @return string
 	 */
@@ -35,6 +38,10 @@ class Receive_Batch implements Observer {
 
 		// Get incoming request data.
 		$data = $xmlrpc_client->get_request_data();
+
+		if ( isset( $data['action'] ) && $data['action'] == 'import_status' && isset( $data['importer_id'] ) ) {
+			return $this->get_importer_status( $data['importer_id'] );
+		}
 
 		// Check if a batch has been provided.
 		if ( ! isset( $data['batch'] ) || ! ( $data['batch'] instanceof Batch ) ) {
@@ -80,7 +87,7 @@ class Receive_Batch implements Observer {
 
 			// Return batch ID.
 			return array(
-				'info' => array( 'Import of batch has been started. Importer ID: ' . $importer->get_id() )
+				'info' => array( 'Import of batch has been started. Importer ID: <span id="sme-batch-importer-id">' . $importer->get_id() . '</span>' )
 			);
 
 		} else {
@@ -116,6 +123,28 @@ class Receive_Batch implements Observer {
 				}
 			}
 		}
+
+		return $messages;
+	}
+
+	/**
+	 * Triggered by an AJAX call. Returns the status of the import together
+	 * with any messages generated during import.
+	 *
+	 * @param int $importer_id
+	 * @return array
+	 */
+	public function get_importer_status( $importer_id ) {
+
+		$importer = $this->batch_importer_dao->get_importer_by_id( $importer_id );
+
+		$messages = $importer->get_messages();
+
+		if ( ! array_key_exists( 'info', $messages ) ) {
+			$messages['info'] = array();
+		}
+
+		$messages['info'][] = 'Import status: ' . $importer->get_status();
 
 		return $messages;
 	}

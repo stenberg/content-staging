@@ -138,6 +138,10 @@ class Import_Batch {
 			return;
 		}
 
+		// Import running.
+		$importer->set_status( 1 );
+		$this->batch_importer_dao->update_importer( $importer );
+
 		// Get the batch.
 		$batch = $importer->get_batch();
 
