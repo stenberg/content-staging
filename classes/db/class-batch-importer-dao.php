@@ -21,12 +21,20 @@ class Batch_Importer_DAO extends DAO {
 	 * @return Batch_Importer
 	 */
 	public function get_importer_by_id( $id ) {
-		$query = $this->wpdb->prepare(
+		$importer_query = $this->wpdb->prepare(
 			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ID = %d',
 			$id
 		);
 
-		return $this->importer_mapper->array_to_importer_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		$meta_query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->wpdb->postmeta . ' WHERE post_id = %d',
+			$id
+		);
+
+		$importer_data = $this->wpdb->get_row( $importer_query, ARRAY_A );
+		$meta_data     = $this->wpdb->get_results( $meta_query, ARRAY_A );
+
+		return $this->importer_mapper->array_to_importer_object( $importer_data, $meta_data );
 	}
 
 	/**
@@ -81,6 +89,9 @@ class Batch_Importer_DAO extends DAO {
 		$this->update(
 			'posts', $data['values'], array( 'ID' => $importer->get_id() ), $data['format'], array( '%d' )
 		);
+
+		$this->update_post_meta( $importer->get_id(), 'sme_import_messages', $importer->get_messages() );
+		$this->update_post_meta( $importer->get_id(), 'sme_import_status', $importer->get_status() );
 	}
 
 	/**

@@ -127,6 +127,17 @@ class Import_Batch {
 		// Get batch importer from database.
 		$importer = $this->batch_importer_dao->get_importer_by_id( $batch_importer_id );
 
+		// No importer found, error
+		if ( ! $importer ) {
+			$importer->add_message(
+				sprintf( 'Batch importer with ID %d failed to start.', $batch_importer_id ),
+				'error'
+			);
+			$importer->set_status( 2 );
+			$this->batch_importer_dao->update_importer( $importer );
+			return;
+		}
+
 		// Get the batch.
 		$batch = $importer->get_batch();
 
@@ -148,6 +159,11 @@ class Import_Batch {
 
 		// Publish posts.
 		$this->publish_posts();
+
+		// Import finished, set success message and update import status.
+		$importer->add_message( 'Batch has been successfully imported!', 'success' );
+		$importer->set_status( 3 );
+		$this->batch_importer_dao->update_importer( $importer );
 
 		/*
 		 * Delete importer. Importer is not actually deleted, just set to draft

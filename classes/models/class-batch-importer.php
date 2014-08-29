@@ -57,12 +57,32 @@ class Batch_Importer {
 	private $batch;
 
 	/**
+	 * Status of the import, can be any of:
+	 * 0 (not started)
+	 * 1 (importing)
+	 * 2 (failed)
+	 * 3 (completed)
+	 *
+	 * @var int
+	 */
+	private $status;
+
+	/**
+	 * Messages generated during batch import.
+	 *
+	 * @var
+	 */
+	private $messages;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param int $id
 	 */
 	public function __construct( $id = null ) {
-		$this->id = $id;
+		$this->id       = $id;
+		$this->status   = 0;
+		$this->messages = array();
 	}
 
 	/**
@@ -161,6 +181,52 @@ class Batch_Importer {
 	 */
 	public function get_batch() {
 		return $this->batch;
+	}
+
+	/**
+	 * Set status of the import, can be any of:
+	 * 0 (not started)
+	 * 1 (running)
+	 * 2 (failed)
+	 * 3 (completed)
+	 *
+	 * @param int $status
+	 */
+	public function set_status( $status = 0 ) {
+		$this->status = (int) $status;
+	}
+
+	/**
+	 * Get status of import.
+	 *
+	 * @return int
+	 */
+	public function get_status() {
+		return $this->status;
+	}
+
+	/**
+	 * Add a message.
+	 *
+	 * @param string $message
+	 * @param string $level
+	 * @throws Exception
+	 */
+	public function add_message( $message, $level = 'info' ) {
+		$levels = array( 'success', 'info', 'warning', 'error' );
+		if ( ! in_array( $level, $levels ) ) {
+			throw new Exception( 'Unsupported message level: ' . $level );
+		}
+		$this->messages[$level][] = $message;
+	}
+
+	/**
+	 * Return all messages.
+	 *
+	 * @return array
+	 */
+	public function get_messages() {
+		return $this->messages;
 	}
 
 }
