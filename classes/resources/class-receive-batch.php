@@ -128,8 +128,7 @@ class Receive_Batch implements Observer {
 	}
 
 	/**
-	 * Triggered by an AJAX call. Returns the status of the import together
-	 * with any messages generated during import.
+	 * Runs on production. Retrieve current status of a batch import.
 	 *
 	 * @param int $importer_id
 	 * @return array
@@ -138,15 +137,10 @@ class Receive_Batch implements Observer {
 
 		$importer = $this->batch_importer_dao->get_importer_by_id( $importer_id );
 
-		$messages = $importer->get_messages();
-
-		if ( ! array_key_exists( 'info', $messages ) ) {
-			$messages['info'] = array();
-		}
-
-		$messages['info'][] = 'Import status: ' . $importer->get_status();
-
-		return $messages;
+		return array(
+			'status'   => $importer->get_status(),
+			'messages' => $importer->get_messages(),
+		);
 	}
 
 	/**

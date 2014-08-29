@@ -211,7 +211,7 @@ class Batch_Ctrl {
 		$data = array(
 			'batch'      => $batch,
 			'batch_data' => base64_encode( serialize( $batch ) ),
-			'response'   => $response,
+			'response'   => $this->parse_messages( $response ),
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -287,7 +287,7 @@ class Batch_Ctrl {
 		$this->batch_dao->delete_batch( $batch );
 
 		$data = array(
-			'response' => $response,
+			'response' => $this->parse_messages( $response ),
 		);
 
 		$this->template->render( 'deploy-batch', $data );
@@ -310,7 +310,7 @@ class Batch_Ctrl {
 		$response = $this->xmlrpc_client->get_response_data();
 
 		header( 'Content-Type: application/json' );
-		echo json_encode( $response );
+		echo json_encode( $response[0] );
 
 		die(); // Required to return a proper result.
 	}
@@ -433,7 +433,7 @@ class Batch_Ctrl {
 	 * @param array $posts
 	 * @return array
 	 */
-	private function sort_posts( $posts ) {
+	private function sort_posts( array $posts ) {
 
 		$pages = array();
 		$blog_posts = array();
@@ -452,4 +452,26 @@ class Batch_Ctrl {
 		return array_merge( $pages, $blog_posts, $others );
 	}
 
+	/**
+	 * Locate any messages that was returned from the response.
+	 *
+	 * @param array $response
+	 * @return array
+	 */
+	private function parse_messages( array $response ) {
+
+		$messages = array();
+
+		// Search for messages in the response.
+		foreach ( $response as $item ) {
+			foreach ( $item as $level => $data ) {
+				if ( ! array_key_exists( $level, $messages ) ) {
+					$messages[$level] = array();
+				}
+				$messages[$level] = array_merge( $messages[$level], $data );
+			}
+		}
+
+		return $messages;
+	}
 }

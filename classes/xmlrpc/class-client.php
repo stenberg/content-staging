@@ -55,24 +55,14 @@ class Client implements Observable {
 	public function notify() {
 
 		// Messages to return as the XML-RPC response.
-		$responses = array();
+		$response = array();
 
 		foreach ( $this->observers as $observer ) {
-
 			// Notify the observer about the XML-RPC request.
-			$response = $observer->update( $this );
-
-			// Search for messages in the response we got from the observer.
-			foreach ( $response as $level => $messages ) {
-				if ( ! array_key_exists( $level, $responses ) ) {
-					$responses[$level] = array();
-				}
-
-				$responses[$level] = array_merge( $responses[$level], $messages );
-			}
+			$response[] = $observer->update( $this );
 		}
 
-		return $responses;
+		return $response;
 	}
 
 	/**
