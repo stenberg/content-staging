@@ -53,9 +53,6 @@ require_once( 'classes/models/class-post.php' );
 require_once( 'classes/models/class-taxonomy.php' );
 require_once( 'classes/models/class-term.php' );
 require_once( 'classes/models/class-user.php' );
-require_once( 'classes/patterns/interface-observable.php' );
-require_once( 'classes/patterns/interface-observer.php' );
-require_once( 'classes/resources/class-receive-batch.php' );
 require_once( 'classes/view/class-batch-table.php' );
 require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
@@ -87,7 +84,6 @@ use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
-use Me\Stenberg\Content\Staging\Resources\Receive_Batch;
 use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
@@ -144,15 +140,15 @@ class Content_Staging {
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
-		// Controllers / Resources.
-		$batch_ctrl    = new Batch_Ctrl( $template, $batch_mgr, $xmlrpc_client, $batch_dao, $post_dao );
-		$receive_batch = new Receive_Batch( $batch_importer_dao, $post_dao );
+		// Controllers.
+		$batch_ctrl = new Batch_Ctrl(
+			$template, $batch_mgr, $xmlrpc_client, $batch_importer_dao, $batch_dao, $post_dao
+		);
+
+//		$receive_batch = new Receive_Batch( $batch_importer_dao, $post_dao );
 
 		// APIs.
 		$sme_content_staging_api = new API( $post_dao, $postmeta_dao );
-
-		// Attach observers to the XML-RPC client.
-		$xmlrpc_client->attach( $receive_batch );
 
 		// Controller responsible for importing a batch to production.
 		$import_batch = new Import_Batch( $batch_importer_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
@@ -172,7 +168,7 @@ class Content_Staging {
 		add_action( 'wp_ajax_sme_batch_import_status', array( $batch_ctrl, 'get_import_status' ) );
 
 		// Filters.
-		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_method' ) );
+		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );
 		add_filter( 'sme_postmeta_post_relation_keys', array( $setup, 'set_postmeta_post_relation_keys' ) );
 	}
 

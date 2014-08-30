@@ -1,9 +1,12 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
+use Me\Stenberg\Content\Staging\Background_Process;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Batch_Importer;
 use Me\Stenberg\Content\Staging\View\Batch_Table;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\View\Post_Table;
@@ -15,16 +18,18 @@ class Batch_Ctrl {
 	private $template;
 	private $batch_mgr;
 	private $xmlrpc_client;
+	private $batch_importer_dao;
 	private $batch_dao;
 	private $post_dao;
 
 	public function __construct( Template $template, Batch_Mgr $batch_mgr, Client $xmlrpc_client,
-								 Batch_DAO $batch_dao, Post_DAO $post_dao ) {
-		$this->template      = $template;
-		$this->batch_mgr     = $batch_mgr;
-		$this->xmlrpc_client = $xmlrpc_client;
-		$this->batch_dao     = $batch_dao;
-		$this->post_dao      = $post_dao;
+								 Batch_Importer_DAO $batch_importer_dao, Batch_DAO $batch_dao, Post_DAO $post_dao ) {
+		$this->template           = $template;
+		$this->batch_mgr          = $batch_mgr;
+		$this->xmlrpc_client      = $xmlrpc_client;
+		$this->batch_importer_dao = $batch_importer_dao;
+		$this->batch_dao          = $batch_dao;
+		$this->post_dao           = $post_dao;
 	}
 
 	/**
@@ -201,20 +206,50 @@ class Batch_Ctrl {
 
 		$request = array(
 			'batch'  => $batch,
-			'action' => 'preflight'
 		);
 
-		$this->xmlrpc_client->query( 'content.staging', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.preflight', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'      => $batch,
 			'batch_data' => base64_encode( serialize( $batch ) ),
-			'response'   => $this->parse_messages( $response ),
+			'response'   => $response,
 		);
 
 		$this->template->render( 'preflight-batch', $data );
+	}
+
+	/**
+	 * Runs on production when a pre-flight request has been received.
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public function preflight( array $args ) {
+
+		$this->xmlrpc_client->handle_request( $args );
+		$result = $this->xmlrpc_client->get_request_data();
+
+		// Check if a batch has been provided.
+		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+			return $this->xmlrpc_client->prepare_response(
+				array( 'error' => array( 'Invalid batch!' ) )
+			);
+		}
+
+		// Get batch.
+		$batch = $result['batch'];
+
+		$messages = $this->receive_preflight_data( $batch );
+
+		if ( ! isset( $messages['error'] ) ) {
+			$messages = array( 'success' => array( 'Pre-flight successful!' ) );
+		}
+
+		// Prepare and return the XML-RPC response data.
+		return $this->xmlrpc_client->prepare_response( $messages );
 	}
 
 	/**
@@ -273,10 +308,9 @@ class Batch_Ctrl {
 
 		$request = array(
 			'batch'  => $batch,
-			'action' => 'send',
 		);
 
-		$this->xmlrpc_client->query( 'content.staging', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.deploy', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		/*
@@ -287,10 +321,64 @@ class Batch_Ctrl {
 		$this->batch_dao->delete_batch( $batch );
 
 		$data = array(
-			'response' => $this->parse_messages( $response ),
+			'response' => $response,
 		);
 
 		$this->template->render( 'deploy-batch', $data );
+	}
+
+	/**
+	 * Runs on production when a deploy request has been received.
+	 *
+	 * @todo Checking if a batch has been provided is duplicated from
+	 * pre-flight, fix!
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public function deploy( array $args ) {
+
+		$this->xmlrpc_client->handle_request( $args );
+		$result = $this->xmlrpc_client->get_request_data();
+
+		// ----- Duplicated -----
+
+		// Check if a batch has been provided.
+		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+			return $this->xmlrpc_client->prepare_response(
+				array( 'error' => array( 'Invalid batch!' ) )
+			);
+		}
+
+		// Get batch.
+		$batch = $result['batch'];
+
+		// ----- Duplicated -----
+
+		$importer = new Batch_Importer();
+		$importer->set_batch( $batch );
+		$this->batch_importer_dao->insert_importer( $importer );
+
+		// Trigger import script.
+		$import_script = dirname( dirname( dirname( __FILE__ ) ) ) . '/scripts/import-batch.php';
+		$background_process = new Background_Process(
+			'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id()
+		);
+
+		if ( file_exists( $import_script ) ) {
+			$background_process->run();
+		}
+
+		error_log( 'Background Process ID: ' . $background_process->get_pid() );
+
+		$response = array(
+			'info' => array(
+				'Import of batch has been started. Importer ID: <span id="sme-batch-importer-id">' . $importer->get_id() . '</span>',
+			)
+		);
+
+		// Prepare and return the XML-RPC response data.
+		return $this->xmlrpc_client->prepare_response( $response );
 	}
 
 	/**
@@ -303,16 +391,51 @@ class Batch_Ctrl {
 
 		$request = array(
 			'importer_id' => $importer_id,
-			'action'      => 'import_status',
 		);
 
-		$this->xmlrpc_client->query( 'content.staging', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.deployStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		header( 'Content-Type: application/json' );
-		echo json_encode( $response[0] );
+		echo json_encode( $response );
 
 		die(); // Required to return a proper result.
+	}
+
+	/**
+	 * Runs on production when a deploy status request has been received.
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public function deploy_status( array $args ) {
+
+		$response = array(
+			'status'   => 0,
+			'messages' => array(),
+		);
+
+		$this->xmlrpc_client->handle_request( $args );
+		$result = $this->xmlrpc_client->get_request_data();
+
+		// Check if a batch has been provided.
+		if ( ! isset( $result['importer_id'] ) ) {
+			$response['messages']['error'] = array( 'No batch importer has been provided!' );
+			return $this->xmlrpc_client->prepare_response( $response );
+		}
+
+		// Get batch importer ID.
+		$importer_id = intval( $result['importer_id'] );
+
+		// Get batch importer.
+		$importer = $this->batch_importer_dao->get_importer_by_id( $importer_id );
+
+		// Create response.
+		$response['status']   = $importer->get_status();
+		$response['messages'] = $importer->get_messages();
+
+		// Prepare and return the XML-RPC response data.
+		return $this->xmlrpc_client->prepare_response( $response );
 	}
 
 	/**
@@ -426,6 +549,38 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Runs on the production server when pre-flight data is received.
+	 *
+	 * @param Batch $batch
+	 * @return array
+	 */
+	private function receive_preflight_data( Batch $batch ) {
+
+		$messages = array();
+
+		foreach ( $batch->get_posts() as $post ) {
+
+			// Check if parent post exist on production or in batch.
+			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
+				$messages['error'][] = 'Post ID ' . $post->get_id() . ' is missing its parent post (ID ' . $post->get_post_parent() . '). Parent post does not exist on production and is not part of this batch';
+			}
+		}
+
+		foreach ( $batch->get_attachments() as $attachment ) {
+
+			foreach ( $attachment['sizes'] as $size ) {
+
+				// Check if attachment exists on content stage.
+				if ( ! $this->attachment_exists( $size) ) {
+					$messages['warning'][] = 'Attachment <a href="' . $size . '" target="_blank">' . $size . '</a> is missing on content stage and will not be deployed to production.';
+				}
+			}
+		}
+
+		return $messages;
+	}
+
+	/**
 	 * Sort array of posts so posts of post type 'page' comes first followed
 	 * by post type 'post' and then remaining post types are sorted by
 	 * post type alphabetical.
@@ -453,25 +608,53 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Locate any messages that was returned from the response.
+	 * Make sure parent post exist (if post has any) either in production
+	 * database or in batch.
 	 *
-	 * @param array $response
-	 * @return array
+	 * @param array $post
+	 * @param array $posts
+	 * @return bool True if parent post exist (or post does not have a parent), false
+	 *              otherwise.
 	 */
-	private function parse_messages( array $response ) {
+	private function parent_post_exists( $post, $posts ) {
 
-		$messages = array();
+		// Check if the post has a parent post.
+		if ( $post->get_post_parent() <= 0 ) {
+			return true;
+		}
 
-		// Search for messages in the response.
-		foreach ( $response as $item ) {
-			foreach ( $item as $level => $data ) {
-				if ( ! array_key_exists( $level, $messages ) ) {
-					$messages[$level] = array();
-				}
-				$messages[$level] = array_merge( $messages[$level], $data );
+		// Check if parent post exist on production server.
+		if ( $this->post_dao->get_post_by_guid( $post->get_post_parent_guid() ) ) {
+			return true;
+		}
+
+		// Parent post is not on production, look in this batch for parent post.
+		foreach ( $posts as $item ) {
+			if ( $item->get_id() == $post->get_post_parent() ) {
+				return true;
 			}
 		}
 
-		return $messages;
+		return false;
+	}
+
+	/**
+	 * Check if an attachment exists on remote server.
+	 *
+	 * @param string $attachment
+	 * @return bool
+	 */
+	private function attachment_exists( $attachment ) {
+		$ch = curl_init( $attachment );
+		curl_setopt( $ch, CURLOPT_NOBODY, true );
+		curl_exec( $ch );
+		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		curl_close($ch);
+
+		if ( $code == 200 ) {
+			return true;
+		}
+
+		return false;
 	}
 }

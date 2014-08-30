@@ -115,13 +115,18 @@ class Setup {
 	}
 
 	/**
-	 * Register XML-RPC method.
+	 * Register XML-RPC methods.
 	 *
 	 * @param array $methods
 	 * @return array
 	 */
-	public function register_xmlrpc_method( $methods ) {
-		return array_merge( $methods, array( 'content.staging' => array( $this->xmlrpc_client, 'request' ) ) );
+	public function register_xmlrpc_methods( $methods ) {
+
+		$methods['smeContentStaging.preflight']    = array( $this->batch_ctrl, 'preflight' );
+		$methods['smeContentStaging.deploy']       = array( $this->batch_ctrl, 'deploy' );
+		$methods['smeContentStaging.deployStatus'] = array( $this->batch_ctrl, 'deploy_status' );
+
+		return $methods;
 	}
 
 	public function set_postmeta_post_relation_keys( $meta_keys ) {

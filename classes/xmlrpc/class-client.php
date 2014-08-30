@@ -1,16 +1,13 @@
 <?php
 namespace Me\Stenberg\Content\Staging\XMLRPC;
 
-use Me\Stenberg\Patterns\Observer\Observable;
-use Me\Stenberg\Patterns\Observer\Observer;
 use \WP_HTTP_IXR_Client;
 
-class Client implements Observable {
+class Client {
 
 	private $server;
 	private $secret_key;
 	private $wp_http_ixr_client;
-	private $observers;
 	private $request;
 	private $response;
 
@@ -18,51 +15,6 @@ class Client implements Observable {
 		$this->server = $server;
 		$this->secret_key = $secret_key;
 		$this->wp_http_ixr_client = new WP_HTTP_IXR_Client( trailingslashit( $server ) . 'xmlrpc.php', false, false, CONTENT_STAGING_XMLRPC_TIMEOUT );
-		$this->observers = array();
-	}
-
-	/**
-	 * Attach an object that should be notified on specific changes to this
-	 * object.
-	 *
-	 * @param Observer $observer
-	 */
-	public function attach( Observer $observer ) {
-		$this->observers[] = $observer;
-	}
-
-	/**
-	 * Detach a registered observer.
-	 *
-	 * @param Observer $observer
-	 */
-	public function detach( Observer $observer ) {
-		$new_observers = array();
-		foreach ( $this->observers as $obs ) {
-			if ( ($obs !== $observer ) ) {
-				$new_observers[] = $obs;
-			}
-		}
-		$this->observers = $new_observers;
-	}
-
-	/**
-	 * Notify all observers that a XML-RPC request has been received. Collect
-	 * responses from observers that will be used as XML-RPC response data.
-	 *
-	 * @return array
-	 */
-	public function notify() {
-
-		// Messages to return as the XML-RPC response.
-		$response = array();
-
-		foreach ( $this->observers as $observer ) {
-			// Notify the observer about the XML-RPC request.
-			$response[] = $observer->update( $this );
-		}
-
-		return $response;
 	}
 
 	/**
@@ -118,9 +70,9 @@ class Client implements Observable {
 	 * the XML-RPC response data.
 	 *
 	 * @param array $args
-	 * @return array The XML-RPC response data to the incoming request.
+	 * @return array
 	 */
-	public function request( $args ) {
+	public function handle_request( $args ) {
 
 		if ( ! isset( $args[0] ) ) {
 			return $this->prepare_response(
@@ -156,18 +108,6 @@ class Client implements Observable {
 
 		// Get the request data.
 		$this->request = unserialize( $this->decode( $data ) );
-
-		/*
-		 * Notify any observing objects that a request from content stage has
-		 * been received by the production environment.
-		 *
-		 * The observers will return messages that in turn will be returned as
-		 * the XML-RPC response data.
-		 */
-		$messages = $this->notify();
-
-		// Prepare and return the XML-RPC response data.
-		return $this->prepare_response( $messages );
 	}
 
 	/**
@@ -202,7 +142,7 @@ class Client implements Observable {
 	 * @param array $response
 	 * @return string
 	 */
-	private function prepare_response( $response ) {
+	public function prepare_response( $response ) {
 		return $this->encode( serialize( $response ) );
 	}
 
