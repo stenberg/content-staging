@@ -115,6 +115,9 @@ class Content_Staging {
 		$plugin_path = dirname( __FILE__ );
 		$plugin_url  = plugins_url( basename( $plugin_path ), $plugin_path );
 
+		// Set endpoint.
+		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
+
 		// Database mappers
 		$batch_importer_mapper = new Batch_Importer_Mapper();
 		$batch_mapper          = new Batch_Mapper();
@@ -132,7 +135,7 @@ class Content_Staging {
 		$user_dao           = new User_DAO( $wpdb, $user_mapper );
 
 		// XML-RPC client.
-		$xmlrpc_client = new Client( CONTENT_STAGING_REMOTE_SERVER, CONTENT_STAGING_SECRET_KEY );
+		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
 
 		// Managers.
 		$batch_mgr = new Batch_Mgr( $batch_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
@@ -144,8 +147,6 @@ class Content_Staging {
 		$batch_ctrl = new Batch_Ctrl(
 			$template, $batch_mgr, $xmlrpc_client, $batch_importer_dao, $batch_dao, $post_dao
 		);
-
-//		$receive_batch = new Receive_Batch( $batch_importer_dao, $post_dao );
 
 		// APIs.
 		$sme_content_staging_api = new API( $post_dao, $postmeta_dao );
@@ -179,4 +180,4 @@ register_activation_hook( __FILE__, array( 'Content_Staging', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'Content_Staging', 'deactivate' ) );
 
 // Initialize plugin.
-add_action( 'plugins_loaded', array( 'Content_Staging', 'init' ) );
+add_action( 'init', array( 'Content_Staging', 'init' ) );
