@@ -28,13 +28,18 @@ if ( ! isset( $argv[3] ) || ! $argv[3] ) {
 	exit( 'Fatal error: Missing batch ID in ' . __FILE__ . ' on line ' . (__LINE__ - 1) );
 }
 
+// Set default request URI if none has been provided.
+if ( ! isset( $argv[4] ) || ! $argv[4] ) {
+	$argv[4] = '/';
+}
+
 // Set up server global variable.
 $_SERVER = array(
 	'SERVER_PROTOCOL' => 'HTTP/1.1',
 	'REQUEST_METHOD' => 'GET',
 	'HTTP_HOST' => $argv[2],
 	'SCRIPT_FILENAME' => __FILE__,
-	'REQUEST_URI' => '/'
+	'REQUEST_URI' => $argv[4],
 );
 
 chdir( $argv[1] );

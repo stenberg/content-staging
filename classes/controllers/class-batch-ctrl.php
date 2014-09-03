@@ -359,10 +359,19 @@ class Batch_Ctrl {
 		$importer->set_batch( $batch );
 		$this->batch_importer_dao->insert_importer( $importer );
 
+		// Default site path.
+		$site_path = '/';
+
+		// Site path in multi-site setup.
+		if ( is_multisite() ) {
+			$site      = get_blog_details();
+			$site_path = $site->path;
+		}
+
 		// Trigger import script.
 		$import_script = dirname( dirname( dirname( __FILE__ ) ) ) . '/scripts/import-batch.php';
 		$background_process = new Background_Process(
-			'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id()
+			'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id() . ' ' . $site_path
 		);
 
 		if ( file_exists( $import_script ) ) {
