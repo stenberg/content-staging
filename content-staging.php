@@ -36,7 +36,6 @@ require_once( 'classes/db/mappers/class-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-importer-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-mapper.php' );
 require_once( 'classes/db/mappers/class-post-mapper.php' );
-require_once( 'classes/db/mappers/class-taxonomy-mapper.php' );
 require_once( 'classes/db/mappers/class-term-mapper.php' );
 require_once( 'classes/db/mappers/class-user-mapper.php' );
 require_once( 'classes/db/class-dao.php' );
@@ -53,6 +52,7 @@ require_once( 'classes/models/class-post.php' );
 require_once( 'classes/models/class-taxonomy.php' );
 require_once( 'classes/models/class-term.php' );
 require_once( 'classes/models/class-user.php' );
+require_once( 'classes/models/relationships/class-post-taxonomy.php' );
 require_once( 'classes/view/class-batch-table.php' );
 require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
@@ -75,7 +75,6 @@ use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\Post_Mapper;
-use Me\Stenberg\Content\Staging\DB\Mappers\Taxonomy_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\Term_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\User_Mapper;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
@@ -122,7 +121,6 @@ class Content_Staging {
 		$batch_importer_mapper = new Batch_Importer_Mapper();
 		$batch_mapper          = new Batch_Mapper();
 		$post_mapper           = new Post_Mapper();
-		$taxonomy_mapper       = new Taxonomy_Mapper();
 		$term_mapper           = new Term_Mapper();
 		$user_mapper           = new User_Mapper();
 
@@ -131,7 +129,7 @@ class Content_Staging {
 		$batch_importer_dao = new Batch_Importer_DAO( $wpdb, $batch_importer_mapper );
 		$post_dao           = new Post_DAO( $wpdb, $post_mapper );
 		$postmeta_dao       = new Postmeta_DAO( $wpdb );
-		$term_dao           = new Term_DAO( $wpdb, $taxonomy_mapper, $term_mapper );
+		$term_dao           = new Term_DAO( $wpdb, $term_mapper );
 		$user_dao           = new User_DAO( $wpdb, $user_mapper );
 
 		// XML-RPC client.

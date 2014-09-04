@@ -74,7 +74,6 @@ class Batch_Mgr {
 			$post_ids = $this->batch_dao->get_post_meta( $this->batch->get_id(), 'sme_selected_post_ids', true );
 
 			$this->add_posts( $post_ids );
-			$this->add_terms();
 			$this->add_users();
 
 		}
@@ -115,6 +114,11 @@ class Batch_Mgr {
 		 * include GUID of parent post in the batch.
 		 */
 		$post->set_post_parent_guid( $this->post_dao->get_guid_by_id( $post->get_post_parent() ) );
+
+		// Populate Post object with Post_Taxonomy relationship objects.
+		$this->term_dao->get_post_taxonomy_relationships( $post );
+
+		// Add post to batch.
 		$this->batch->add_post( $post );
 
 		foreach ( $postmeta as $item ) {
@@ -152,101 +156,6 @@ class Batch_Mgr {
 		}
 
 		$this->batch->add_attachment( $attachment );
-	}
-
-	/**
-	 * Add terms to batch.
-	 */
-	private function add_terms() {
-
-		$post_ids          = array();
-		$term_taxonomy_ids = array();
-		$term_ids          = array();
-
-		foreach ( $this->batch->get_posts() as $post ) {
-			$post_ids[] = $post->get_id();
-		}
-
-		$term_relationships = $this->term_dao->get_term_relationships_by_post_ids( $post_ids );
-
-		foreach ( $term_relationships as $relation ) {
-
-			// Go through all posts in array and add term taxonomy relationships.
-			foreach ( $this->batch->get_posts() as $post ) {
-
-				/*
-				 * @todo Here we assume object_id refers to a post. This might not be the
-				 * case, e.g. links can also have texonomy relationships.
-				 */
-				if ( $post->get_id() == $relation['object_id'] ) {
-					$post->add_taxonomy_relationship( $relation['term_taxonomy_id'], $relation['term_order'] );
-				}
-			}
-
-			$term_taxonomy_ids[] = $relation['term_taxonomy_id'];
-		}
-
-		$term_taxonomies = $this->term_dao->get_term_taxonomies_by_ids( $term_taxonomy_ids );
-		$parent_term_taxonomies = array();
-
-		// Add parent term-taxonomies.
-		foreach ( $term_taxonomies as $term_taxonomy ) {
-			$parent_term_taxonomies = array_merge( $parent_term_taxonomies, $this->get_parent_term_taxonomies( $term_taxonomy ) );
-		}
-
-		// Merge all term/taxonomies and get rid of duplicates.
-		$term_taxonomies = array_merge( $term_taxonomies, $parent_term_taxonomies );
-		$term_taxonomies = array_unique( $term_taxonomies, SORT_REGULAR );
-
-		foreach ( $term_taxonomies as $term_taxonomy ) {
-			$term_ids[] = $term_taxonomy->get_term_id();
-			if ( $term_taxonomy->get_parent() > 0 ) {
-				$term_ids[] = $term_taxonomy->get_parent();
-			}
-		}
-
-		// Get rid of duplicated values and re-index array.
-		$term_ids = array_unique( $term_ids );
-		$term_ids = array_values( $term_ids );
-
-		$terms = $this->term_dao->get_terms_by_ids( $term_ids );
-
-		$data = array(
-			'term_taxonomies' => $term_taxonomies,
-			'terms'           => $terms,
-		);
-
-		$this->batch->set_terms( $data );
-	}
-
-	/**
-	 * Get all parent term-taxonomies of a specific term-taxonomy.
-	 *
-	 * @todo This might return duplicates. This can probably be optimised.
-	 *
-	 * @param object $term_taxonomy
-	 * @param array $term_taxonomies
-	 * @return array
-	 */
-	private function get_parent_term_taxonomies( $term_taxonomy, $term_taxonomies = array() ) {
-
-		if ( $term_taxonomy->get_parent() > 0 ) {
-			$parent_term_taxonomy = $this->term_dao->get_term_taxonomy_by_term_id_taxonomy(
-				$term_taxonomy->get_parent(),
-				'category'
-			);
-
-			/*
-			 * If a parent term-taxonomy is found, add it to array then search for
-			 * parent ter-taxonomies of the parent taxonomy and so on.
-			 */
-			if ( ! empty( $parent_term_taxonomy ) ) {
-				$term_taxonomies[] = $parent_term_taxonomy;
-				$term_taxonomies   = array_merge( $term_taxonomies, $this->get_parent_term_taxonomies( $parent_term_taxonomy, $term_taxonomies ) );
-			}
-		}
-
-		return $term_taxonomies;
 	}
 
 	private function add_related_posts( $postmeta ) {

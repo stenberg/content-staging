@@ -4,7 +4,7 @@ namespace Me\Stenberg\Content\Staging\Models;
 class Taxonomy {
 
 	private $id;
-	private $term_id;
+	private $term;
 	private $taxonomy;
 	private $description;
 	private $parent;
@@ -29,17 +29,17 @@ class Taxonomy {
 	}
 
 	/**
-	 * @param int $term_id
+	 * @param Term $term
 	 */
-	public function set_term_id( $term_id ) {
-		$this->term_id = $term_id;
+	public function set_term( Term $term ) {
+		$this->term = $term;
 	}
 
 	/**
-	 * @return int
+	 * @return Term
 	 */
-	public function get_term_id() {
-		return $this->term_id;
+	public function get_term() {
+		return $this->term;
 	}
 
 	/**
@@ -71,14 +71,14 @@ class Taxonomy {
 	}
 
 	/**
-	 * @param int $parent
+	 * @param Taxonomy $taxonomy
 	 */
-	public function set_parent( $parent ) {
-		$this->parent = $parent;
+	public function set_parent( Taxonomy $taxonomy ) {
+		$this->parent = $taxonomy;
 	}
 
 	/**
-	 * @return int
+	 * @return Taxonomy
 	 */
 	public function get_parent() {
 		return $this->parent;
@@ -96,20 +96,6 @@ class Taxonomy {
 	 */
 	public function get_count() {
 		return $this->count;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function to_array() {
-		return array(
-			'id'          => $this->get_id(),
-			'term_id'     => $this->get_term_id(),
-			'taxonomy'    => $this->get_taxonomy(),
-			'description' => $this->get_description(),
-			'parent'      => $this->get_parent(),
-			'count'       => $this->get_count(),
-		);
 	}
 
 }

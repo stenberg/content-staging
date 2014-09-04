@@ -1,6 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Models;
 
+use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
+
 class Post {
 
 	private $id;
@@ -28,7 +30,7 @@ class Post {
 	private $post_mime_type;
 	private $comment_count;
 	private $meta;
-	private $taxonomy_relationships;
+	private $post_taxonomy_relationships;
 
 	/**
 	 * Constructor.
@@ -36,8 +38,8 @@ class Post {
 	public function __construct( $id = null ) {
 		$this->set_id( $id );
 
-		$this->meta                   = array();
-		$this->taxonomy_relationships = array();
+		$this->meta                        = array();
+		$this->post_taxonomy_relationships = array();
 	}
 
 	/**
@@ -392,21 +394,33 @@ class Post {
 	}
 
 	/**
-	 * @param int $term_taxonomy_id
-	 * @param int $term_order
+	 * @param Post_Taxonomy $post_taxonomy
 	 */
-	public function add_taxonomy_relationship( $term_taxonomy_id, $term_order = 0 ) {
-		$this->taxonomy_relationships[] = array(
-			'term_taxonomy_id' => $term_taxonomy_id,
-			'term_order'       => $term_order,
-		);
+	public function add_post_taxonomy( Post_Taxonomy $post_taxonomy ) {
+
+		/*
+		 * Update Post_Taxonomy if it is already a part of the
+		 * 'post_taxonomy_relationships' array.
+		 */
+		foreach ( $this->post_taxonomy_relationships as $i => $existing_post_taxonomy ) {
+			if ( $post_taxonomy === $existing_post_taxonomy ) {
+				$this->post_taxonomy_relationships[$i] = $post_taxonomy;
+				return;
+			}
+		}
+
+		/*
+		 * This Post_Taxonomy is new to the 'post_taxonomy_relationships' array,
+		 * add it.
+		 */
+		$this->post_taxonomy_relationships[] = $post_taxonomy;
 	}
 
 	/**
 	 * @return array
 	 */
-	public function get_taxonomy_relationships() {
-		return $this->taxonomy_relationships;
+	public function get_post_taxonomy_relationships() {
+		return $this->post_taxonomy_relationships;
 	}
 
 }

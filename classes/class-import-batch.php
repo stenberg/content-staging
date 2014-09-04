@@ -424,29 +424,29 @@ class Import_Batch {
 		 * Make sure it is possible to map the content stage term ID to a
 		 * production term ID.
 		 */
-		if ( ! isset( $this->term_relations[$term_taxonomy->get_term_id()] ) ) {
-			throw new Exception( 'Error: Could not map content stage term ID (' . $term_taxonomy->get_term_id() . ') to a production term ID' );
+		if ( ! isset( $this->term_relations[$term_taxonomy->get_term_()] ) ) {
+			throw new Exception( 'Error: Could not map content stage term ID (' . $term_taxonomy->get_term_() . ') to a production term ID' );
 		}
 
 		// Check if term/taxonomy has a parent term.
 		if ( $term_taxonomy->get_parent() > 0 ) {
 
 			// Get production term ID.
-			$term_taxonomy->set_parent( $this->term_relations[$term_taxonomy->get_parent()] );
+			$term_taxonomy->set_parent_term( $this->term_relations[$term_taxonomy->get_parent()] );
 		}
 
 		// Get production term ID.
-		$prod_term_id = $this->term_relations[$term_taxonomy->get_term_id()];
+		$prod_term_id = $this->term_relations[$term_taxonomy->get_term_()];
 
 		// Change from content stage term ID to production term ID.
-		$term_taxonomy->set_term_id( $prod_term_id );
+		$term_taxonomy->set_term_( $prod_term_id );
 
 		// Get content stage term/taxonomy ID.
 		$stage_term_taxonomy_id = $term_taxonomy->get_id();
 
 		// Get production version of this term/taxonomy.
 		$exisiting = $this->term_dao->get_term_taxonomy_by_term_id_taxonomy(
-			$term_taxonomy->get_term_id(),
+			$term_taxonomy->get_term_(),
 			$term_taxonomy->get_taxonomy()
 		);
 

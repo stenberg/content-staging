@@ -3,18 +3,18 @@ namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\DB\Mappers\Taxonomy_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\Term_Mapper;
+use Me\Stenberg\Content\Staging\Models\Post;
+use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Term;
 
 class Term_DAO extends DAO {
 
 	private $term_mapper;
-	private $taxonomy_mapper;
 
-	public function __construct( $wpdb, Taxonomy_Mapper $taxonomy_mapper, Term_Mapper $term_mapper ) {
+	public function __construct( $wpdb, Term_Mapper $term_mapper ) {
 		parent::__constuct( $wpdb );
 
-		$this->taxonomy_mapper = $taxonomy_mapper;
 		$this->term_mapper     = $term_mapper;
 	}
 
@@ -62,7 +62,7 @@ class Term_DAO extends DAO {
 			$post_id
 		);
 
-		return $this->wpdb->get_results( $query );
+		return $this->wpdb->get_results( $query, ARRAY_A );
 	}
 
 	/**
@@ -87,7 +87,7 @@ class Term_DAO extends DAO {
 		);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $taxonomy ) {
-			$taxonomies[] = $this->taxonomy_mapper->array_to_taxonomy_object( $taxonomy );
+			$taxonomies[] = $this->create_taxonomy_object( $taxonomy );
 		}
 
 		return $taxonomies;
@@ -105,7 +105,7 @@ class Term_DAO extends DAO {
 			$term_taxonomy_id
 		);
 
-		return $this->taxonomy_mapper->array_to_taxonomy_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		return $this->create_taxonomy_object( $this->wpdb->get_row( $query, ARRAY_A ) );
 	}
 
 	/**
@@ -122,7 +122,7 @@ class Term_DAO extends DAO {
 			$taxonomy
 		);
 
-		return $this->taxonomy_mapper->array_to_taxonomy_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		return $this->create_taxonomy_object( $this->wpdb->get_row( $query, ARRAY_A ) );
 	}
 
 	/**
@@ -286,8 +286,8 @@ class Term_DAO extends DAO {
 		$values = array();
 		$format = array();
 
-		if ( $taxonomy->get_term_id() ) {
-			$values['term_id'] = $taxonomy->get_term_id();
+		if ( $taxonomy->get_term_() ) {
+			$values['term_id'] = $taxonomy->get_term_();
 			$format[]          = '%d';
 		}
 
@@ -346,4 +346,73 @@ class Term_DAO extends DAO {
 			'format' => $format,
 		);
 	}
+
+	/**
+	 * Populate a Post object with Post_Taxonomy relationships.
+	 *
+	 * @param Post $post
+	 */
+	public function get_post_taxonomy_relationships( Post $post ) {
+		$relationships = $this->get_term_relationships_by_post_id( $post->get_id() );
+
+		foreach ( $relationships as $relationship ) {
+			$taxonomy = $this->get_term_taxonomy_by_id( $relationship['term_taxonomy_id'] );
+
+			if ( $taxonomy instanceof Taxonomy ) {
+				$post->add_post_taxonomy( new Post_Taxonomy( $post, $taxonomy ) );
+			}
+		}
+	}
+
+	/**
+	 * Take an array that was produced from an SQL query and map the
+	 * array values to a Taxonomy object.
+	 *
+	 * @param array $array
+	 * @return Taxonomy
+	 */
+	public function create_taxonomy_object( $array ) {
+
+		$taxonomy = null;
+
+		if ( ! empty( $array ) ) {
+
+			$taxonomy = new Taxonomy();
+
+			if ( isset( $array['term_taxonomy_id'] ) ) {
+				$taxonomy->set_id( $array['term_taxonomy_id'] );
+			}
+
+			if ( isset( $array['term_id'] ) ) {
+				$term = $this->get_term_by_id( $array['term_id'] );
+				if ( $term instanceof Term ) {
+					$taxonomy->set_term( $term );
+				}
+			}
+
+			if ( isset( $array['taxonomy'] ) ) {
+				$taxonomy->set_taxonomy( $array['taxonomy'] );
+			}
+
+			if ( isset( $array['description'] ) ) {
+				$taxonomy->set_description( $array['description'] );
+			}
+
+			if ( isset( $array['parent'] ) ) {
+				$parent_taxonomy = $this->get_term_taxonomy_by_term_id_taxonomy(
+					$array['parent'], $array['taxonomy']
+				);
+				if ( $parent_taxonomy instanceof Taxonomy ) {
+					$taxonomy->set_parent( $parent_taxonomy );
+				}
+			}
+
+			if ( isset( $array['count'] ) ) {
+				$taxonomy->set_count( $array['count'] );
+			}
+		}
+
+		return $taxonomy;
+	}
+
 }
