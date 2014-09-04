@@ -200,7 +200,6 @@ class Batch_Ctrl {
 		// Let third-party developers filter batch data.
 		$batch->set_posts( apply_filters( 'sme_posts', $batch->get_posts() ) );
 		$batch->set_attachments( apply_filters( 'sme_attachment_urls', $batch->get_attachments() ) );
-		$batch->set_terms( apply_filters( 'sme_terms', $batch->get_terms() ) );
 		$batch->set_users( apply_filters( 'sme_users', $batch->get_users() ) );
 		$batch->set_custom_data( apply_filters( 'sme_custom_data', $batch->get_custom_data(), $batch ) );
 
