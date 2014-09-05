@@ -145,11 +145,17 @@ class Import_Batch {
 			$this->import_post( $post );
 		}
 
+		// Import postmeta.
+		foreach ( $batch->get_posts() as $post ) {
+			$this->import_postmeta( $post->get_meta() );
+		}
+
 		// Update relationship between posts and their parents.
 		$this->update_parent_post_relations();
 
 		// Import custom data.
 		$this->import_custom_data( $batch->get_custom_data(), $batch );
+
 
 		// Publish posts.
 		$this->publish_posts();
@@ -290,11 +296,6 @@ class Import_Batch {
 		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
 			$this->import_post_taxonomy_relationship( $post_taxonomy );
 		}
-
-		// Import postmeta.
-		foreach ( $post->get_meta() as $meta ) {
-			$this->import_postmeta( $meta );
-		}
 	}
 
 	/**
@@ -309,26 +310,28 @@ class Import_Batch {
 	 * The content staging post ID is used as a key in the post relations
 	 * array and the production post ID is used as value.
 	 *
-	 * @param array $meta
+	 * @param array $postmeta
 	 */
-	private function import_postmeta( array $meta ) {
+	private function import_postmeta( array $postmeta ) {
 
-		if ( in_array( $meta['meta_key'], $this->postmeta_keys ) ) {
+		foreach ( $postmeta as $meta ) {
+			if ( in_array( $meta['meta_key'], $this->postmeta_keys ) ) {
 
-			/*
-			 * The meta value must be an integer pointing at the ID of the post
-			 * that the post whose postmeta we are currently importing has a
-			 * relationship to.
-			 */
-			if ( isset( $this->post_relations[$meta['meta_value']] ) ) {
-				$meta['meta_value'] = $this->post_relations[$meta['meta_value']];
-			} else {
-				error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_relations[$meta['post_id']] . ', meta_key: ' . $meta['meta_key'] . ', meta_value: ' . $meta['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
+				/*
+				 * The meta value must be an integer pointing at the ID of the post
+				 * that the post whose postmeta we are currently importing has a
+				 * relationship to.
+				 */
+				if ( isset( $this->post_relations[$meta['meta_value']] ) ) {
+					$meta['meta_value'] = $this->post_relations[$meta['meta_value']];
+				} else {
+					error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_relations[$meta['post_id']] . ', meta_key: ' . $meta['meta_key'] . ', meta_value: ' . $meta['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
+				}
 			}
-		}
 
-		$meta['post_id'] = $this->post_relations[$meta['post_id']];
-		$this->postmeta_dao->insert_postmeta( $meta );
+			$meta['post_id'] = $this->post_relations[$meta['post_id']];
+			$this->postmeta_dao->insert_postmeta( $meta );
+		}
 	}
 
 	/**
