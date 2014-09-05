@@ -394,10 +394,11 @@ class Import_Batch {
 	private function import_taxonomy( Taxonomy $taxonomy ) {
 
 		$this->import_term( $taxonomy->get_term() );
-		$this->import_taxonomy( $taxonomy->get_parent() );
 
-		// Taxonomy ID on content staging environment.
-		$stage_taxonomy_id = $taxonomy->get_id();
+		// If a parent taxonomy exists, import it.
+		if ( $taxonomy->get_parent() instanceof Taxonomy ) {
+			$this->import_taxonomy( $taxonomy->get_parent() );
+		}
 
 		// Taxonomy ID on production environment.
 		$this->term_dao->get_taxonomy_id_by_taxonomy( $taxonomy );

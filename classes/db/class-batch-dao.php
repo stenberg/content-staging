@@ -134,35 +134,37 @@ class Batch_DAO extends DAO {
 	 */
 	public function insert_batch( Batch $batch ) {
 
-		/*
-		 * Name (slug) of this batch. Batches are inserted into the posts table.
-		 * Every post should have a name.
-		 */
-		$name = '';
-
+		$batch->set_creator_id( get_current_user_id() );
 		$batch->set_date( current_time( 'mysql' ) );
 		$batch->set_date_gmt( current_time( 'mysql', 1 ) );
 		$batch->set_modified( $batch->get_date() );
 		$batch->set_modified_gmt( $batch->get_date_gmt() );
 
-		// Set a post name (slug).
-		if ( $batch->get_title() ) {
-			$name = sanitize_title( $batch->get_title() );
-		}
-
 		$data = $this->filter_batch_data( $batch );
 
-		$id = wp_insert_post( $data['values'] );
+		$batch->set_id( $this->insert( 'posts', $data['values'], $data['format'] ) );
 
-		/*
-		 * If no 'post_name' has been created for this batch, then use the newly
-		 * generated ID as 'post_name'.
-		 */
-		if ( ! $name ) {
-			$this->update( 'posts', array( 'post_name' => $id ), array( 'ID' => $id ), array( '%s' ), array( '%s' ) );
-		}
+		$name = wp_unique_post_slug(
+			sanitize_title( $batch->get_title() ),
+			$batch->get_id(),
+			$data['values']['post_status'],
+			$data['values']['post_type'],
+			0
+		);
 
-		return $id;
+		$guid = get_permalink( $batch->get_id() );
+
+		// Update post with GUID and name.
+		$this->update(
+			'posts',
+			array(
+				'post_name' => $name,
+				'guid'      => $guid,
+			),
+			array( 'ID' => $batch->get_id() ),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
 	}
 
 	/**

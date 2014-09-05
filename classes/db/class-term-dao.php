@@ -353,8 +353,8 @@ class Term_DAO extends DAO {
 		$values = array();
 		$format = array();
 
-		if ( $taxonomy->get_term_() ) {
-			$values['term_id'] = $taxonomy->get_term_();
+		if ( $taxonomy->get_term() ) {
+			$values['term_id'] = $taxonomy->get_term()->get_id();
 			$format[]          = '%d';
 		}
 
@@ -369,7 +369,7 @@ class Term_DAO extends DAO {
 		}
 
 		if ( $taxonomy->get_parent() ) {
-			$values['parent'] = $taxonomy->get_parent();
+			$values['parent'] = $taxonomy->get_parent()->get_term()->get_id();
 			$format[]         = '%d';
 		}
 

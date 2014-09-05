@@ -546,7 +546,7 @@ class Batch_Ctrl {
 
 		if ( $batch->get_id() <= 0 ) {
 			// Create new batch.
-			$batch->set_id( $this->batch_dao->insert_batch( $batch ) );
+			$this->batch_dao->insert_batch( $batch );
 		} else {
 			// Update existing batch.
 			$this->batch_dao->update_batch( $batch );
