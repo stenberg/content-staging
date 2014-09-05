@@ -29,6 +29,27 @@ class Term_DAO extends DAO {
 	}
 
 	/**
+	 * Check if a relationship between a post and a taxonomy has been
+	 * persisted to database.
+	 *
+	 * @param Post_Taxonomy $post_taxonomy
+	 * @return bool
+	 */
+	public function has_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
+		$query = $this->wpdb->prepare(
+			'SELECT COUNT(*) FROM ' . $this->wpdb->term_relationships . ' WHERE object_id = %d AND term_taxonomy_id = %d',
+			$post_taxonomy->get_post()->get_id(),
+			$post_taxonomy->get_taxonomy()->get_id()
+		);
+
+		if ( $this->wpdb->get_var( $query, ARRAY_A ) > 0 ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Get terms related to any of the provided posts.
 	 *
 	 * @param array $post_ids
@@ -126,6 +147,32 @@ class Term_DAO extends DAO {
 	}
 
 	/**
+	 * Find taxonomy with the same term ID and taxonomy (type) as for the
+	 * provided taxonomy. If a match is found, update provided taxonomy with
+	 * the taxonomy ID we got from database.
+	 *
+	 * Useful for comparing a post sent from content staging to production.
+	 *
+	 * @param Taxonomy $taxonomy
+	 */
+	public function get_taxonomy_id_by_taxonomy( Taxonomy $taxonomy ) {
+
+		$query = $this->wpdb->prepare(
+			'SELECT term_taxonomy_id FROM ' . $this->wpdb->term_taxonomy . ' WHERE term_id = %d AND taxonomy = %s',
+			$taxonomy->get_term()->get_id(),
+			$taxonomy->get_taxonomy()
+		);
+
+		$row = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $row['term_taxonomy_id'] ) ) {
+			$taxonomy->set_id( $row['term_taxonomy_id'] );
+		} else {
+			$taxonomy->set_id( null );
+		}
+	}
+
+	/**
 	 * Get terms by term IDs.
 	 *
 	 * @param array $term_ids
@@ -184,45 +231,69 @@ class Term_DAO extends DAO {
 	}
 
 	/**
-	 * Insert term relationship.
+	 * Find term with the same slug as the provided term. If a match is
+	 * found, update provided term with the term ID we got from database.
 	 *
-	 * @param array $relationship
+	 * Useful for comparing a term sent from content staging to production.
+	 *
+	 * @param Term $term
 	 */
-	public function insert_term_relationship( $relationship ) {
-		$data = $this->filter_term_relationship_data( $relationship );
+	public function get_term_id_by_slug( Term $term ) {
+
+		$query = $this->wpdb->prepare(
+			'SELECT term_id FROM ' . $this->wpdb->terms . ' WHERE slug = %s',
+			$term->get_slug()
+		);
+
+		$row = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $row['term_id'] ) ) {
+			$term->set_id( $row['term_id'] );
+		} else {
+			$term->set_id( null );
+		}
+	}
+
+	/**
+	 * Insert post/taxonomy relationship.
+	 *
+	 * @param Post_Taxonomy $post_taxonomy
+	 */
+	public function insert_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
+		$data = $this->filter_term_relationship_data( $post_taxonomy );
 		$this->insert( 'term_relationships', $data['values'], $data['format'] );
 	}
 
 	/**
-	 * @param array $relationship
+	 * Update post/taxonomy relationship.
+	 *
+	 * @param Post_Taxonomy $post_taxonomy
 	 */
-	public function update_term_relationship_by_object_taxonomy( $relationship ) {
-		$data = $this->filter_term_relationship_data( $relationship );
+	public function update_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
 		$this->update(
 			'term_relationships',
-			$data['values'],
+			array( 'term_order' ),
 			array(
-				'object_id'        => $relationship['object_id'],
-				'term_taxonomy_id' => $relationship['term_taxonomy_id'],
+				'object_id'        => $post_taxonomy->get_post()->get_id(),
+				'term_taxonomy_id' => $post_taxonomy->get_taxonomy()->get_id(),
 			),
-			$data['format'],
+			array( '%d' ),
 			array( '%d', '%d' )
 		);
 	}
 
 	/**
 	 * @param Taxonomy $taxonomy
-	 * @return int
 	 */
-	public function insert_term_taxonomy( Taxonomy $taxonomy ) {
+	public function insert_taxonomy( Taxonomy $taxonomy ) {
 		$data = $this->filter_taxonomy_data( $taxonomy );
-		return $this->insert( 'term_taxonomy', $data['values'], $data['format'] );
+		$taxonomy->set_id( $this->insert( 'term_taxonomy', $data['values'], $data['format'] ) );
 	}
 
 	/**
 	 * @param Taxonomy $taxonomy
 	 */
-	public function update_term_taxonomy_by_id( Taxonomy $taxonomy ) {
+	public function update_taxonomy( Taxonomy $taxonomy ) {
 		$data = $this->filter_taxonomy_data( $taxonomy );
 		$this->update(
 			'term_taxonomy',
@@ -235,41 +306,37 @@ class Term_DAO extends DAO {
 
 	/**
 	 * @param Term $term
-	 * @return int
 	 */
 	public function insert_term( Term $term ) {
 		$data = $this->filter_term_data( $term );
-		return $this->insert( 'terms', $data['values'], $data['format'] );
+		$term->set_id( $this->insert( 'terms', $data['values'], $data['format'] ) );
 	}
 
 	/**
-	 * @param int $id
 	 * @param Term $term
 	 */
-	public function update_term_by_id( $id, Term $term ) {
+	public function update_term( Term $term ) {
 		$data = $this->filter_term_data( $term );
-		$this->update( 'terms', $data['values'], array( 'term_id' => $id ), $data['format'], array( '%d' ) );
+		$this->update( 'terms', $data['values'], array( 'term_id' => $term->get_id() ), $data['format'], array( '%d' ) );
 	}
 
-	private function filter_term_relationship_data( $relationship ) {
+	/**
+	 * @param Post_Taxonomy $post_taxonomy
+	 * @return array
+	 */
+	private function filter_term_relationship_data( Post_Taxonomy $post_taxonomy ) {
 
 		$values = array();
 		$format = array();
 
-		if ( isset( $relationship['object_id'] ) ) {
-			$values['object_id'] = $relationship['object_id'];
-			$format[]            = '%d';
-		}
+		$values['object_id'] = $post_taxonomy->get_post()->get_id();
+		$format[]            = '%d';
 
-		if ( isset( $relationship['term_taxonomy_id'] ) ) {
-			$values['term_taxonomy_id'] = $relationship['term_taxonomy_id'];
-			$format[]                   = '%d';
-		}
+		$values['term_taxonomy_id'] = $post_taxonomy->get_taxonomy()->get_id();
+		$format[]                   = '%d';
 
-		if ( isset( $relationship['term_order'] ) ) {
-			$values['term_order'] = $relationship['term_order'];
-			$format[]             = '%d';
-		}
+		$values['term_order'] = $post_taxonomy->get_term_order();
+		$format[]             = '%d';
 
 		return array(
 			'values' => $values,

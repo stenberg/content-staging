@@ -9,7 +9,10 @@ use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Post;
+use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
+use Me\Stenberg\Content\Staging\Models\Term;
 
 /**
  * Class Import_Batch
@@ -27,6 +30,13 @@ class Import_Batch {
 	private $postmeta_dao;
 	private $term_dao;
 	private $user_dao;
+
+	/**
+	 * Array of postmeta keys that contain relationships between posts.
+	 *
+	 * @var array
+	 */
+	private $postmeta_keys;
 
 	/**
 	 * Array storing the relation between a post and its parent post.
@@ -69,28 +79,6 @@ class Import_Batch {
 	private $posts_to_publish;
 
 	/**
-	 * Array to keep track on the relation between a terms-taxonomy ID on
-	 * content stage and its ID on production:
-	 *
-	 * Key = Content stage term-taxonomy ID.
-	 * Value = Production term-taxonomy ID.
-	 *
-	 * @var array
-	 */
-	private $term_taxonomy_relations;
-
-	/**
-	 * Array to keep track on the relation between a terms ID on
-	 * content stage and its ID on production:
-	 *
-	 * Key = Content stage term ID.
-	 * Value = Production term ID.
-	 *
-	 * @var array
-	 */
-	private $term_relations;
-
-	/**
 	 * Construct object, dependencies are injected.
 	 *
 	 * @param Batch_Importer_DAO $batch_importer_dao
@@ -101,18 +89,16 @@ class Import_Batch {
 	 */
 	public function __construct( Batch_Importer_DAO $batch_importer_dao, Post_DAO $post_dao,
 								 Postmeta_DAO $postmeta_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
-		$this->batch_importer_dao = $batch_importer_dao;
-		$this->post_dao           = $post_dao;
-		$this->postmeta_dao       = $postmeta_dao;
-		$this->term_dao           = $term_dao;
-		$this->user_dao           = $user_dao;
-
-		$this->parent_post_relations   = array();
-		$this->user_relations          = array();
-		$this->post_relations          = array();
-		$this->posts_to_publish        = array();
-		$this->term_relations          = array();
-		$this->term_taxonomy_relations = array();
+		$this->batch_importer_dao    = $batch_importer_dao;
+		$this->post_dao              = $post_dao;
+		$this->postmeta_dao          = $postmeta_dao;
+		$this->term_dao              = $term_dao;
+		$this->user_dao              = $user_dao;
+		$this->postmeta_keys         = array();
+		$this->parent_post_relations = array();
+		$this->user_relations        = array();
+		$this->post_relations        = array();
+		$this->posts_to_publish      = array();
 	}
 
 	/**
@@ -145,17 +131,21 @@ class Import_Batch {
 		// Get the batch.
 		$batch = $importer->get_batch();
 
+		// Get postmeta keys who's records contains relations between posts.
+		$this->postmeta_keys = apply_filters( 'sme_postmeta_post_relation_keys', array() );
+
 		// Import attachments.
 		$this->import_attachments( $batch->get_attachments() );
 
 		// Create/update users.
 		$this->import_users( $batch->get_users() );
 
-		// Import terms/taxonomies.
-		$this->import_term_data( $batch->get_terms() );
-
 		// Create/update posts.
-		$this->import_posts( $batch->get_posts() );
+		foreach ( $batch->get_posts() as $post ) {
+			$this->import_post( $post );
+		}
+
+		// Update relationship between posts and their parents.
 		$this->update_parent_post_relations();
 
 		// Import custom data.
@@ -240,117 +230,112 @@ class Import_Batch {
 	}
 
 	/**
-	 * Import posts.
+	 * Import post.
 	 *
-	 * @param array $posts
+	 * @param Post $post
 	 */
-	private function import_posts( $posts ) {
+	private function import_post( Post $post ) {
 
-		// Filter posts before they are created/updated.
-		$posts = apply_filters( 'sme_sent_posts', $posts );
+		// Post ID on content staging environment.
+		$stage_post_id = $post->get_id();
 
-		foreach ( $posts as $post ) {
+		// Taxonomy ID on production environment.
+		$this->post_dao->get_id_by_guid( $post );
+
+		/*
+		 * E.g. attachments wont have a post status of publish. We need this flag
+		 * to keep track on what posts we should change post status for after all
+		 * content has been stored on production.
+		 */
+		$is_published = false;
+
+		if ( $post->get_post_status() == 'publish' ) {
+			$is_published = true;
+		}
+
+		if ( ! $post->get_id() ) {
+
+			// Do not publish post immediately.
+			if ( $is_published ) {
+				$post->set_post_status( 'draft' );
+			}
+
+			// This post does not exist on production, create it.
+			$this->post_dao->insert_post( $post );
 
 			/*
-			 * E.g. attachments wont have a post status of publish. We need this flag
-			 * to keep track on what posts we should change post status for after all
-			 * content has been stored on production.
+			 * Store ID of post so we can publish it when data has been completely
+			 * synced.
 			 */
-			$is_published = false;
-
-			if ( $post->get_post_status() === 'publish' ) {
-				$is_published = true;
+			if ( $is_published ) {
+				$this->posts_to_publish[] = $post->get_id();
 			}
+		} else {
+			// This post exists on production, update it.
+			$this->post_dao->update_post( $post );
+			$this->postmeta_dao->delete_postmeta( array( 'post_id' => $post->get_id() ), array( '%d' ) );
+		}
 
-			// Store content stage post ID for later use.
-			$stage_post_id = $post->get_id();
+		$this->post_relations[$stage_post_id] = $post->get_id();
 
-			// Get production revision of post if it exists.
-			$prod_post = $this->post_dao->get_post_by_guid( $post->get_guid() );
+		// Store relation between a post and its parent post.
+		if ( $post->get_post_parent_guid() ) {
+			$this->parent_post_relations[$post->get_id()] = $post->get_post_parent_guid();
+		}
 
-			// Does this post already exist on production or is it new?
-			if ( empty( $prod_post ) ) {
+		// Store relation between post ID on content stage and ID on production.
+		$this->post_relations[$stage_post_id] = $post->get_id();
 
-				// Do not publish post immediately.
-				if ( $is_published ) {
-					$post->set_post_status( 'draft' );
-				}
-
-				$prod_post_id = $this->post_dao->insert_post( $post );
-				$post->set_id( $prod_post_id );
-
-				// Store ID of post so we can publish it when data has been completely synced.
-				if ( $is_published ) {
-					$this->posts_to_publish[] = $prod_post_id;
-				}
-			} else {
-				$prod_post_id = $prod_post->get_id();
-				$post->set_id( $prod_post_id );
-
-				$this->post_dao->update_post( $post );
-				$this->postmeta_dao->delete_postmeta( array( 'post_id' => $prod_post_id ), array( '%d' ) );
-			}
-
-			// Store relation between a post and its parent post.
-			if ( $post->get_post_parent_guid() ) {
-				$this->parent_post_relations[$prod_post_id] = $post->get_post_parent_guid();
-			}
-
-			// Store relation between post ID on content stage and ID on production.
-			$this->post_relations[$stage_post_id] = $prod_post_id;
+		// Import post/taxonomy relationships.
+		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
+			$this->import_post_taxonomy_relationship( $post_taxonomy );
 		}
 
 		// Import postmeta.
-		$this->import_postmeta( $posts );
-
-		// Import relationships between post and taxonomies.
-		$this->import_term_relationships( $posts );
+		foreach ( $post->get_meta() as $meta ) {
+			$this->import_postmeta( $meta );
+		}
 	}
 
 	/**
 	 * Import postmeta.
 	 *
-	 * Never call before all posts has been imported! In case we call
-	 * import_postmeta() before import_posts() relationships between post IDs
-	 * on content stage and production has not been established and import of
-	 * postmeta will fail!
+	 * Never call before all posts has been imported! In case you do
+	 * relationships between post IDs on content stage and production has not
+	 * been established and import of postmeta will fail!
 	 *
 	 * Start by changing content staging post IDs to production IDs.
 	 *
 	 * The content staging post ID is used as a key in the post relations
 	 * array and the production post ID is used as value.
 	 *
-	 * @param array $posts
+	 * @param array $meta
 	 */
-	private function import_postmeta( $posts ) {
+	private function import_postmeta( array $meta ) {
 
-		// Get postmeta keys who's records contains relations between posts.
-		$meta_keys = apply_filters( 'sme_postmeta_post_relation_keys', array() );
+		if ( in_array( $meta['meta_key'], $this->postmeta_keys ) ) {
 
-		foreach ( $posts as $post ) {
-
-			foreach ( $post->get_meta() as $item ) {
-
-				if ( in_array( $item['meta_key'], $meta_keys ) ) {
-
-					/*
-					 * The meta value must be an integer pointing at the ID of the post
-					 * that the post whose postmeta we are currently importing has a
-					 * relationship to.
-					 */
-					if ( isset( $this->post_relations[$item['meta_value']] ) ) {
-						$item['meta_value'] = $this->post_relations[$item['meta_value']];
-					} else {
-						error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_relations[$item['post_id']] . ', meta_key: ' . $item['meta_key'] . ', meta_value: ' . $item['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
-					}
-				}
-
-				$item['post_id'] = $this->post_relations[$item['post_id']];
-				$this->postmeta_dao->insert_postmeta( $item );
+			/*
+			 * The meta value must be an integer pointing at the ID of the post
+			 * that the post whose postmeta we are currently importing has a
+			 * relationship to.
+			 */
+			if ( isset( $this->post_relations[$meta['meta_value']] ) ) {
+				$meta['meta_value'] = $this->post_relations[$meta['meta_value']];
+			} else {
+				error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_relations[$meta['post_id']] . ', meta_key: ' . $meta['meta_key'] . ', meta_value: ' . $meta['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
 			}
 		}
+
+		$meta['post_id'] = $this->post_relations[$meta['post_id']];
+		$this->postmeta_dao->insert_postmeta( $meta );
 	}
 
+	/**
+	 * Import attachments.
+	 *
+	 * @param $attachments
+	 */
 	private function import_attachments( $attachments ) {
 		$upload_dir = wp_upload_dir();
 		foreach ( $attachments as $attachment ) {
@@ -373,142 +358,78 @@ class Import_Batch {
 	}
 
 	/**
-	 * Import terms/taxonomies and relations to posts.
+	 * Import post/taxonomy relationship.
 	 *
-	 * @param array $data
+	 * @param Post_Taxonomy $post_taxonomy
 	 */
-	private function import_term_data( $data ) {
+	private function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
 
-		if ( isset( $data['terms'] ) ) {
-			$this->import_terms( $data['terms'] );
-		}
-
-		if ( isset( $data['term_taxonomies'] ) ) {
-			foreach ( $data['term_taxonomies'] as $term_taxonomy ) {
-				try {
-					$this->import_term_taxonomy( $term_taxonomy );
-				} catch( Exception $e ) {
-					error_log( $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine() );
-				}
-			}
-		}
-	}
-
-	private function import_terms( $terms ) {
-		foreach ( $terms as $term ) {
-			$exisiting = $this->term_dao->get_term_by_slug( $term->get_slug() );
-
-			// Check if this is a new term.
-			if ( empty( $exisiting ) ) {
-				$stage_term_id = $term->get_id();
-				$prod_term_id  = $this->term_dao->insert_term( $term );
-			} else {
-				$stage_term_id = $term->get_id();
-				$prod_term_id  = $exisiting->get_id();
-
-				$term->set_id( $exisiting->get_id() );
-				$this->term_dao->update_term_by_id( $term->get_id(), $term );
-			}
-
-			$this->term_relations[$stage_term_id] = $prod_term_id;
-		}
-	}
-
-	/**
-	 * @param Taxonomy $term_taxonomy
-	 * @throws Exception
-	 */
-	private function import_term_taxonomy( Taxonomy $term_taxonomy ) {
+		// Import taxonomy.
+		$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
 
 		/*
-		 * Make sure it is possible to map the content stage term ID to a
-		 * production term ID.
+		 * Check if a relationship between a post and a taxonomy exists on
+		 * production.
 		 */
-		if ( ! isset( $this->term_relations[$term_taxonomy->get_term_()] ) ) {
-			throw new Exception( 'Error: Could not map content stage term ID (' . $term_taxonomy->get_term_() . ') to a production term ID' );
-		}
+		$has_relationship = $this->term_dao->has_post_taxonomy_relationship( $post_taxonomy );
 
-		// Check if term/taxonomy has a parent term.
-		if ( $term_taxonomy->get_parent() > 0 ) {
-
-			// Get production term ID.
-			$term_taxonomy->set_parent_term( $this->term_relations[$term_taxonomy->get_parent()] );
-		}
-
-		// Get production term ID.
-		$prod_term_id = $this->term_relations[$term_taxonomy->get_term_()];
-
-		// Change from content stage term ID to production term ID.
-		$term_taxonomy->set_term_( $prod_term_id );
-
-		// Get content stage term/taxonomy ID.
-		$stage_term_taxonomy_id = $term_taxonomy->get_id();
-
-		// Get production version of this term/taxonomy.
-		$exisiting = $this->term_dao->get_term_taxonomy_by_term_id_taxonomy(
-			$term_taxonomy->get_term_(),
-			$term_taxonomy->get_taxonomy()
-		);
-
-		// Check if this is a new term/taxonomy.
-		if ( empty( $exisiting ) ) {
-
-			// Create term/taxonomy on production and return the term/taxonomy ID.
-			$prod_term_taxonomy_id  = $this->term_dao->insert_term_taxonomy( $term_taxonomy );
-
+		// Check if this is a new term-taxonomy.
+		if ( ! $has_relationship ) {
+			/*
+			 * This post/taxonomy relationship does not exist on production,
+			 * create it.
+			 */
+			$this->term_dao->insert_post_taxonomy_relationship( $post_taxonomy );
 		} else {
-
-			// Change from content stage term/taxonomy ID to production term/taxonomy ID.
-			$prod_term_taxonomy_id = $exisiting->get_id();
-
-			$term_taxonomy->set_id( $exisiting->get_id() );
-			$this->term_dao->update_term_taxonomy_by_id( $term_taxonomy );
+			// This post/taxonomy relationship exists on production, update it.
+			$this->term_dao->update_post_taxonomy_relationship( $post_taxonomy );
 		}
-
-		$this->term_taxonomy_relations[$stage_term_taxonomy_id] = $prod_term_taxonomy_id;
 	}
 
 	/**
-	 * Import relationships between posts and taxonomies.
+	 * Import taxonomy.
 	 *
-	 * Never call this method before terms and posts has been imported!
-	 * Calling this method earlier will cause relationships not being stored
-	 * or even worse getting stored with wrong data.
-	 *
-	 * @param array $posts
+	 * @param Taxonomy $taxonomy
 	 */
-	private function import_term_relationships( $posts ) {
-		foreach ( $posts as $post ) {
-			foreach ( $post->get_taxonomy_relationships() as $term_relationship ) {
+	private function import_taxonomy( Taxonomy $taxonomy ) {
 
-				if ( ! isset( $this->term_taxonomy_relations[$term_relationship['term_taxonomy_id']] ) ) {
-					/*
-					 * @todo Consider throwing an exception. Its hard to recover from this,
-					 * batch should be rolled back.
-					 */
-					error_log( 'Relationship between post and taxonomy could not be maintained on production in ' . __FILE__ . ' on line ' . __LINE__ );
-					continue;
-				}
+		$this->import_term( $taxonomy->get_term() );
+		$this->import_taxonomy( $taxonomy->get_parent() );
 
-				// Get the production version of the taxonomy ID.
-				$prod_term_taxonomy_id = $this->term_taxonomy_relations[$term_relationship['term_taxonomy_id']];
+		// Taxonomy ID on content staging environment.
+		$stage_taxonomy_id = $taxonomy->get_id();
 
-				// Get existing relationship between post and taxonomy (if it already exists).
-				$exisiting = $this->term_dao->get_term_relationship( $post->get_id(), $prod_term_taxonomy_id );
+		// Taxonomy ID on production environment.
+		$this->term_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
 
-				// Check if this is a new term-taxonomy.
-				if ( empty( $exisiting ) ) {
-					$term_relationship['object_id']        = $post->get_id();
-					$term_relationship['term_taxonomy_id'] = $prod_term_taxonomy_id;
+		if ( ! $taxonomy->get_id() ) {
+			// This taxonomy does not exist on production, create it.
+			$this->term_dao->insert_taxonomy( $taxonomy );
+		} else {
+			// This taxonomy exists on production, update it.
+			$this->term_dao->update_taxonomy( $taxonomy );
+		}
+	}
 
-					$this->term_dao->insert_term_relationship( $term_relationship );
-				} else {
-					$term_relationship['object_id']        = $exisiting['object_id'];
-					$term_relationship['term_taxonomy_id'] = $exisiting['term_taxonomy_id'];
+	/**
+	 * Import term.
+	 *
+	 * @param Term $term
+	 */
+	private function import_term( Term $term ) {
 
-					$this->term_dao->update_term_relationship_by_object_taxonomy( $term_relationship );
-				}
-			}
+		// Term ID on content staging environment.
+		$stage_term_id = $term->get_id();
+
+		// Term ID on production environment.
+		$this->term_dao->get_term_id_by_slug( $term );
+
+		if ( ! $term->get_id() ) {
+			// This term does not exist on production, create it.
+			$this->term_dao->insert_term( $term );
+		} else {
+			// This term exists on production, update it.
+			$this->term_dao->update_term( $term );
 		}
 	}
 

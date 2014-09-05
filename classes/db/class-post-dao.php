@@ -49,6 +49,25 @@ class Post_DAO extends DAO {
 	}
 
 	/**
+	 * Find post with the same global unique identifier (GUID) as the one for
+	 * the provided post. If a match is found, update provided post with the
+	 * post ID we got from database.
+	 *
+	 * Useful for comparing a post sent from content staging to production.
+	 *
+	 * @param Post $post
+	 */
+	public function get_id_by_guid( Post $post ) {
+
+		$query = $this->wpdb->prepare(
+			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
+			$post->get_guid()
+		);
+
+		$post->set_id( $this->wpdb->get_var( $query ) );
+	}
+
+	/**
 	 * Get global unique identifier (GUID) for post with provided ID. Return
 	 * null if no post with provided ID is found.
 	 *
@@ -185,7 +204,6 @@ class Post_DAO extends DAO {
 
 	/**
 	 * @param Post $post
-	 * @return int
 	 */
 	public function insert_post( Post $post ) {
 
@@ -239,7 +257,7 @@ class Post_DAO extends DAO {
 			'%d'
 		);
 
-		return $this->insert( 'posts', $data, $format );
+		$post->set_id( $this->insert( 'posts', $data, $format ) );
 	}
 
 	/**
