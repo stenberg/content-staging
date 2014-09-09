@@ -88,7 +88,7 @@ class Batch_Mgr {
 	 */
 	private function add_posts( $post_ids ) {
 
-		$post_ids = apply_filters( 'sme_post_ids', $post_ids );
+		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
 		$posts = $this->post_dao->get_posts_by_ids( $post_ids );
 
 		foreach( $posts as $post ) {
