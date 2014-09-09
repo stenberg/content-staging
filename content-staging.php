@@ -168,7 +168,7 @@ class Content_Staging {
 
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );
-		add_filter( 'sme_postmeta_post_relation_keys', array( $setup, 'set_postmeta_post_relation_keys' ) );
+		add_filter( 'sme_post_relationship_keys', array( $setup, 'set_postmeta_post_relation_keys' ) );
 	}
 
 }

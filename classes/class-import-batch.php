@@ -132,7 +132,7 @@ class Import_Batch {
 		$batch = $importer->get_batch();
 
 		// Get postmeta keys who's records contains relations between posts.
-		$this->postmeta_keys = apply_filters( 'sme_postmeta_post_relation_keys', array() );
+		$this->postmeta_keys = apply_filters( 'sme_post_relationship_keys', array() );
 
 		// Import attachments.
 		$this->import_attachments( $batch->get_attachments() );
@@ -340,6 +340,14 @@ class Import_Batch {
 	 * @param $attachments
 	 */
 	private function import_attachments( $attachments ) {
+
+		/*
+		 * Make it possible for third-party developers to alter the list of
+		 * attachments to import or completely switch out the attachment
+		 * functionality.
+		 */
+		$attachments = apply_filters( 'sme_deploy_attachments', $attachments );
+
 		$upload_dir = wp_upload_dir();
 		foreach ( $attachments as $attachment ) {
 			$path = $attachment['path'];
@@ -444,7 +452,7 @@ class Import_Batch {
 	 * @param Batch $batch
 	 */
 	private function import_custom_data( $custom_data, Batch $batch ) {
-		do_action( 'sme_custom_data_sent', $custom_data, $batch );
+		do_action( 'sme_deploy_custom_data', $custom_data, $batch );
 	}
 
 	/**

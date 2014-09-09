@@ -88,7 +88,7 @@ class Batch_Mgr {
 	 */
 	private function add_posts( $post_ids ) {
 
-		$post_ids = apply_filters( 'sme_add_post_ids', $post_ids );
+		$post_ids = apply_filters( 'sme_post_ids', $post_ids );
 		$posts = $this->post_dao->get_posts_by_ids( $post_ids );
 
 		foreach( $posts as $post ) {
@@ -168,7 +168,7 @@ class Batch_Mgr {
 		 * registered with the batch. That way we would only use apply_filters
 		 * once.
 		 */
-		$meta_keys = apply_filters( 'sme_postmeta_post_relation_keys', array() );
+		$meta_keys = apply_filters( 'sme_post_relationship_keys', array() );
 
 		foreach ( $meta_keys as $key ) {
 			if ( $postmeta['meta_key'] === $key ) {
