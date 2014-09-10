@@ -370,7 +370,7 @@ class Batch_Ctrl {
 		// Trigger import script.
 		$import_script = dirname( dirname( dirname( __FILE__ ) ) ) . '/scripts/import-batch.php';
 		$background_process = new Background_Process(
-			'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id() . ' ' . $site_path
+			'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id() . ' ' . $site_path . ' ' . $importer->get_key()
 		);
 
 		if ( file_exists( $import_script ) ) {

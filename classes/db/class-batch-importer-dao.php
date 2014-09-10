@@ -43,12 +43,6 @@ class Batch_Importer_DAO extends DAO {
 	 */
 	public function insert_importer( Batch_Importer $importer ) {
 
-		/*
-		 * Name (slug) of this importer. Importers are inserted into the posts
-		 * table. Every post should have a name.
-		 */
-		$name = '';
-
 		$importer->set_date( current_time( 'mysql' ) );
 		$importer->set_date_gmt( current_time( 'mysql', 1 ) );
 		$importer->set_modified( $importer->get_date() );
@@ -58,23 +52,9 @@ class Batch_Importer_DAO extends DAO {
 
 		$importer->set_id( wp_insert_post( $data['values'] ) );
 
-		/*
-		 * If no 'post_name' has been created for this importer, then use the
-		 * newly generated ID as 'post_name'.
-		 */
-		if ( ! $name ) {
-			$this->update(
-				'posts',
-				array(
-					'post_name' => $importer->get_id(),
-				),
-				array(
-					'ID' => $importer->get_id(),
-				),
-				array( '%s' ),
-				array( '%s' )
-			);
-		}
+		// Create a key needed to run this importer.
+		$importer->generate_key();
+		$this->update_post_meta( $importer->get_id(), 'sme_import_key', $importer->get_key() );
 	}
 
 	/**
@@ -93,6 +73,10 @@ class Batch_Importer_DAO extends DAO {
 
 		$this->update_post_meta( $importer->get_id(), 'sme_import_messages', $importer->get_messages() );
 		$this->update_post_meta( $importer->get_id(), 'sme_import_status', $importer->get_status() );
+
+		// Make the import key unusable so it cannot be used in any more imports.
+		$importer->generate_key();
+		$this->update_post_meta( $importer->get_id(), 'sme_import_key', $importer->get_key() );
 	}
 
 	/**

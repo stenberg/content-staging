@@ -75,6 +75,13 @@ class Batch_Importer {
 	private $messages;
 
 	/**
+	 * Import key.
+	 *
+	 * @var string
+	 */
+	private $key;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param int $id
@@ -227,6 +234,36 @@ class Batch_Importer {
 	 */
 	public function get_messages() {
 		return $this->messages;
+	}
+
+	/**
+	 * Set key.
+	 *
+	 * @param string $key
+	 */
+	public function set_key( $key ) {
+		$this->key = $key;
+	}
+
+	/**
+	 * Get key.
+	 *
+	 * @return string
+	 */
+	public function get_key() {
+		return $this->key;
+	}
+
+	/**
+	 * Generate a key.
+	 *
+	 * @throws Exception
+	 */
+	public function generate_key() {
+		if ( ! $this->id || ! $this->modified_gmt ) {
+			throw new Exception( 'Failed generating batch importer key.' );
+		}
+		$this->key = md5( $this->id . '-' . $this->modified_gmt . '-' . rand( 0, 100000 ) );
 	}
 
 }

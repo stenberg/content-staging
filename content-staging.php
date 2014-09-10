@@ -157,13 +157,13 @@ class Content_Staging {
 
 		// Actions.
 		add_action( 'init', array( $setup, 'register_post_types' ) );
+		add_action( 'init', array( $import_batch, 'init' ) );
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
 		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );
 		add_action( 'admin_post_sme-save-batch', array( $batch_ctrl, 'save_batch' ) );
 		add_action( 'admin_post_sme-quick-deploy-batch', array( $batch_ctrl, 'quick_deploy_batch' ) );
 		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );
-		add_action( 'sme_import_batch', array( $import_batch, 'init' ) );
 		add_action( 'wp_ajax_sme_batch_import_status', array( $batch_ctrl, 'get_import_status' ) );
 
 		// Filters.
@@ -178,4 +178,4 @@ register_activation_hook( __FILE__, array( 'Content_Staging', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'Content_Staging', 'deactivate' ) );
 
 // Initialize plugin.
-add_action( 'init', array( 'Content_Staging', 'init' ) );
+add_action( 'plugins_loaded', array( 'Content_Staging', 'init' ) );

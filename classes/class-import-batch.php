@@ -103,29 +103,40 @@ class Import_Batch {
 
 	/**
 	 * Runs on production server when a batch of data has been received.
-	 *
-	 * @param int $batch_importer_id
 	 */
-	public function init( $batch_importer_id ) {
+	public function init() {
 
-		error_log( 'Importing batch using importer with ID ' . $batch_importer_id . '...' );
+		// Make sure an importer ID has been provided.
+		if ( ! isset( $_GET['sme_batch_importer_id'] ) || ! $_GET['sme_batch_importer_id'] ) {
+			return;
+		}
+
+		// Make sure a batch importer key has been provided.
+		if ( ! isset( $_GET['sme_import_batch_key'] ) || ! $_GET['sme_import_batch_key'] ) {
+			return;
+		}
+
+		$importer_id = intval( $_GET['sme_batch_importer_id'] );
+		$import_key  = $_GET['sme_import_batch_key'];
 
 		// Get batch importer from database.
-		$importer = $this->batch_importer_dao->get_importer_by_id( $batch_importer_id );
+		$importer = $this->batch_importer_dao->get_importer_by_id( $importer_id );
 
-		// No importer found, error
+		// No importer found, error.
 		if ( ! $importer ) {
-			$importer->add_message(
-				sprintf( 'Batch importer with ID %d failed to start.', $batch_importer_id ),
-				'error'
-			);
-			$importer->set_status( 2 );
-			$this->batch_importer_dao->update_importer( $importer );
-			return;
+			error_log( sprintf( 'Batch importer with ID %d failed to start.', $importer_id ) );
+			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );
+		}
+
+		// Validate key.
+		if ( $import_key !== $importer->get_key() ) {
+			error_log( 'Unauthorized batch import attempt terminated.' );
+			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );
 		}
 
 		// Import running.
 		$importer->set_status( 1 );
+		$importer->generate_key();
 		$this->batch_importer_dao->update_importer( $importer );
 
 		// Get the batch.

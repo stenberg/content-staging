@@ -74,8 +74,13 @@ class Batch_Importer_Mapper extends Mapper {
 							}
 						}
 					}
+
 					if ( $value['meta_key'] == 'sme_import_status' ) {
 						$importer->set_status( $value['meta_value'] );
+					}
+
+					if ( $value['meta_key'] == 'sme_import_key' ) {
+						$importer->set_key( $value['meta_value'] );
 					}
 				}
 			}
