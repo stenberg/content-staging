@@ -42,7 +42,7 @@ class Term_DAO extends DAO {
 			$post_taxonomy->get_taxonomy()->get_id()
 		);
 
-		if ( $this->wpdb->get_var( $query, ARRAY_A ) > 0 ) {
+		if ( $this->wpdb->get_var( $query ) > 0 ) {
 			return true;
 		}
 
@@ -272,7 +272,7 @@ class Term_DAO extends DAO {
 	public function update_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
 		$this->update(
 			'term_relationships',
-			array( 'term_order' ),
+			array( 'term_order' => $post_taxonomy->get_term_order() ),
 			array(
 				'object_id'        => $post_taxonomy->get_post()->get_id(),
 				'term_taxonomy_id' => $post_taxonomy->get_taxonomy()->get_id(),
