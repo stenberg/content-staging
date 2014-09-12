@@ -3,7 +3,6 @@ namespace Me\Stenberg\Content\Staging\DB\Mappers;
 
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Importer;
-use Me\Stenberg\Content\Staging\Models\Message;
 
 class Batch_Importer_Mapper extends Mapper {
 

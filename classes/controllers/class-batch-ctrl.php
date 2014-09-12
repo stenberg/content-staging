@@ -332,6 +332,8 @@ class Batch_Ctrl {
 	 * @todo Checking if a batch has been provided is duplicated from
 	 * pre-flight, fix!
 	 *
+	 * Store background process ID.
+	 *
 	 * @param array $args
 	 * @return string
 	 */
@@ -403,13 +405,6 @@ class Batch_Ctrl {
 
 		$this->xmlrpc_client->query( 'smeContentStaging.deployStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
-
-		// Prepare messages so they can be JSON encoded.
-		if ( isset( $response['messages'] ) ) {
-			foreach ( $response['messages'] as $i => $message ) {
-				$response['messages'][$i] = $message->to_array();
-			}
-		}
 
 		header( 'Content-Type: application/json' );
 		echo json_encode( $response );

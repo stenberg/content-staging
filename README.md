@@ -73,7 +73,7 @@ Postmeta keys whose records contains relations between posts.
 Filter array of post IDs to be included in batch. By adding a post ID to the array the corresponding post will be included in the batch. Runs on *content stage* before pre-flight.
 
 **sme\_prepare\_custom\_data** <br/>
-Filter or add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight. Your callback function should accept two arguments: $data (all custom data) and $batch_data (all data in batch).
+Filter or add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight.
 
 **sme\_prepare\_posts** <br/>
 Filter or add posts to batch. Runs on *content stage* just before data is sent production during pre-flight.
@@ -81,7 +81,7 @@ Filter or add posts to batch. Runs on *content stage* just before data is sent p
 **sme\_prepare\_attachments** <br/>
 Filter or add attachments to batch. Runs on *content stage*  just before data is sent to production during pre-flight.
 
-**sme\_prepare\users** <br/>
+**sme\_prepare\_users** <br/>
 Filter or add users to batch. Runs on *content stage* just before data is sent to production during pre-flight.
 
 **sme\_import\_attachments** <br/>
@@ -94,3 +94,20 @@ Inject your custom attachment importer. Runs just before attachments is imported
 
 **sme\_import\_custom\_data** <br/>
 Import custom data you've added to the batch. Runs on production during batch import.
+
+Passing Messages Back To Content Stage
+--------------------------------------
+
+During pre-flight and deploy you might want to pass messages from the production environment back to content stage so they can be displayed to the user. Doing so is quite easy, here's an example for you:
+
+	function my_custom_attachment_importer( $attachments, $importer ) {
+		// Do something fancy with provided attachments.
+
+		// Oh-uh, something went wrong! Notify user.
+		$importer->add_message( 'Something went terribly wrong!', 'error' );
+
+		// No way to recover from this, fail the batch import.
+		$importer->set_status( 2 ); // 2 = Failed.
+	}
+
+	add_action( 'sme_import_attachments', 'my_custom_attachment_importer', 10, 2 );

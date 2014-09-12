@@ -21,6 +21,8 @@ jQuery( document ).ready(function($) {
 			 */
 			$.post(ajaxurl, data, function(response) {
 
+				console.log(response);
+
 				// Number of messages in this response.
 				var nbrOfMsg = response.messages.length;
 

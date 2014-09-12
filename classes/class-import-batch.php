@@ -1,15 +1,12 @@
 <?php
 namespace Me\Stenberg\Content\Staging;
 
-use \Exception;
-use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
-use Me\Stenberg\Content\Staging\Models\Batch;
-use Me\Stenberg\Content\Staging\Models\Message;
+use Me\Stenberg\Content\Staging\Models\Batch_Importer;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
@@ -147,7 +144,7 @@ class Import_Batch {
 		$this->postmeta_keys = apply_filters( 'sme_post_relationship_keys', array() );
 
 		// Import attachments.
-		$this->import_attachments( $batch->get_attachments() );
+		$this->import_attachments( $importer );
 
 		// Create/update users.
 		$this->import_users( $batch->get_users() );
@@ -166,14 +163,14 @@ class Import_Batch {
 		$this->update_parent_post_relations();
 
 		// Import custom data.
-		$this->import_custom_data( $batch->get_custom_data(), $batch );
+		$this->import_custom_data( $importer );
 
 
 		// Publish posts.
 		$this->publish_posts();
 
 		// Import finished, set success message and update import status.
-		$importer->add_message( new Message( 'Batch has been successfully imported!', 'success' ) );
+		$importer->add_message( 'Batch has been successfully imported!', 'success' );
 		$importer->set_status( 3 );
 		$this->batch_importer_dao->update_importer( $importer );
 
@@ -349,21 +346,23 @@ class Import_Batch {
 	/**
 	 * Import attachments.
 	 *
-	 * @param $attachments
+	 * @param Batch_Importer $importer
 	 */
-	private function import_attachments( $attachments ) {
+	private function import_attachments( Batch_Importer $importer ) {
+
+		$attachments = $importer->get_batch()->get_attachments();
 
 		/*
 		 * Make it possible for third-party developers to inject their custom
 		 * attachment import functionality.
 		 */
-		do_action( 'sme_import_attachments', $attachments );
+		do_action( 'sme_import_attachments', $attachments, $importer );
 
 		/*
 		 * Make it possible for third-party developers to alter the list of
 		 * attachments to import.
 		 */
-		$attachments = apply_filters( 'sme_import_attachments', $attachments );
+		$attachments = apply_filters( 'sme_import_attachments', $attachments, $importer );
 
 		$upload_dir = wp_upload_dir();
 		foreach ( $attachments as $attachment ) {
@@ -465,11 +464,10 @@ class Import_Batch {
 	/**
 	 * Import data added by a third-party.
 	 *
-	 * @param array $custom_data Custom data added by third-party.
-	 * @param Batch $batch
+	 * @param Batch_Importer $importer
 	 */
-	private function import_custom_data( $custom_data, Batch $batch ) {
-		do_action( 'sme_import_custom_data', $custom_data, $batch );
+	private function import_custom_data( Batch_Importer $importer ) {
+		do_action( 'sme_import_custom_data', $importer->get_batch()->get_custom_data(), $importer );
 	}
 
 	/**
