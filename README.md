@@ -35,30 +35,62 @@ Add the following to your config file (e.g. wp-config.php) on your *Production* 
 	define( 'CONTENT_STAGING_REMOTE_SERVER', 'https://www.YOUR-CONTENT-STAGING-SITE.com' );
 	define( 'CONTENT_STAGING_XMLRPC_TIMEOUT', 60 );
 
+Deploy Process
+--------------
+
+A batch goes through a couple of different steps on its way to being deployed on the production environment. These steps are:
+
+* **Prepare** - Runs on *content stage*. Prepare batch data that we want to send to production.
+* **Pre-Flight** - Runs on *production*. Verifies that batch data can be imported on production.
+* **Deploy** - Runs on *content stage*. Send batch data to production.
+* **Import** - Runs on * production*. Imports batch data.
+
 Hooks
 -----
 
+Most of the hooks follow a naming schema that indicates at what point in the deployment process they are triggered:
+
+| Environment   | When              | Hook Prefix  |
+| ------------- | ----------------- | ------------ |
+| Content Stage | Before pre-flight | sme_prepare  |
+| Production    | During pre-flight | sme_verify   |
+| Production    | After pre-flight  | sme_verified |
+| Content Stage | After pre-flight  | sme_prepared |
+| Content Stage | Before deploy     | sme_deploy   |
+| Production    | During deploy     | sme_import   |
+| Production    | After deploy      | sme_imported |
+| Content Stage | After deploy      | sme_deployed |
+
 ### Filter Hooks
+
+**sme\_endpoint** <br/>
+Change endpoint for XML-RPC request.
 
 **sme\_post\_relationship\_keys** <br/>
 Postmeta keys whose records contains relations between posts.
 
 **sme\_prepare\_post\_ids** <br/>
-Add a post to the batch by providing the post ID. Runs before pre-flight.
+Filter array of post IDs to be included in batch. By adding a post ID to the array the corresponding post will be included in the batch. Runs on *content stage* before pre-flight.
 
 **sme\_prepare\_custom\_data** <br/>
-Add custom data to a batch. Runs just before data is sent from content stage to production during pre-flight. Your function should accept two args: $data (all custom data) and $batch_data (all data in batch).
+Filter or add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight. Your callback function should accept two arguments: $data (all custom data) and $batch_data (all data in batch).
 
 **sme\_prepare\_posts** <br/>
-Posts in a batch. Runs just before data is sent from content stage to production during pre-flight.
+Filter or add posts to batch. Runs on *content stage* just before data is sent production during pre-flight.
 
 **sme\_prepare\_attachments** <br/>
-Get URLs for attachments included in the bach. Runs just before data is sent from content stage to production during pre-flight.
+Filter or add attachments to batch. Runs on *content stage*  just before data is sent to production during pre-flight.
 
-**sme\_deploy\_attachments** <br/>
-Runs just before attachments is imported to production.
+**sme\_prepare\users** <br/>
+Filter or add users to batch. Runs on *content stage* just before data is sent to production during pre-flight.
+
+**sme\_import\_attachments** <br/>
+Filter array of attachments. Runs just before attachments is imported on production.
 
 ### Action Hooks
 
-**sme\_deploy\_custom\_data** <br/>
-Do something with custom data third-party has sent to production.
+**sme\_import\_attachments** <br/>
+Inject your custom attachment importer. Runs just before attachments is imported on production.
+
+**sme\_import\_custom\_data** <br/>
+Import custom data you've added to the batch. Runs on production during batch import.

@@ -354,11 +354,16 @@ class Import_Batch {
 	private function import_attachments( $attachments ) {
 
 		/*
-		 * Make it possible for third-party developers to alter the list of
-		 * attachments to import or completely switch out the attachment
-		 * functionality.
+		 * Make it possible for third-party developers to inject their custom
+		 * attachment import functionality.
 		 */
-		$attachments = apply_filters( 'sme_deploy_attachments', $attachments );
+		do_action( 'sme_import_attachments', $attachments );
+
+		/*
+		 * Make it possible for third-party developers to alter the list of
+		 * attachments to import.
+		 */
+		$attachments = apply_filters( 'sme_import_attachments', $attachments );
 
 		$upload_dir = wp_upload_dir();
 		foreach ( $attachments as $attachment ) {
@@ -464,7 +469,7 @@ class Import_Batch {
 	 * @param Batch $batch
 	 */
 	private function import_custom_data( $custom_data, Batch $batch ) {
-		do_action( 'sme_deploy_custom_data', $custom_data, $batch );
+		do_action( 'sme_import_custom_data', $custom_data, $batch );
 	}
 
 	/**
