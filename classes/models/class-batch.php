@@ -92,13 +92,6 @@ class Batch {
 	private $users;
 
 	/**
-	 * Terms used in any of the posts in this batch.
-	 *
-	 * @var array
-	 */
-	private $terms;
-
-	/**
 	 * Custom data added by third-party developer.
 	 *
 	 * @var array
@@ -314,26 +307,12 @@ class Batch {
 	}
 
 	/**
-	 * @param array $terms
-	 */
-	public function set_terms( array $terms ) {
-		$this->terms = $terms;
-	}
-
-	/**
-	 * @return array
-	 */
-	public function get_terms() {
-		return $this->terms;
-	}
-
-	/**
 	 * Replace custom data with custom data in provided array.
 	 *
-	 * @param array $custom
+	 * @param mixed $data
 	 */
-	public function set_custom_data( array $custom ) {
-		$this->custom_data = $custom;
+	public function set_custom_data( $data ) {
+		$this->custom_data = $data;
 	}
 
 	/**
@@ -342,15 +321,11 @@ class Batch {
 	 * Third-party developers can set a key for accessing specific data in
 	 * the custom data array.
 	 *
-	 * @param mixed $custom
 	 * @param string $key
+	 * @param mixed $data
 	 */
-	public function add_custom_data( $custom, $key = null ) {
-		if ( $key ) {
-			$this->custom_data[$key] = $custom;
-		} else {
-			$this->custom_data[] = $custom;
-		}
+	public function add_custom_data( $key, $data ) {
+		$this->custom_data[$key] = $data;
 	}
 
 	/**
@@ -360,7 +335,7 @@ class Batch {
 	 * will be returned.
 	 *
 	 * @param string $key
-	 * @return array
+	 * @return mixed
 	 * @throws Exception
 	 */
 	public function get_custom_data( $key = null ) {

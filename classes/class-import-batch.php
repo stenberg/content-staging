@@ -467,7 +467,10 @@ class Import_Batch {
 	 * @param Batch_Importer $importer
 	 */
 	private function import_custom_data( Batch_Importer $importer ) {
-		do_action( 'sme_import_custom_data', $importer->get_batch()->get_custom_data(), $importer );
+		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_import_' . $addon, $data, $importer );
+		}
+
 	}
 
 	/**

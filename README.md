@@ -72,14 +72,11 @@ Postmeta keys whose records contains relations between posts.
 **sme\_prepare\_post\_ids** <br/>
 Filter array of post IDs to be included in batch. By adding a post ID to the array the corresponding post will be included in the batch. Runs on *content stage* before pre-flight.
 
-**sme\_prepare\_custom\_data** <br/>
-Filter or add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight.
-
 **sme\_prepare\_posts** <br/>
 Filter or add posts to batch. Runs on *content stage* just before data is sent production during pre-flight.
 
 **sme\_prepare\_attachments** <br/>
-Filter or add attachments to batch. Runs on *content stage*  just before data is sent to production during pre-flight.
+Filter or add attachments to batch. Runs on *content stage* just before data is sent to production during pre-flight.
 
 **sme\_prepare\_users** <br/>
 Filter or add users to batch. Runs on *content stage* just before data is sent to production during pre-flight.
@@ -89,11 +86,46 @@ Filter array of attachments. Runs just before attachments is imported on product
 
 ### Action Hooks
 
+**sme\_prepare\_custom\_data** <br/>
+Add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight.
+
 **sme\_import\_attachments** <br/>
 Inject your custom attachment importer. Runs just before attachments is imported on production.
 
-**sme\_import\_custom\_data** <br/>
-Import custom data you've added to the batch. Runs on production during batch import.
+**sme\_import\_\[ADDON\_NAME\]** <br/>
+Import custom add-on data. Replace \[ADDON\_NAME\] with the name of your add-on. Runs on production during batch import.
+
+Creating Add-ons
+----------------
+
+Extending the WordPress **Content Staging** plugin is pretty straightforward, here is a simple example:
+
+	/**
+	 * Prepare custom data to be sent from content stage to production.
+	 */
+	function my_addon( $batch ) {
+		// Give your add-on a unique name.
+		$addon = 'my_awesome_addon';
+
+		// Some data you want to add to the batch.
+		$data = 'Hello World';
+
+		// Add your add-on data to the batch.
+		$batch->add_custom_data( $addon, $data );
+	}
+
+	// Register your add-on.
+	add_action( 'sme_prepare_custom_data', 'my_addon' );
+
+	/**
+	 * Import custom data on production when batch is deployed.
+	 */
+	 function import_addon_data( $data ) {
+	 	// Do something with your add-on data.
+	 }
+
+	 // Notice how we add the name of your add-on to the import hook.
+	 add_action( 'sme_import_my_awesome_addon', 'import_addon_data' );
 
 Passing Messages Back To Content Stage
 --------------------------------------
