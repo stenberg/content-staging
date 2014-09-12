@@ -264,11 +264,11 @@ class Batch_Ctrl {
 		// Get as integer.
 		$post_id = intval( $_GET['post_id'] );
 
-		$batch = $this->batch_mgr->get_batch( null, true );
+		$batch = $this->batch_mgr->get_batch();
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
 		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
-		$batch->set_id( $this->batch_dao->insert_batch( $batch ) );
+		$this->batch_dao->insert_batch( $batch );
 
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', array( $post_id ) );
 

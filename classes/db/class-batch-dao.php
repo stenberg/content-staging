@@ -130,7 +130,6 @@ class Batch_DAO extends DAO {
 
 	/**
 	 * @param Batch $batch
-	 * @return int
 	 */
 	public function insert_batch( Batch $batch ) {
 
