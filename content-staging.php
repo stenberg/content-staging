@@ -48,6 +48,7 @@ require_once( 'classes/db/class-user-dao.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/models/class-batch.php' );
 require_once( 'classes/models/class-batch-importer.php' );
+require_once( 'classes/models/class-message.php' );
 require_once( 'classes/models/class-post.php' );
 require_once( 'classes/models/class-taxonomy.php' );
 require_once( 'classes/models/class-term.php' );

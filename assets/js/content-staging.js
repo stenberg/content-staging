@@ -22,19 +22,12 @@ jQuery( document ).ready(function($) {
 			$.post(ajaxurl, data, function(response) {
 
 				// Number of messages in this response.
-				var nbrOfMsg = 0;
+				var nbrOfMsg = response.messages.length;
 
-				for (var level in response.messages) {
-					for (var i = 0; i < response.messages[level].length; i++) {
-
-						nbrOfMsg++;
-
-						// Only print messages we haven't printed before.
-						if (nbrOfMsg > nbrOfPrintedMsg) {
-							$('.wrap').append('<div class="sme-cs-message sme-cs-' + level + '"><p>' + response.messages[level][i] + '</p></div>');
-							nbrOfPrintedMsg++;
-						}
-					}
+				// Only print messages we haven't printed before.
+				for (var i = nbrOfPrintedMsg; i < nbrOfMsg; i++) {
+					$('.wrap').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
+					nbrOfPrintedMsg++;
 				}
 
 				if (response.status < 2) {

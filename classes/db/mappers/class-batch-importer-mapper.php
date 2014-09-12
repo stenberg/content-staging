@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\DB\Mappers;
 
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Importer;
+use Me\Stenberg\Content\Staging\Models\Message;
 
 class Batch_Importer_Mapper extends Mapper {
 
@@ -67,12 +68,7 @@ class Batch_Importer_Mapper extends Mapper {
 			if ( ! empty( $meta ) ) {
 				foreach ( $meta as $value ) {
 					if ( $value['meta_key'] == 'sme_import_messages' ) {
-						$meta_value = unserialize( $value['meta_value'] );
-						foreach ( $meta_value as $level => $messages ) {
-							foreach ( $messages as $message ) {
-								$importer->add_message( $message, $level );
-							}
-						}
+						$importer->set_messages( unserialize( $value['meta_value'] ) );
 					}
 
 					if ( $value['meta_key'] == 'sme_import_status' ) {

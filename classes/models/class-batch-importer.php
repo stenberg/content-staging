@@ -213,18 +213,21 @@ class Batch_Importer {
 	}
 
 	/**
+	 * Set messages.
+	 *
+	 * @param array
+	 */
+	public function set_messages( array $messages ) {
+		$this->messages = $messages;
+	}
+
+	/**
 	 * Add a message.
 	 *
-	 * @param string $message
-	 * @param string $level
-	 * @throws Exception
+	 * @param Message $message
 	 */
-	public function add_message( $message, $level = 'info' ) {
-		$levels = array( 'success', 'info', 'warning', 'error' );
-		if ( ! in_array( $level, $levels ) ) {
-			throw new Exception( 'Unsupported message level: ' . $level );
-		}
-		$this->messages[$level][] = $message;
+	public function add_message( Message $message ) {
+		$this->messages[] = $message;
 	}
 
 	/**

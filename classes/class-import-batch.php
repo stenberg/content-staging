@@ -9,6 +9,7 @@ use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Message;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
@@ -172,7 +173,7 @@ class Import_Batch {
 		$this->publish_posts();
 
 		// Import finished, set success message and update import status.
-		$importer->add_message( 'Batch has been successfully imported!', 'success' );
+		$importer->add_message( new Message( 'Batch has been successfully imported!', 'success' ) );
 		$importer->set_status( 3 );
 		$this->batch_importer_dao->update_importer( $importer );
 
