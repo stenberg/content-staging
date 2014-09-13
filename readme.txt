@@ -1,0 +1,63 @@
+=== Content Staging ===
+Contributors: stenberg.me
+Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
+Requires at least: 3.7
+Tested up to: 4.0
+Stable tag: trunk
+License: GPLv2
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+
+Content Staging makes it easy to work with content in a private environment before deploying posts, images, users, terms etc. to your live site.
+
+== Description ==
+
+With Content Staging you can prepare content in your staging environment, hidden away from the eye of the public. When
+your content is ready to be released you simply push it to your live site.
+
+Content Staging was built to support enterprise web sites where content editors need to push huge amounts of posts per
+batch.
+
+You organize your posts into different batches. You can have as many or as few batches as you want and you are in full
+control to decide what posts goes into what batch. Deploying one of the batches to your live site is a breeze and any
+content related to the posts you've decided to include in your batch is automatically included (e.g. images, users,
+terms etc.).
+
+Content Staging comes with full support for your multi-site setup.
+
+== Installation ==
+
+Upload `content-staging` to the `/wp-content/plugins/` directory on both your environments (staging and production).
+
+Generate a secret key, this can be whatever you like, just make sure its long and impossible to guess. You can use a
+key generate by https://api.wordpress.org/secret-key/1.1/salt/ if you wish.
+
+Add the following to your wp-config.php file on your staging environment:
+
+	define( 'CONTENT_STAGING_SECRET_KEY', '_THE_SECRET_KEY_YOU_PREVIOUSLY_GENERATED_' );
+    define( 'CONTENT_STAGING_REMOTE_SERVER', 'https://_YOUR_PRODUCTION_SITE_.com' );
+    define( 'CONTENT_STAGING_XMLRPC_TIMEOUT', 60 );
+
+Add the following to your wp-config.php file on your production environment:
+
+	define( 'CONTENT_STAGING_SECRET_KEY', '_THE_SECRET_KEY_YOU_PREVIOUSLY_GENERATED_' );
+    define( 'CONTENT_STAGING_REMOTE_SERVER', 'https://_YOUR_STAGING_SITE_.com' );
+    define( 'CONTENT_STAGING_XMLRPC_TIMEOUT', 60 );
+
+Activate the plugin through the 'Plugins' menu in WordPress on both your staging site and your live site.
+
+*Notice:* Its important that the /xmlrpc.php file is accessible on both environment (usually placed in root directory of
+your WordPress installation).
+
+== Frequently Asked Questions ==
+
+= How can I extend the Content Staging plugin? =
+
+Have a look at https://github.com/stenberg/content-staging for information on available hooks and code examples for
+third-party developers.
+
+== Screenshots ==
+
+1. Create as many or as few content batches as you wish.
+2. Select what posts, pages or custom post types you want to include in your batch.
+3. Pre-Flight your batch to make sure it is ready for deployment.
+4. Deploy your batch from staging environment to your live site.

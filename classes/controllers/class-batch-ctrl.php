@@ -482,7 +482,7 @@ class Batch_Ctrl {
 		$this->handle_edit_batch_form_data( $batch, $_POST );
 
 		// Default redirect URL on successful batch update.
-		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch_id . '&updated' );
+		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch->get_id() . '&updated' );
 
 		// Set different redirect URL if user has requested a pre-flight.
 		if ( $_POST['submit'] === 'Pre-Flight Batch' ) {
