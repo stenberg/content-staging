@@ -26,14 +26,14 @@ Configuration
 Add the following to your config file (e.g. wp-config.php) on your *Content Staging* environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', '_SAME_RANDOM_KEY_ON_BOTH_ENVIRONMENTS_' );
-	define( 'CONTENT_STAGING_REMOTE_SERVER', 'https://www.YOUR-PRODUCTION-SITE.com' );
-	define( 'CONTENT_STAGING_XMLRPC_TIMEOUT', 60 );
+	define( 'CONTENT_STAGING_ENDPOINT', 'https://www.YOUR-PRODUCTION-SITE.com' );
+	define( 'CONTENT_STAGING_TRANSFER_TIMEOUT', 60 );
 
 Add the following to your config file (e.g. wp-config.php) on your *Production* environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', '_SAME_RANDOM_KEY_ON_BOTH_ENVIRONMENTS_' );
-	define( 'CONTENT_STAGING_REMOTE_SERVER', 'https://www.YOUR-CONTENT-STAGING-SITE.com' );
-	define( 'CONTENT_STAGING_XMLRPC_TIMEOUT', 60 );
+	define( 'CONTENT_STAGING_ENDPOINT', 'https://www.YOUR-CONTENT-STAGING-SITE.com' );
+	define( 'CONTENT_STAGING_TRANSFER_TIMEOUT', 60 );
 
 Deploy Process
 --------------

@@ -14,7 +14,7 @@ class Client {
 	public function __construct( $server, $secret_key ) {
 		$this->server = $server;
 		$this->secret_key = $secret_key;
-		$this->wp_http_ixr_client = new WP_HTTP_IXR_Client( trailingslashit( $server ) . 'xmlrpc.php', false, false, CONTENT_STAGING_XMLRPC_TIMEOUT );
+		$this->wp_http_ixr_client = new WP_HTTP_IXR_Client( trailingslashit( $server ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
 	}
 
 	/**

@@ -1,11 +1,10 @@
 <?php
 /**
  * Plugin Name: Content Staging
- * Plugin URI: http://stenberg.me/
+ * Plugin URI: https://github.com/stenberg/content-staging
  * Description: Content Staging.
- * Author: Joakim Stenberg
+ * Author: Joakim Stenberg, Fredrik Hörte
  * Version: 1.0
- * Author URI: http://stenberg.me/
  * License: GPLv2
  */
 
