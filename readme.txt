@@ -1,5 +1,6 @@
 === Content Staging ===
 Contributors: stenberg.me, horte
+Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6L9DXMHNE3A6Q
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
 Tested up to: 4.0
