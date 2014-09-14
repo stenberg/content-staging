@@ -381,7 +381,7 @@ class Batch_Ctrl {
 			$background_process->run();
 		}
 
-		error_log( 'Background Process ID: ' . $background_process->get_pid() );
+		// @todo store background process ID: $background_process->get_pid();
 
 		$response = array(
 			'info' => array(

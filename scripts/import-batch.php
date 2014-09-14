@@ -61,5 +61,3 @@ chdir( $argv[1] );
 define( 'WP_USE_THEMES', false );
 
 require_once( $argv[1] . 'wp-blog-header.php' );
-
-error_log( 'Importing batch has finished!' );
