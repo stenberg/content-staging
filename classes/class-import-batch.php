@@ -470,7 +470,6 @@ class Import_Batch {
 		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
 			do_action( 'sme_import_' . $addon, $data, $importer );
 		}
-
 	}
 
 	/**

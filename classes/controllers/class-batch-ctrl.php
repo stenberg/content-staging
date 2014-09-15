@@ -212,11 +212,22 @@ class Batch_Ctrl {
 		$this->xmlrpc_client->query( 'smeContentStaging.preflight', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
+		// Pre-flight status.
+		$is_success = true;
+
+		// Check if pre-flight messages contains any errors.
+		foreach ( $response as $message ) {
+			if ( $message['level'] == 'error' ) {
+				$is_success = false;
+			}
+		}
+
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'      => $batch,
 			'batch_data' => base64_encode( serialize( $batch ) ),
-			'response'   => $response,
+			'messages'   => $response,
+			'is_success' => $is_success,
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -243,14 +254,53 @@ class Batch_Ctrl {
 		// Get batch.
 		$batch = $result['batch'];
 
-		$messages = $this->receive_preflight_data( $batch );
+		// Create importer.
+		$importer = new Batch_Importer();
+		$importer->set_batch( $batch );
 
-		if ( ! isset( $messages['error'] ) ) {
-			$messages = array( 'success' => array( 'Pre-flight successful!' ) );
+		foreach ( $batch->get_posts() as $post ) {
+			// Check if parent post exist on production or in batch.
+			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
+				$importer->add_message(
+					'Post ID ' . $post->get_id() . ' is missing its parent post (ID ' . $post->get_post_parent() . '). Parent post does not exist on production and is not part of this batch',
+					'error'
+				);
+			}
+		}
+
+		foreach ( $batch->get_attachments() as $attachment ) {
+			foreach ( $attachment['sizes'] as $size ) {
+				// Check if attachment exists on content stage.
+				if ( ! $this->attachment_exists( $size) ) {
+					$importer->add_message(
+						'Attachment <a href="' . $size . '" target="_blank">' . $size . '</a> is missing on content stage and will not be deployed to production.',
+						'warning'
+					);
+				}
+			}
+		}
+
+		// Pre-flight custom data.
+		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_verify_' . $addon, $data, $importer );
+		}
+
+		// Check if pre-flight was successful.
+		$is_success = true;
+
+		foreach ( $importer->get_messages() as $message ) {
+			if ( $message['level'] == 'error' ) {
+				$is_success = false;
+				break;
+			}
+		}
+
+		if ( $is_success ) {
+			$importer->add_message( 'Pre-flight successful!', 'success' );
 		}
 
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $messages );
+		return $this->xmlrpc_client->prepare_response( $importer->get_messages() );
 	}
 
 	/**
@@ -558,38 +608,6 @@ class Batch_Ctrl {
 
 		// Update batch meta with IDs of posts user selected to include in batch.
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
-	}
-
-	/**
-	 * Runs on the production server when pre-flight data is received.
-	 *
-	 * @param Batch $batch
-	 * @return array
-	 */
-	private function receive_preflight_data( Batch $batch ) {
-
-		$messages = array();
-
-		foreach ( $batch->get_posts() as $post ) {
-
-			// Check if parent post exist on production or in batch.
-			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-				$messages['error'][] = 'Post ID ' . $post->get_id() . ' is missing its parent post (ID ' . $post->get_post_parent() . '). Parent post does not exist on production and is not part of this batch';
-			}
-		}
-
-		foreach ( $batch->get_attachments() as $attachment ) {
-
-			foreach ( $attachment['sizes'] as $size ) {
-
-				// Check if attachment exists on content stage.
-				if ( ! $this->attachment_exists( $size) ) {
-					$messages['warning'][] = 'Attachment <a href="' . $size . '" target="_blank">' . $size . '</a> is missing on content stage and will not be deployed to production.';
-				}
-			}
-		}
-
-		return $messages;
 	}
 
 	/**

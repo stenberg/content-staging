@@ -7,7 +7,7 @@ $submit_btn_attr = array( 'id' => 'sme-cs-deploy-batch-btn' );
  * If an error message exists in the response, then deactivate the
  * Deploy Batch button.
  */
-if ( array_key_exists( 'error', $response ) ) {
+if ( ! $is_success ) {
 	$submit_btn_attr['disabled'] = 'disabled';
 }
 ?>
@@ -15,12 +15,10 @@ if ( array_key_exists( 'error', $response ) ) {
 <div class="wrap">
 	<h2>Pre-Flight</h2>
 
-	<?php foreach ( $response as $level => $messages ) { ?>
-		<?php foreach ( $messages as $message ) { ?>
-			<div class="sme-cs-message sme-cs-<?php echo $level; ?>">
-				<p><?php echo $message; ?></p>
-			</div>
-		<?php } ?>
+	<?php foreach ( $messages as $message ) { ?>
+		<div class="sme-cs-message sme-cs-<?php echo $message['level']; ?>">
+			<p><?php echo $message['message']; ?></p>
+		</div>
 	<?php } ?>
 
 	<form method="post" action="<?php echo admin_url( 'admin.php?page=sme-send-batch&id=' . $batch->get_id() ); ?>">
