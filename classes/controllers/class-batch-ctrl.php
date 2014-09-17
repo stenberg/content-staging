@@ -137,14 +137,23 @@ class Batch_Ctrl {
 			$post_ids = array();
 		}
 
+		$total_posts = $this->post_dao->get_published_posts_count();
+
 		// Create and prepare table of posts.
 		$table        = new Post_Table( $batch, $post_ids );
 		$table->items = $posts;
+		$table->set_pagination_args(
+			array(
+				'total_items' => $total_posts,
+				'per_page'    => $per_page,
+			)
+		);
 		$table->prepare_items();
 
 		$data = array(
-			'batch' => $batch,
-			'table' => $table,
+			'batch'    => $batch,
+			'table'    => $table,
+			'post_ids' => implode( ',', $post_ids ),
 		);
 
 		$this->template->render( 'edit-batch', $data );
@@ -444,6 +453,65 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Add a post ID to batch.
+	 *
+	 * Triggered by an AJAX call.
+	 */
+	public function include_post() {
+
+		if ( ! isset( $_POST['include'] ) || ! isset( $_POST['batch_id'] ) || ! isset( $_POST['post_id'] ) ) {
+			die();
+		}
+
+		$batch_id    = null;
+		$post_id     = intval( $_POST['post_id'] );
+		$is_selected = false;
+
+		if ( $_POST['batch_id'] ) {
+			$batch_id = intval( $_POST['batch_id'] );
+		}
+
+		if ( $_POST['include'] === 'true' ) {
+			$is_selected = true;
+		}
+
+		// Get batch.
+		$batch = $this->batch_mgr->get_batch( $batch_id, true );
+
+		// Create new batch if needed.
+		if ( ! $batch->get_id() ) {
+			$this->batch_dao->insert_batch( $batch );
+		}
+
+		// Get IDs of posts already included in the batch.
+		$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
+
+		if ( ! $post_ids ) {
+			$post_ids = array();
+		}
+
+		if ( $is_selected ) {
+			// Add post ID.
+			$post_ids[] = $post_id;
+		} else {
+			// Remove post ID.
+			if ( ( $key = array_search( $post_id, $post_ids ) ) !== false ) {
+				unset( $post_ids[$key] );
+			}
+		}
+
+		$post_ids = array_unique( $post_ids );
+
+		// Update batch meta with IDs of posts user selected to include in batch.
+		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
+
+		header( 'Content-Type: application/json' );
+		echo json_encode( array( 'batchId' => $batch->get_id() ) );
+
+		die(); // Required to return a proper result.
+	}
+
+	/**
 	 * Triggered by an AJAX call. Returns the status of the import together
 	 * with any messages generated during import.
 	 */
@@ -585,17 +653,9 @@ class Batch_Ctrl {
 	 */
 	private function handle_edit_batch_form_data( Batch $batch, $request_data ) {
 
-		// IDs of posts user has selected to include in this batch.
-		$post_ids = array();
-
 		// Check if a title has been set.
 		if ( isset( $request_data['batch_title'] ) ) {
 			$batch->set_title( $request_data['batch_title'] );
-		}
-
-		// Check if any posts to include in batch has been selected.
-		if ( isset( $request_data['posts'] ) && is_array( $request_data['posts'] ) ) {
-			$post_ids = $request_data['posts'];
 		}
 
 		if ( $batch->get_id() <= 0 ) {
@@ -604,6 +664,14 @@ class Batch_Ctrl {
 		} else {
 			// Update existing batch.
 			$this->batch_dao->update_batch( $batch );
+		}
+
+		// IDs of posts user has selected to include in this batch.
+		$post_ids = array();
+
+		// Check if any posts to include in batch has been selected.
+		if ( isset( $request_data['post_ids'] ) && $request_data['post_ids'] ) {
+			$post_ids = explode( ',', $request_data['post_ids'] );
 		}
 
 		// Update batch meta with IDs of posts user selected to include in batch.

@@ -74,23 +74,10 @@ class Post_Table extends WP_List_Table {
 	 * @return string Text to be placed inside the column.
 	 */
 	public function column_cb( Post $post ) {
-
-		$checked = '';
-
-		/*
-		 * Set property 'checked' that will either be an empty string if the post
-		 * is not part of this batch or to a string indicating that the post
-		 * should be checked in the HTML form.
-		 */
-		if ( in_array( $post->get_id(), $this->post_ids ) ) {
-			$checked = 'checked="checked" ';
-		}
-
 		return sprintf(
-			'<input type="checkbox" name="%s[]" value="%s" %s/>',
+			'<input type="checkbox" class="sme-select-post" name="%s[]" value="%s"/>',
 			$this->_args['plural'],
-			$post->get_id(),
-			$checked
+			$post->get_id()
 		);
 	}
 
@@ -106,7 +93,8 @@ class Post_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-			'cb'            => '<input type="checkbox" />',
+//			'cb'            => '<input type="checkbox" />',
+			'cb'            => '',
 			'post_title'    => 'Post Title',
 			'post_modified' => 'Modified',
 		);
