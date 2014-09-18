@@ -41,25 +41,23 @@ jQuery( document ).ready(function($) {
 		 * cleared.
 		 */
 		editBatch: function() {
-
-			var batch;
-			var batchId       = $('#sme-batch-id').html();
-			var posts         = $('.sme-select-post');
-			var postIdsObj    = $('input[name="post_ids"]');
-			var postIds       = [];
-			var tmpPostIds    = [];
+			var self       = this;
+			var batchId    = $('#sme-batch-id').html();
+			var posts      = $('.sme-select-post');
+			var postIdsObj = $('input[name="post_ids"]');
+			var postIds    = [];
+			var selectAll  = $('[id^=cb-select-all-]');
 			var cookie;
-			var int;
-			var i;
+			var batch;
 
-			// Get posts from cookie if cookie is not more then 15 min old.
+			// Get value from cookie.
 			cookie = document.cookie.replace(/(?:(?:^|.*;\s*)wp-sme-bpl\s*\=\s*([^;]*).*$)|^.*$/, '$1');
 
 			if (cookie === '') {
 				/*
 				 * Cookie is empty, use post IDs from HTML form as selected posts.
 				 */
-				tmpPostIds = postIdsObj.val().split(',');
+				postIds = postIdsObj.val().split(',');
 			} else {
 				/*
 				 * Cookie has been populated. Use post IDs from cookie as selected posts.
@@ -76,17 +74,12 @@ jQuery( document ).ready(function($) {
 					document.cookie = 'wp-sme-bpl=';
 				} else {
 					// Add posts to array.
-					tmpPostIds = batch[1].split(',');
+					postIds = batch[1].split(',');
 				}
 			}
 
-			// Convert to integers and sort out any values that are not a number.
-			for (i = 0; i < tmpPostIds.length; i++) {
-				int = parseInt(tmpPostIds[i]);
-				if ( ! isNaN(int)) {
-					postIds[i] = int;
-				}
-			}
+			// Convert all post IDs to integers.
+			postIds = this.arrayValuesToIntegers(postIds);
 
 			// Add currently selected post IDs to HTML form.
 			postIdsObj.val(postIds.join());
@@ -100,26 +93,68 @@ jQuery( document ).ready(function($) {
 				}
 			});
 
-			// User has selected a post.
-			posts.click(postIds, function() {
-				var postId = parseInt($(this).val());
+			// User has selected/unselected a post.
+			posts.click(function() {
+				var postObj = $(this);
 
-				if ( $(this).prop('checked') ) {
-					postIds.push(postId);
-				} else {
-					for (i = 0; i < postIds.length; i++) {
-						if (postIds[i] === postId) {
-							postIds.splice(i, 1);
-						}
-					}
-				}
+				// Add post ID to array of post IDs.
+				self.selectPost(postIds, parseInt(postObj.val()), postObj.prop('checked'));
 
-				// Add post IDs to HTML form.
-				postIdsObj.val(postIds.join());
-
-				// Add post IDs to cookie.
-				document.cookie = 'wp-sme-bpl=' + batchId + ':' + postIds.join();
+				// Update selected posts.
+				self.updateSelectedPosts(batchId, postIds, postIdsObj);
 			});
+
+			// User has selected/unselected all posts.
+			selectAll.click(function() {
+				var isChecked = $(this).prop('checked');
+
+				posts.each(function() {
+					self.selectPost(postIds, parseInt($(this).val()), isChecked);
+				});
+
+				// Update selected posts.
+				self.updateSelectedPosts(batchId, postIds, postIdsObj);
+			});
+		},
+
+		/**
+		 * Select a post in Edit Batch view.
+		 *
+		 * @param {Array} postIds
+		 * @param {int} postId
+		 * @param {bool} checked
+		 */
+		selectPost: function(postIds, postId, checked) {
+			var i;
+
+			// Remove post ID from array of post IDs.
+			for (i = 0; i < postIds.length; i++) {
+				if (postIds[i] === postId) {
+					postIds.splice(i, 1);
+				}
+			}
+
+			// Add post ID to array of post IDs.
+			if (checked) {
+				postIds.push(parseInt(postId));
+			}
+		},
+
+		/**
+		 * Update cookie and HTML form with currently selected posts.
+		 *
+		 * @param {int} batchId
+		 * @param {Array} postIds
+		 * @param {Object} postIdsObj
+		 */
+		updateSelectedPosts: function(batchId, postIds, postIdsObj) {
+			var str = postIds.join();
+
+			// Add post IDs to HTML form.
+			postIdsObj.val(str);
+
+			// Add post IDs to cookie.
+			document.cookie = 'wp-sme-bpl=' + batchId + ':' + str;
 		},
 
 		/**
@@ -167,6 +202,28 @@ jQuery( document ).ready(function($) {
 					setTimeout(this.getBatchImporterStatus(data, printed), 3000);
 				}
 			});
+		},
+
+		/**
+		 * Convert array values to integers and sort out any values that are not
+		 * a number.
+		 *
+		 * @param {Array} array
+		 * @return {Array}
+		 */
+		arrayValuesToIntegers: function(array) {
+			var i;
+			var int;
+			var newArray = [];
+
+			for (i = 0; i < array.length; i++) {
+				int = parseInt(array[i]);
+				if ( ! isNaN(int)) {
+					newArray[i] = int;
+				}
+			}
+
+			return newArray;
 		}
 	};
 

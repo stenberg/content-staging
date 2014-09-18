@@ -93,8 +93,7 @@ class Post_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-//			'cb'            => '<input type="checkbox" />',
-			'cb'            => '',
+			'cb'            => '<input type="checkbox" />',
 			'post_title'    => 'Post Title',
 			'post_modified' => 'Modified',
 		);
