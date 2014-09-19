@@ -288,7 +288,6 @@ class Import_Batch {
 		} else {
 			// This post exists on production, update it.
 			$this->post_dao->update_post( $post );
-//			$this->postmeta_dao->delete_postmeta( array( 'post_id' => $post->get_id() ), array( '%d' ) );
 		}
 
 		$this->post_relations[$stage_post_id] = $post->get_id();
@@ -341,7 +340,6 @@ class Import_Batch {
 			}
 
 			$meta[$i]['post_id'] = $this->post_relations[$meta[$i]['post_id']];
-//			$this->postmeta_dao->insert_postmeta( $meta );
 		}
 
 		$this->postmeta_dao->update_postmeta_by_post( $post->get_id(), $meta );

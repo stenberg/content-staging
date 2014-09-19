@@ -143,13 +143,6 @@ class Postmeta_DAO extends DAO {
 		foreach( $update as $record ) {
 			$this->update_postmeta( $record );
 		}
-
-		error_log('INSERT');
-		error_log(print_r($insert,true));
-		error_log('UPDATE');
-		error_log(print_r($update,true));
-		error_log('DELETE');
-		error_log(print_r($delete,true));
 	}
 
 	/**
