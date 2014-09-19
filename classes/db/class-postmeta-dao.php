@@ -106,12 +106,14 @@ class Postmeta_DAO extends DAO {
 		foreach ( $prod_records as $prod_key => $prod_record ) {
 			if ( ! in_array( $prod_record['meta_key'], $stage_keys ) || in_array( $prod_record['meta_key'], $insert_keys ) ) {
 				$delete[] = $prod_record;
+				unset( $prod_records[$prod_key] );
 			} else {
 				foreach ( $stage_records as $stage_key => $stage_record ) {
 					if ( $stage_record['meta_key'] == $prod_record['meta_key'] ) {
 						$stage_record['meta_id'] = $prod_record['meta_id'];
 						$update[] = $stage_record;
 						unset( $stage_records[$stage_key] );
+						unset( $prod_records[$prod_key] );
 					}
 				}
 			}
@@ -120,6 +122,11 @@ class Postmeta_DAO extends DAO {
 		// Records left in $stage_records should be inserted.
 		foreach ( $stage_records as $record ) {
 			$insert[] = $record;
+		}
+
+		// Records left in $prod_records should be deleted.
+		foreach ( $prod_records as $record ) {
+			$delete[] = $record;
 		}
 
 		foreach( $delete as $record ) {
@@ -136,6 +143,13 @@ class Postmeta_DAO extends DAO {
 		foreach( $update as $record ) {
 			$this->update_postmeta( $record );
 		}
+
+		error_log('INSERT');
+		error_log(print_r($insert,true));
+		error_log('UPDATE');
+		error_log(print_r($update,true));
+		error_log('DELETE');
+		error_log(print_r($delete,true));
 	}
 
 	/**
