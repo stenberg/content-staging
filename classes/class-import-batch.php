@@ -156,7 +156,7 @@ class Import_Batch {
 
 		// Import postmeta.
 		foreach ( $batch->get_posts() as $post ) {
-			$this->import_postmeta( $post->get_meta() );
+			$this->import_postmeta( $post );
 		}
 
 		// Update relationship between posts and their parents.
@@ -288,7 +288,7 @@ class Import_Batch {
 		} else {
 			// This post exists on production, update it.
 			$this->post_dao->update_post( $post );
-			$this->postmeta_dao->delete_postmeta( array( 'post_id' => $post->get_id() ), array( '%d' ) );
+//			$this->postmeta_dao->delete_postmeta( array( 'post_id' => $post->get_id() ), array( '%d' ) );
 		}
 
 		$this->post_relations[$stage_post_id] = $post->get_id();
@@ -308,7 +308,7 @@ class Import_Batch {
 	}
 
 	/**
-	 * Import postmeta.
+	 * Import postmeta for a specific post.
 	 *
 	 * Never call before all posts has been imported! In case you do
 	 * relationships between post IDs on content stage and production has not
@@ -319,28 +319,32 @@ class Import_Batch {
 	 * The content staging post ID is used as a key in the post relations
 	 * array and the production post ID is used as value.
 	 *
-	 * @param array $postmeta
+	 * @param Post $post
 	 */
-	private function import_postmeta( array $postmeta ) {
+	private function import_postmeta( Post $post ) {
 
-		foreach ( $postmeta as $meta ) {
-			if ( in_array( $meta['meta_key'], $this->postmeta_keys ) ) {
+		$meta = $post->get_meta();
+
+		for ( $i = 0; $i < count($meta); $i++ ) {
+			if ( in_array( $meta[$i]['meta_key'], $this->postmeta_keys ) ) {
 
 				/*
 				 * The meta value must be an integer pointing at the ID of the post
-				 * that the post whose postmeta we are currently importing has a
+				 * that the post whose post meta we are currently importing has a
 				 * relationship to.
 				 */
-				if ( isset( $this->post_relations[$meta['meta_value']] ) ) {
-					$meta['meta_value'] = $this->post_relations[$meta['meta_value']];
+				if ( isset( $this->post_relations[$meta[$i]['meta_value']] ) ) {
+					$meta[$i]['meta_value'] = $this->post_relations[$meta[$i]['meta_value']];
 				} else {
-					error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_relations[$meta['post_id']] . ', meta_key: ' . $meta['meta_key'] . ', meta_value: ' . $meta['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
+					error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_relations[$meta[$i]['post_id']] . ', meta_key: ' . $meta[$i]['meta_key'] . ', meta_value: ' . $meta[$i]['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
 				}
 			}
 
-			$meta['post_id'] = $this->post_relations[$meta['post_id']];
-			$this->postmeta_dao->insert_postmeta( $meta );
+			$meta[$i]['post_id'] = $this->post_relations[$meta[$i]['post_id']];
+//			$this->postmeta_dao->insert_postmeta( $meta );
 		}
+
+		$this->postmeta_dao->update_postmeta_by_post( $post->get_id(), $meta );
 	}
 
 	/**
