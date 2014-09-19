@@ -1,12 +1,12 @@
 <?php
 namespace Me\Stenberg\Content\Staging;
 
-use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
+use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
-use Me\Stenberg\Content\Staging\Models\Batch_Importer;
+use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
@@ -18,7 +18,7 @@ use Me\Stenberg\Content\Staging\Models\Term;
  * @package Me\Stenberg\Content\Staging
  *
  * @todo Consider moving 'import_*' methods in this class to the
- * Batch_Importer model. Might want an import per import type though,
+ * Batch_Import_Job model. Might want an import per import type though,
  * e.g. a Post_Importer etc.
  */
 class Import_Batch {
@@ -79,13 +79,13 @@ class Import_Batch {
 	/**
 	 * Construct object, dependencies are injected.
 	 *
-	 * @param Batch_Importer_DAO $batch_importer_dao
+	 * @param Batch_Import_Job_DAO $batch_importer_dao
 	 * @param Post_DAO $post_dao
 	 * @param Postmeta_DAO $postmeta_dao
 	 * @param Term_DAO $term_dao
 	 * @param User_DAO $user_dao
 	 */
-	public function __construct( Batch_Importer_DAO $batch_importer_dao, Post_DAO $post_dao,
+	public function __construct( Batch_Import_Job_DAO $batch_importer_dao, Post_DAO $post_dao,
 								 Postmeta_DAO $postmeta_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
 		$this->batch_importer_dao    = $batch_importer_dao;
 		$this->post_dao              = $post_dao;
@@ -105,7 +105,7 @@ class Import_Batch {
 	public function init() {
 
 		// Make sure an importer ID has been provided.
-		if ( ! isset( $_GET['sme_batch_importer_id'] ) || ! $_GET['sme_batch_importer_id'] ) {
+		if ( ! isset( $_GET['sme_batch_import_job_id'] ) || ! $_GET['sme_batch_import_job_id'] ) {
 			return;
 		}
 
@@ -114,7 +114,7 @@ class Import_Batch {
 			return;
 		}
 
-		$importer_id = intval( $_GET['sme_batch_importer_id'] );
+		$importer_id = intval( $_GET['sme_batch_import_job_id'] );
 		$import_key  = $_GET['sme_import_batch_key'];
 
 		// Get batch importer from database.
@@ -348,9 +348,9 @@ class Import_Batch {
 	/**
 	 * Import attachments.
 	 *
-	 * @param Batch_Importer $importer
+	 * @param Batch_Import_Job $importer
 	 */
-	private function import_attachments( Batch_Importer $importer ) {
+	private function import_attachments( Batch_Import_Job $importer ) {
 
 		$attachments = $importer->get_batch()->get_attachments();
 
@@ -466,9 +466,9 @@ class Import_Batch {
 	/**
 	 * Import data added by a third-party.
 	 *
-	 * @param Batch_Importer $importer
+	 * @param Batch_Import_Job $importer
 	 */
-	private function import_custom_data( Batch_Importer $importer ) {
+	private function import_custom_data( Batch_Import_Job $importer ) {
 		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
 			do_action( 'sme_import_' . $addon, $data, $importer );
 		}

@@ -2,14 +2,14 @@
 namespace Me\Stenberg\Content\Staging\DB;
 
 use Exception;
-use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Importer_Mapper;
-use Me\Stenberg\Content\Staging\Models\Batch_Importer;
+use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Import_Job_Mapper;
+use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
-class Batch_Importer_DAO extends DAO {
+class Batch_Import_Job_DAO extends DAO {
 
 	private $importer_mapper;
 
-	public function __construct( $wpdb, Batch_Importer_Mapper $importer_mapper ) {
+	public function __construct( $wpdb, Batch_Import_Job_Mapper $importer_mapper ) {
 		parent::__constuct( $wpdb );
 
 		$this->importer_mapper = $importer_mapper;
@@ -19,7 +19,7 @@ class Batch_Importer_DAO extends DAO {
 	 * Get importer by id.
 	 *
 	 * @param $id
-	 * @return Batch_Importer
+	 * @return Batch_Import_Job
 	 */
 	public function get_importer_by_id( $id ) {
 		$importer_query = $this->wpdb->prepare(
@@ -39,9 +39,9 @@ class Batch_Importer_DAO extends DAO {
 	}
 
 	/**
-	 * @param Batch_Importer $importer
+	 * @param Batch_Import_Job $importer
 	 */
-	public function insert_importer( Batch_Importer $importer ) {
+	public function insert_importer( Batch_Import_Job $importer ) {
 
 		$importer->set_date( current_time( 'mysql' ) );
 		$importer->set_date_gmt( current_time( 'mysql', 1 ) );
@@ -58,9 +58,9 @@ class Batch_Importer_DAO extends DAO {
 	}
 
 	/**
-	 * @param Batch_Importer $importer
+	 * @param Batch_Import_Job $importer
 	 */
-	public function update_importer( Batch_Importer $importer ) {
+	public function update_importer( Batch_Import_Job $importer ) {
 
 		$importer->set_modified( current_time( 'mysql' ) );
 		$importer->set_modified_gmt( current_time( 'mysql', 1 ) );
@@ -89,9 +89,9 @@ class Batch_Importer_DAO extends DAO {
 	 * 'post_content' field this is just a precaution so we do not fill the
 	 * users database with a lot of unnecessary data.
 	 *
-	 * @param Batch_Importer $importer
+	 * @param Batch_Import_Job $importer
 	 */
-	public function delete_importer( Batch_Importer $importer ) {
+	public function delete_importer( Batch_Import_Job $importer ) {
 
 		$this->wpdb->update(
 			$this->wpdb->posts,
@@ -108,16 +108,16 @@ class Batch_Importer_DAO extends DAO {
 	}
 
 	/**
-	 * @param Batch_Importer $importer
+	 * @param Batch_Import_Job $importer
 	 * @return array
 	 */
-	private function filter_importer_data( Batch_Importer $importer ) {
+	private function filter_importer_data( Batch_Import_Job $importer ) {
 
 		$values = array(
 			'post_status'    => 'publish',
 			'comment_status' => 'closed',
 			'ping_status'    => 'closed',
-			'post_type'      => 'sme_batch_importer'
+			'post_type'      => 'sme_batch_import_job'
 		);
 
 		$format = array( '%s', '%s', '%s', '%s' );

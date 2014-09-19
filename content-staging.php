@@ -32,21 +32,21 @@ require_once( ABSPATH . WPINC . '/class-wp-http-ixr-client.php' );
 require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/db/mappers/class-mapper.php' );
-require_once( 'classes/db/mappers/class-batch-importer-mapper.php' );
+require_once( 'classes/db/mappers/class-batch-import-job-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-mapper.php' );
 require_once( 'classes/db/mappers/class-post-mapper.php' );
 require_once( 'classes/db/mappers/class-term-mapper.php' );
 require_once( 'classes/db/mappers/class-user-mapper.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
-require_once( 'classes/db/class-batch-importer-dao.php' );
+require_once( 'classes/db/class-batch-import-job-dao.php' );
 require_once( 'classes/db/class-post-dao.php' );
 require_once( 'classes/db/class-postmeta-dao.php' );
 require_once( 'classes/db/class-term-dao.php' );
 require_once( 'classes/db/class-user-dao.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/models/class-batch.php' );
-require_once( 'classes/models/class-batch-importer.php' );
+require_once( 'classes/models/class-batch-import-job.php' );
 require_once( 'classes/models/class-post.php' );
 require_once( 'classes/models/class-taxonomy.php' );
 require_once( 'classes/models/class-term.php' );
@@ -66,8 +66,8 @@ require_once( 'functions/helpers.php' );
  * Import classes.
  */
 use Me\Stenberg\Content\Staging\API;
-use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
-use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Importer_Mapper;
+use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
+use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Import_Job_Mapper;
 use Me\Stenberg\Content\Staging\Import_Batch;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
@@ -117,7 +117,7 @@ class Content_Staging {
 		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
 
 		// Database mappers
-		$batch_importer_mapper = new Batch_Importer_Mapper();
+		$batch_importer_mapper = new Batch_Import_Job_Mapper();
 		$batch_mapper          = new Batch_Mapper();
 		$post_mapper           = new Post_Mapper();
 		$term_mapper           = new Term_Mapper();
@@ -125,7 +125,7 @@ class Content_Staging {
 
 		// Data access objects.
 		$batch_dao          = new Batch_DAO( $wpdb, $batch_mapper );
-		$batch_importer_dao = new Batch_Importer_DAO( $wpdb, $batch_importer_mapper );
+		$batch_importer_dao = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
 		$post_dao           = new Post_DAO( $wpdb, $post_mapper );
 		$postmeta_dao       = new Postmeta_DAO( $wpdb );
 		$term_dao           = new Term_DAO( $wpdb, $term_mapper );

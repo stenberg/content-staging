@@ -3,7 +3,7 @@ namespace Me\Stenberg\Content\Staging\Models;
 
 use Exception;
 
-class Batch_Importer {
+class Batch_Import_Job {
 
 	/**
 	 * ID of this importer.

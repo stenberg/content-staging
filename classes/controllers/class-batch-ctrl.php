@@ -3,10 +3,10 @@ namespace Me\Stenberg\Content\Staging\Controllers;
 
 use Me\Stenberg\Content\Staging\Background_Process;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
-use Me\Stenberg\Content\Staging\DB\Batch_Importer_DAO;
+use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
-use Me\Stenberg\Content\Staging\Models\Batch_Importer;
+use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\View\Batch_Table;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\View\Post_Table;
@@ -23,7 +23,7 @@ class Batch_Ctrl {
 	private $post_dao;
 
 	public function __construct( Template $template, Batch_Mgr $batch_mgr, Client $xmlrpc_client,
-								 Batch_Importer_DAO $batch_importer_dao, Batch_DAO $batch_dao, Post_DAO $post_dao ) {
+								 Batch_Import_Job_DAO $batch_importer_dao, Batch_DAO $batch_dao, Post_DAO $post_dao ) {
 		$this->template           = $template;
 		$this->batch_mgr          = $batch_mgr;
 		$this->xmlrpc_client      = $xmlrpc_client;
@@ -264,7 +264,7 @@ class Batch_Ctrl {
 		$batch = $result['batch'];
 
 		// Create importer.
-		$importer = new Batch_Importer();
+		$importer = new Batch_Import_Job();
 		$importer->set_batch( $batch );
 
 		foreach ( $batch->get_posts() as $post ) {
@@ -417,7 +417,7 @@ class Batch_Ctrl {
 
 		// ----- Duplicated -----
 
-		$importer = new Batch_Importer();
+		$importer = new Batch_Import_Job();
 		$importer->set_batch( $batch );
 		$this->batch_importer_dao->insert_importer( $importer );
 

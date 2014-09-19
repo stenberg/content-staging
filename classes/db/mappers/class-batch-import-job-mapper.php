@@ -2,9 +2,9 @@
 namespace Me\Stenberg\Content\Staging\DB\Mappers;
 
 use Me\Stenberg\Content\Staging\Models\Batch;
-use Me\Stenberg\Content\Staging\Models\Batch_Importer;
+use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
-class Batch_Importer_Mapper extends Mapper {
+class Batch_Import_Job_Mapper extends Mapper {
 
 	/**
 	 * Constructor.
@@ -15,11 +15,11 @@ class Batch_Importer_Mapper extends Mapper {
 
 	/**
 	 * Take an array that was produced from an SQL query and map the
-	 * array values to a Batch_Importer object.
+	 * array values to a Batch_Import_Job object.
 	 *
 	 * @param array $post
 	 * @param array $meta
-	 * @return Batch_Importer
+	 * @return Batch_Import_Job
 	 */
 	public function array_to_importer_object( $post, $meta ) {
 
@@ -27,11 +27,11 @@ class Batch_Importer_Mapper extends Mapper {
 
 		/*
 		 * If array has been populated with values, map these values to a new
-		 * Batch_Importer object.
+		 * Batch_Import_Job object.
 		 */
 		if ( ! empty( $post ) ) {
 
-			$importer = new Batch_Importer();
+			$importer = new Batch_Import_Job();
 
 			if ( isset( $post['ID'] ) ) {
 				$importer->set_id( $post['ID'] );

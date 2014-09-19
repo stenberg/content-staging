@@ -52,7 +52,7 @@ $_SERVER = array(
 
 // Set up GET parameters.
 $_GET = array(
-	'sme_batch_importer_id' => $argv[3],
+	'sme_batch_import_job_id' => $argv[3],
 	'sme_import_batch_key'  => $argv[5],
 );
 
