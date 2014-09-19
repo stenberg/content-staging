@@ -187,6 +187,8 @@ jQuery( document ).ready(function($) {
 		 */
 		getBatchImporterStatus: function(data, printed) {
 
+			var self = this;
+
 			$.post(ajaxurl, data, function(response) {
 
 				// Number of messages in this response.
@@ -199,7 +201,7 @@ jQuery( document ).ready(function($) {
 				}
 
 				if (response.status < 2) {
-					setTimeout(this.getBatchImporterStatus(data, printed), 3000);
+					setTimeout(self.getBatchImporterStatus(data, printed), 3000);
 				}
 			});
 		},
