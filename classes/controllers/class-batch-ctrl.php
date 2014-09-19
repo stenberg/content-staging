@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Controllers;
 use Me\Stenberg\Content\Staging\Background_Process;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
+use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
@@ -18,18 +19,21 @@ class Batch_Ctrl {
 	private $template;
 	private $batch_mgr;
 	private $xmlrpc_client;
-	private $batch_importer_dao;
+	private $importer_factory;
+	private $batch_import_job_dao;
 	private $batch_dao;
 	private $post_dao;
 
 	public function __construct( Template $template, Batch_Mgr $batch_mgr, Client $xmlrpc_client,
-								 Batch_Import_Job_DAO $batch_importer_dao, Batch_DAO $batch_dao, Post_DAO $post_dao ) {
-		$this->template           = $template;
-		$this->batch_mgr          = $batch_mgr;
-		$this->xmlrpc_client      = $xmlrpc_client;
-		$this->batch_importer_dao = $batch_importer_dao;
-		$this->batch_dao          = $batch_dao;
-		$this->post_dao           = $post_dao;
+								 Batch_Importer_Factory $importer_factory, Batch_Import_Job_DAO $batch_import_job_dao,
+								 Batch_DAO $batch_dao, Post_DAO $post_dao ) {
+		$this->template             = $template;
+		$this->batch_mgr            = $batch_mgr;
+		$this->xmlrpc_client        = $xmlrpc_client;
+		$this->importer_factory     = $importer_factory;
+		$this->batch_import_job_dao = $batch_import_job_dao;
+		$this->batch_dao            = $batch_dao;
+		$this->post_dao             = $post_dao;
 	}
 
 	/**
@@ -417,34 +421,17 @@ class Batch_Ctrl {
 
 		// ----- Duplicated -----
 
-		$importer = new Batch_Import_Job();
-		$importer->set_batch( $batch );
-		$this->batch_importer_dao->insert_importer( $importer );
+		$import_job = new Batch_Import_Job();
+		$import_job->set_batch( $batch );
+		$this->batch_import_job_dao->insert_importer( $import_job );
 
-		// Default site path.
-		$site_path = '/';
-
-		// Site path in multi-site setup.
-		if ( is_multisite() ) {
-			$site      = get_blog_details();
-			$site_path = $site->path;
-		}
-
-		// Trigger import script.
-		$import_script = dirname( dirname( dirname( __FILE__ ) ) ) . '/scripts/import-batch.php';
-		$background_process = new Background_Process(
-			'php ' . $import_script . ' ' . ABSPATH . ' ' . get_site_url() . ' ' . $importer->get_id() . ' ' . $site_path . ' ' . $importer->get_key()
-		);
-
-		if ( file_exists( $import_script ) ) {
-			$background_process->run();
-		}
-
-		// @todo store background process ID: $background_process->get_pid();
+		$importer = $this->importer_factory->get_importer();
+		$importer->set_job( $import_job );
+		$importer->run();
 
 		$response = array(
 			'info' => array(
-				'Import of batch has been started. Importer ID: <span id="sme-batch-importer-id">' . $importer->get_id() . '</span>',
+				'Import of batch has been started. Importer ID: <span id="sme-batch-importer-id">' . $import_job->get_id() . '</span>',
 			)
 		);
 
@@ -558,7 +545,7 @@ class Batch_Ctrl {
 		$importer_id = intval( $result['importer_id'] );
 
 		// Get batch importer.
-		$importer = $this->batch_importer_dao->get_importer_by_id( $importer_id );
+		$importer = $this->batch_import_job_dao->get_importer_by_id( $importer_id );
 
 		// Create response.
 		$response['status']   = $importer->get_status();

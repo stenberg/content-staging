@@ -23,7 +23,7 @@ use Me\Stenberg\Content\Staging\Models\Term;
  */
 class Import_Batch {
 
-	private $batch_importer_dao;
+	private $import_job_dao;
 	private $post_dao;
 	private $postmeta_dao;
 	private $term_dao;
@@ -79,15 +79,15 @@ class Import_Batch {
 	/**
 	 * Construct object, dependencies are injected.
 	 *
-	 * @param Batch_Import_Job_DAO $batch_importer_dao
+	 * @param Batch_Import_Job_DAO $import_job_dao
 	 * @param Post_DAO $post_dao
 	 * @param Postmeta_DAO $postmeta_dao
 	 * @param Term_DAO $term_dao
 	 * @param User_DAO $user_dao
 	 */
-	public function __construct( Batch_Import_Job_DAO $batch_importer_dao, Post_DAO $post_dao,
-								 Postmeta_DAO $postmeta_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
-		$this->batch_importer_dao    = $batch_importer_dao;
+	public function __construct( Batch_Import_Job_DAO $import_job_dao, Post_DAO $post_dao, Postmeta_DAO $postmeta_dao,
+								 Term_DAO $term_dao, User_DAO $user_dao ) {
+		$this->import_job_dao        = $import_job_dao;
 		$this->post_dao              = $post_dao;
 		$this->postmeta_dao          = $postmeta_dao;
 		$this->term_dao              = $term_dao;
@@ -118,7 +118,7 @@ class Import_Batch {
 		$import_key  = $_GET['sme_import_batch_key'];
 
 		// Get batch importer from database.
-		$importer = $this->batch_importer_dao->get_importer_by_id( $importer_id );
+		$importer = $this->import_job_dao->get_importer_by_id( $importer_id );
 
 		// No importer found, error.
 		if ( ! $importer ) {
@@ -135,7 +135,7 @@ class Import_Batch {
 		// Import running.
 		$importer->set_status( 1 );
 		$importer->generate_key();
-		$this->batch_importer_dao->update_importer( $importer );
+		$this->import_job_dao->update_importer( $importer );
 
 		// Get the batch.
 		$batch = $importer->get_batch();
@@ -172,14 +172,14 @@ class Import_Batch {
 		// Import finished, set success message and update import status.
 		$importer->add_message( 'Batch has been successfully imported!', 'success' );
 		$importer->set_status( 3 );
-		$this->batch_importer_dao->update_importer( $importer );
+		$this->import_job_dao->update_importer( $importer );
 
 		/*
 		 * Delete importer. Importer is not actually deleted, just set to draft
 		 * mode. This is important since we need to access e.g. meta data telling
 		 * us the status of the import even when import has finished.
 		 */
-		$this->batch_importer_dao->delete_importer( $importer );
+		$this->import_job_dao->delete_importer( $importer );
 	}
 
 	/**

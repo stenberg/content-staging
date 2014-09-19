@@ -44,6 +44,10 @@ require_once( 'classes/db/class-post-dao.php' );
 require_once( 'classes/db/class-postmeta-dao.php' );
 require_once( 'classes/db/class-term-dao.php' );
 require_once( 'classes/db/class-user-dao.php' );
+require_once( 'classes/importers/class-batch-importer.php' );
+require_once( 'classes/importers/class-batch-ajax-importer.php' );
+require_once( 'classes/importers/class-batch-background-importer.php' );
+require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/models/class-batch.php' );
 require_once( 'classes/models/class-batch-import-job.php' );
@@ -81,6 +85,7 @@ use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
@@ -124,32 +129,33 @@ class Content_Staging {
 		$user_mapper           = new User_Mapper();
 
 		// Data access objects.
-		$batch_dao          = new Batch_DAO( $wpdb, $batch_mapper );
-		$batch_importer_dao = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
-		$post_dao           = new Post_DAO( $wpdb, $post_mapper );
-		$postmeta_dao       = new Postmeta_DAO( $wpdb );
-		$term_dao           = new Term_DAO( $wpdb, $term_mapper );
-		$user_dao           = new User_DAO( $wpdb, $user_mapper );
+		$batch_dao      = new Batch_DAO( $wpdb, $batch_mapper );
+		$import_job_dao = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
+		$post_dao       = new Post_DAO( $wpdb, $post_mapper );
+		$postmeta_dao   = new Postmeta_DAO( $wpdb );
+		$term_dao       = new Term_DAO( $wpdb, $term_mapper );
+		$user_dao       = new User_DAO( $wpdb, $user_mapper );
 
 		// XML-RPC client.
 		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
 
 		// Managers.
-		$batch_mgr = new Batch_Mgr( $batch_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
+		$batch_mgr        = new Batch_Mgr( $batch_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
+		$importer_factory = new Batch_Importer_Factory();
 
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
 		// Controllers.
 		$batch_ctrl = new Batch_Ctrl(
-			$template, $batch_mgr, $xmlrpc_client, $batch_importer_dao, $batch_dao, $post_dao
+			$template, $batch_mgr, $xmlrpc_client, $importer_factory, $import_job_dao, $batch_dao, $post_dao
 		);
 
 		// APIs.
 		$sme_content_staging_api = new API( $post_dao, $postmeta_dao );
 
 		// Controller responsible for importing a batch to production.
-		$import_batch = new Import_Batch( $batch_importer_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
+		$import_batch = new Import_Batch( $import_job_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
 
 		// Plugin setup.
 		$setup = new Setup( $batch_ctrl, $xmlrpc_client, $plugin_url );
