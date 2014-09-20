@@ -12,7 +12,7 @@ class Batch_Background_Importer extends Batch_Importer {
 	 * @param Batch_Import_Job $job
 	 */
 	public function __construct( Batch_Import_Job $job ) {
-		parent::__construct( 'sme-background-import', $job );
+		parent::__construct( 'background', $job );
 	}
 
 	/**
@@ -44,6 +44,14 @@ class Batch_Background_Importer extends Batch_Importer {
 			$background_process->run();
 		}
 
-		// @todo store background process ID: $background_process->get_pid();
+		if ( $background_process->get_pid() ) {
+			// Background import started.
+			$this->job->set_status( 1 );
+		} else {
+			// Failed to start background import.
+			$this->job->add_message( 'Batch import failed to start.', 'info' );
+			$this->job->set_status( 2 );
+		}
 	}
+
 }

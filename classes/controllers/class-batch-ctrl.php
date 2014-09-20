@@ -399,34 +399,39 @@ class Batch_Ctrl {
 	 */
 	public function import( array $args ) {
 
+		$job           = null;
+		$importer_type = null;
 		$this->xmlrpc_client->handle_request( $args );
 		$result = $this->xmlrpc_client->get_request_data();
 
-		// Check if a batch has been provided.
-		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			return $this->xmlrpc_client->prepare_response(
-				array( 'error' => array( 'Invalid batch!' ) )
-			);
+		if ( isset( $result['job_id'] ) ) {
+			$job = $this->batch_import_job_dao->get_job_by_id( intval( $result['job_id'] ) );
 		}
 
-		// Get batch.
-		$batch = $result['batch'];
+		if ( ! $job ) {
+			$job = $this->create_import_job( $result );
+		}
 
-		$job = new Batch_Import_Job();
-		$job->set_batch( $batch );
-		$this->batch_import_job_dao->insert_job( $job );
+		if ( $job->get_status() !== 2 ) {
 
-		$importer = $this->importer_factory->get_importer( $job );
-		$importer->run();
+			if ( isset( $result['importer'] ) ) {
+				$importer_type = $result['importer'];
+			}
 
-		$job->add_message(
-			sprintf(
-				'Import of batch has been started. Import job ID: <span id="sme-batch-import-job-id" class="%s">%s</span>',
-				$importer->get_type(),
-				$job->get_id()
-			),
-			'info'
-		);
+			$importer = $this->importer_factory->get_importer( $job, $importer_type );
+
+			if ( $job->get_status() === 0 ) {
+				$job->add_message(
+					sprintf(
+						'Starting batch import...<span id="sme-batch-importer-type" class="hidden">%s</span>',
+						$importer->get_type()
+					),
+					'info'
+				);
+			}
+
+			$importer->run();
+		}
 
 		$response = array(
 			'status'   => $job->get_status(),
@@ -438,32 +443,21 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Triggered by an AJAX call. Runs on staging environment.
-	 */
-	public function ajax_import() {
-		$this->import_status_request();
-	}
-
-	/**
-	 * Triggered by an AJAX call. Runs on staging environment.
-	 */
-	public function background_import() {
-		$this->import_status_request();
-	}
-
-	/**
 	 * Output the status of an import job together with any messages
 	 * generated during import.
 	 *
+	 * Triggered by an AJAX call.
+	 *
 	 * Runs on staging environment.
 	 */
-	private function import_status_request() {
+	public  function import_request() {
 
 		$request = array(
-			'importer_id' => intval( $_POST['importer_id'] )
+			'job_id'   => intval( $_POST['job_id'] ),
+			'importer' => $_POST['importer'],
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.importStatus', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.import', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		header( 'Content-Type: application/json' );
@@ -475,36 +469,30 @@ class Batch_Ctrl {
 	/**
 	 * Runs on production when an import status request has been received.
 	 *
-	 * @param array $args
-	 * @return string
+	 * @param array $result
+	 * @return Batch_Import_Job
 	 */
-	public function import_status( array $args ) {
+	private function create_import_job( $result ) {
 
-		$job_id = null;
-		$this->xmlrpc_client->handle_request( $args );
-		$result = $this->xmlrpc_client->get_request_data();
+		$job = new Batch_Import_Job();
 
-		if ( isset( $result['importer_id'] ) ) {
-			$job_id = intval( $result['importer_id'] );
-		}
-
-		$job      = $this->batch_import_job_dao->get_job_by_id( $job_id );
-		$importer = $this->importer_factory->get_importer( $job );
-
-		// No job found, create a dummy job to set messages on.
-		if ( ! $job ) {
-			$job = new Batch_Import_Job();
-			$job->add_message( 'No import job found.', 'error' );
+		// Check if a batch has been provided.
+		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+			$job->add_message( 'Failed creating import job.', 'error' );
 			$job->set_status( 2 );
+			return $job;
 		}
 
-		$response = array(
-			'status'   => $job->get_status(),
-			'messages' => $job->get_messages()
+		$job->set_batch( $result['batch'] );
+		$this->batch_import_job_dao->insert_job( $job );
+		$job->add_message(
+			sprintf(
+				'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
+				$job->get_id()
+			),
+			'info'
 		);
-
-		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $response );
+		return $job;
 	}
 
 	/**

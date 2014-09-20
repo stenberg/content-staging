@@ -11,7 +11,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	 * @param Batch_Import_Job $job
 	 */
 	public function __construct( Batch_Import_Job $job ) {
-		parent::__construct( 'sme-ajax-import', $job );
+		parent::__construct( 'ajax', $job );
 	}
 
 	/**

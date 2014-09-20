@@ -170,8 +170,7 @@ class Content_Staging {
 		add_action( 'admin_post_sme-quick-deploy-batch', array( $batch_ctrl, 'quick_deploy' ) );
 		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );
 		add_action( 'wp_ajax_sme_include_post', array( $batch_ctrl, 'include_post' ) );
-		add_action( 'wp_ajax_sme_ajax_import', array( $batch_ctrl, 'ajax_import' ) );
-		add_action( 'wp_ajax_sme_background_import', array( $batch_ctrl, 'background_import' ) );
+		add_action( 'wp_ajax_sme_import_request', array( $batch_ctrl, 'import_request' ) );
 
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );

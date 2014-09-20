@@ -12,7 +12,16 @@ class Batch_Importer_Factory {
 	/**
 	 * Determine what importer to use and return it.
 	 */
-	public function get_importer( Batch_Import_Job $job ) {
+	public function get_importer( Batch_Import_Job $job, $type = null ) {
+
+		if ( $type == 'ajax' ) {
+			return new Batch_AJAX_Importer( $job );
+		}
+
+		if ( $type == 'background' ) {
+			return new Batch_Background_Importer( $job );
+		}
+
 		return new Batch_Background_Importer( $job );
 	}
 }

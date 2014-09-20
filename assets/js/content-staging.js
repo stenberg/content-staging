@@ -166,19 +166,15 @@ jQuery( document ).ready(function($) {
 		 */
 		deployBatch: function() {
 
-			var data         = {};
-			var importJob    = $('#sme-batch-import-job-id');
-			var importJobId  = importJob.html();
-			var importerType = importJob.attr('class');
-			var printed      = 0;
+			var data = {
+				action: 'sme_import_request',
+				job_id: $('#sme-batch-import-job-id').html(),
+				importer: $('#sme-batch-importer-type').html()
+			};
 
 			// Check if a batch importer ID has been found.
-			if (importJobId && importerType) {
-
-				data.importer_id = importJobId;
-				data.action      = importerType.replace(/\-/g,'_');
-
-				this.getBatchImportStatus(data, printed);
+			if (data.job_id && data.importer) {
+				this.deployStatus(data, 0);
 			}
 		},
 
@@ -188,7 +184,7 @@ jQuery( document ).ready(function($) {
 		 * @param data
 		 * @param printed Number of messages that has been printed.
 		 */
-		getBatchImportStatus: function(data, printed) {
+		deployStatus: function(data, printed) {
 
 			var self = this;
 
@@ -203,13 +199,13 @@ jQuery( document ).ready(function($) {
 					printed++;
 				}
 
-				// Import is not completed. Select import method.
+				// If import is not completed, select import method.
 				if (response.status < 2) {
 					switch (data.action) {
-						case 'sme_ajax_import':
+						case 'ajax':
 							self.ajaxImport(data, printed);
 							break;
-						case 'sme_background_import':
+						case 'background':
 							self.backgroundImport(data, printed);
 							break;
 					}
@@ -218,13 +214,13 @@ jQuery( document ).ready(function($) {
 		},
 
 		ajaxImport: function() {
-			self.getBatchImportStatus(data, printed);
+			self.deployStatus(data, printed);
 		},
 
 		backgroundImport: function(data, printed) {
 			var self = this;
 			setTimeout(function() {
-				self.getBatchImportStatus(data, printed);
+				self.deployStatus(data, printed);
 			}, 3000);
 		},
 

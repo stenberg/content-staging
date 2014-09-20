@@ -133,7 +133,6 @@ class Import_Batch {
 		}
 
 		// Import running.
-		$importer->set_status( 1 );
 		$importer->generate_key();
 		$this->import_job_dao->update_job( $importer );
 

@@ -122,9 +122,8 @@ class Setup {
 	 */
 	public function register_xmlrpc_methods( $methods ) {
 
-		$methods['smeContentStaging.verify']       = array( $this->batch_ctrl, 'verify' );
-		$methods['smeContentStaging.import']       = array( $this->batch_ctrl, 'import' );
-		$methods['smeContentStaging.importStatus'] = array( $this->batch_ctrl, 'import_status' );
+		$methods['smeContentStaging.verify'] = array( $this->batch_ctrl, 'verify' );
+		$methods['smeContentStaging.import'] = array( $this->batch_ctrl, 'import' );
 
 		return $methods;
 	}
