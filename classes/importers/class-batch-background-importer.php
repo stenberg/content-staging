@@ -5,6 +5,16 @@ use Me\Stenberg\Content\Staging\Background_Process;
 
 class Batch_Background_Importer extends Batch_Importer {
 
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		$this->type = 'sme-background-import';
+	}
+
+	/**
+	 * Start importer.
+	 */
 	public function run() {
 
 		// Default site path.

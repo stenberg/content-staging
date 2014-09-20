@@ -6,9 +6,21 @@ use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 abstract class Batch_Importer {
 
 	/**
+	 * @var string
+	 */
+	protected $type;
+
+	/**
 	 * @var Batch_Import_Job
 	 */
 	protected $job;
+
+	/**
+	 * @return string
+	 */
+	public function get_type() {
+		return $this->type;
+	}
 
 	/**
 	 * @param Batch_Import_Job $job

@@ -33,8 +33,12 @@ class Batch_Import_Job_DAO extends DAO {
 		);
 
 		$importer_data = $this->wpdb->get_row( $importer_query, ARRAY_A );
-		$meta_data     = $this->wpdb->get_results( $meta_query, ARRAY_A );
 
+		if ( ! $importer_data ) {
+			return null;
+		}
+
+		$meta_data = $this->wpdb->get_results( $meta_query, ARRAY_A );
 		return $this->importer_mapper->array_to_importer_object( $importer_data, $meta_data );
 	}
 

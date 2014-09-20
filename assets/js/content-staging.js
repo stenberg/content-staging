@@ -1,5 +1,9 @@
 jQuery( document ).ready(function($) {
 
+	/**
+	 * Since WordPress 2.8 'ajaxurl' is always defined in the admin header
+	 * and points to admin-ajax.php.
+	 */
 	var app = {
 
 		/**
@@ -162,30 +166,29 @@ jQuery( document ).ready(function($) {
 		 */
 		deployBatch: function() {
 
-			var data            = {};
-			var batchImporterId = $('#sme-batch-importer-id').html();
-			var printed         = 0;
+			var data         = {};
+			var importJob    = $('#sme-batch-import-job-id');
+			var importJobId  = importJob.html();
+			var importerType = importJob.attr('class');
+			var printed      = 0;
 
 			// Check if a batch importer ID has been found.
-			if (batchImporterId) {
+			if (importJobId && importerType) {
 
-				data.action      = 'sme_batch_import_status';
-				data.importer_id = batchImporterId;
+				data.importer_id = importJobId;
+				data.action      = importerType.replace(/\-/g,'_');
 
-				this.getBatchImporterStatus(data, printed);
+				this.getBatchImportStatus(data, printed);
 			}
 		},
 
 		/**
 		 * Get batch import status.
 		 *
-		 * Since WordPress 2.8 'ajaxurl' is always defined in the admin header
-		 * and points to admin-ajax.php.
-		 *
 		 * @param data
 		 * @param printed Number of messages that has been printed.
 		 */
-		getBatchImporterStatus: function(data, printed) {
+		getBatchImportStatus: function(data, printed) {
 
 			var self = this;
 
@@ -200,10 +203,26 @@ jQuery( document ).ready(function($) {
 					printed++;
 				}
 
+				// Import is not completed. Select import method.
 				if (response.status < 2) {
-					setTimeout(self.getBatchImporterStatus(data, printed), 3000);
+					switch (data.action) {
+						case 'sme_ajax_import':
+							self.ajaxImport();
+							break;
+						case 'sme_background_import':
+							self.backgroundImport(data, printed);
+							break;
+					}
 				}
 			});
+		},
+
+		ajaxImport: function() {
+			console.log('AJAX import');
+		},
+
+		backgroundImport: function(data, printed) {
+			setTimeout(this.getBatchImportStatus(data, printed), 3000);
 		},
 
 		/**

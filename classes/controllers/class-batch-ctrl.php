@@ -184,7 +184,7 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Pre-flight batch.
+	 * Prepare batch for pre-flight.
 	 *
 	 * Send batch from content staging environment to production. Production
 	 * will evaluate the batch and look for any issues that might cause
@@ -199,7 +199,7 @@ class Batch_Ctrl {
 	 *
 	 * @param Batch $batch
 	 */
-	public function preflight_batch( $batch = null ) {
+	public function prepare( $batch = null ) {
 
 		// Make sure a query param ID exists in current URL.
 		if ( ! isset( $_GET['id'] ) && ! $batch ) {
@@ -222,7 +222,7 @@ class Batch_Ctrl {
 			'batch'  => $batch,
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.preflight', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		// Pre-flight status.
@@ -252,7 +252,7 @@ class Batch_Ctrl {
 	 * @param array $args
 	 * @return string
 	 */
-	public function preflight( array $args ) {
+	public function verify( array $args ) {
 
 		$this->xmlrpc_client->handle_request( $args );
 		$result = $this->xmlrpc_client->get_request_data();
@@ -319,7 +319,7 @@ class Batch_Ctrl {
 	/**
 	 * Send post directly to production.
 	 */
-	public function quick_deploy_batch() {
+	public function quick_deploy() {
 
 		// Make sure a query param 'post_id' exists in current URL.
 		if ( ! isset( $_GET['post_id'] ) ) {
@@ -355,7 +355,7 @@ class Batch_Ctrl {
 	 * user here, fetch data from database and send it to production. This
 	 * would more closely resemble how we handle e.g. editing a batch.
 	 */
-	public function deploy_batch() {
+	public function deploy() {
 
 		// Check that the current request carries a valid nonce.
 		check_admin_referer( 'sme-deploy-batch', 'sme_deploy_batch_nonce' );
@@ -374,7 +374,7 @@ class Batch_Ctrl {
 			'batch'  => $batch,
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.deploy', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.import', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		/*
@@ -385,7 +385,7 @@ class Batch_Ctrl {
 		$this->batch_dao->delete_batch( $batch );
 
 		$data = array(
-			'response' => $response,
+			'messages' => $response['messages'],
 		);
 
 		$this->template->render( 'deploy-batch', $data );
@@ -394,20 +394,13 @@ class Batch_Ctrl {
 	/**
 	 * Runs on production when a deploy request has been received.
 	 *
-	 * @todo Checking if a batch has been provided is duplicated from
-	 * pre-flight, fix!
-	 *
-	 * Store background process ID.
-	 *
 	 * @param array $args
 	 * @return string
 	 */
-	public function deploy( array $args ) {
+	public function import( array $args ) {
 
 		$this->xmlrpc_client->handle_request( $args );
 		$result = $this->xmlrpc_client->get_request_data();
-
-		// ----- Duplicated -----
 
 		// Check if a batch has been provided.
 		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
@@ -419,8 +412,6 @@ class Batch_Ctrl {
 		// Get batch.
 		$batch = $result['batch'];
 
-		// ----- Duplicated -----
-
 		$import_job = new Batch_Import_Job();
 		$import_job->set_batch( $batch );
 		$this->batch_import_job_dao->insert_importer( $import_job );
@@ -429,10 +420,88 @@ class Batch_Ctrl {
 		$importer->set_job( $import_job );
 		$importer->run();
 
+		$import_job->add_message(
+			sprintf(
+				'Import of batch has been started. Import job ID: <span id="sme-batch-import-job-id" class="%s">%s</span>',
+				$importer->get_type(),
+				$import_job->get_id()
+			),
+			'info'
+		);
+
 		$response = array(
-			'info' => array(
-				'Import of batch has been started. Importer ID: <span id="sme-batch-importer-id">' . $import_job->get_id() . '</span>',
-			)
+			'status'   => $import_job->get_status(),
+			'messages' => $import_job->get_messages()
+		);
+
+		// Prepare and return the XML-RPC response data.
+		return $this->xmlrpc_client->prepare_response( $response );
+	}
+
+	/**
+	 * Triggered by an AJAX call. Runs on staging environment.
+	 */
+	public function ajax_import() {
+		$this->import_status_request();
+	}
+
+	/**
+	 * Triggered by an AJAX call. Runs on staging environment.
+	 */
+	public function background_import() {
+		$this->import_status_request();
+	}
+
+	/**
+	 * Output the status of an import job together with any messages
+	 * generated during import.
+	 *
+	 * Runs on staging environment.
+	 */
+	private function import_status_request() {
+
+		$request = array(
+			'importer_id' => intval( $_POST['importer_id'] )
+		);
+
+		$this->xmlrpc_client->query( 'smeContentStaging.importStatus', $request );
+		$response = $this->xmlrpc_client->get_response_data();
+
+		header( 'Content-Type: application/json' );
+		echo json_encode( $response );
+
+		die(); // Required to return a proper result.
+	}
+
+	/**
+	 * Runs on production when an import status request has been received.
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public function import_status( array $args ) {
+
+		$job_id = null;
+		$this->xmlrpc_client->handle_request( $args );
+		$result = $this->xmlrpc_client->get_request_data();
+
+		if ( isset( $result['importer_id'] ) ) {
+			$job_id = intval( $result['importer_id'] );
+		}
+
+		// Get batch importer.
+		$job = $this->batch_import_job_dao->get_importer_by_id( $job_id );
+
+		// No job found, create a dummy job to set messages on.
+		if ( ! $job ) {
+			$job = new Batch_Import_Job();
+			$job->add_message( 'No import job found.', 'error' );
+			$job->set_status( 2 );
+		}
+
+		$response = array(
+			'status'   => $job->get_status(),
+			'messages' => $job->get_messages()
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -496,63 +565,6 @@ class Batch_Ctrl {
 		echo json_encode( array( 'batchId' => $batch->get_id() ) );
 
 		die(); // Required to return a proper result.
-	}
-
-	/**
-	 * Triggered by an AJAX call. Returns the status of the import together
-	 * with any messages generated during import.
-	 */
-	public function get_import_status() {
-
-		$importer_id = intval( $_POST['importer_id'] );
-
-		$request = array(
-			'importer_id' => $importer_id,
-		);
-
-		$this->xmlrpc_client->query( 'smeContentStaging.deployStatus', $request );
-		$response = $this->xmlrpc_client->get_response_data();
-
-		header( 'Content-Type: application/json' );
-		echo json_encode( $response );
-
-		die(); // Required to return a proper result.
-	}
-
-	/**
-	 * Runs on production when a deploy status request has been received.
-	 *
-	 * @param array $args
-	 * @return string
-	 */
-	public function deploy_status( array $args ) {
-
-		$response = array(
-			'status'   => 0,
-			'messages' => array(),
-		);
-
-		$this->xmlrpc_client->handle_request( $args );
-		$result = $this->xmlrpc_client->get_request_data();
-
-		// Check if a batch has been provided.
-		if ( ! isset( $result['importer_id'] ) ) {
-			$response['messages']['error'] = array( 'No batch importer has been provided!' );
-			return $this->xmlrpc_client->prepare_response( $response );
-		}
-
-		// Get batch importer ID.
-		$importer_id = intval( $result['importer_id'] );
-
-		// Get batch importer.
-		$importer = $this->batch_import_job_dao->get_importer_by_id( $importer_id );
-
-		// Create response.
-		$response['status']   = $importer->get_status();
-		$response['messages'] = $importer->get_messages();
-
-		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $response );
 	}
 
 	/**
