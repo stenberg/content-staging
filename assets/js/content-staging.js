@@ -190,7 +190,9 @@ jQuery( document ).ready(function($) {
 		 */
 		getBatchImportStatus: function(data, printed) {
 
-			var self = this;
+			var self    = this;
+			var data    = data;
+			var printed = printed;
 
 			$.post(ajaxurl, data, function(response) {
 
@@ -222,7 +224,10 @@ jQuery( document ).ready(function($) {
 		},
 
 		backgroundImport: function(data, printed) {
-			setTimeout(this.getBatchImportStatus(data, printed), 3000);
+			var self = this;
+			setTimeout(function() {
+				self.getBatchImportStatus(data, printed);
+			}, 3000);
 		},
 
 		/**
