@@ -190,9 +190,7 @@ jQuery( document ).ready(function($) {
 		 */
 		getBatchImportStatus: function(data, printed) {
 
-			var self    = this;
-			var data    = data;
-			var printed = printed;
+			var self = this;
 
 			$.post(ajaxurl, data, function(response) {
 
@@ -209,7 +207,7 @@ jQuery( document ).ready(function($) {
 				if (response.status < 2) {
 					switch (data.action) {
 						case 'sme_ajax_import':
-							self.ajaxImport();
+							self.ajaxImport(data, printed);
 							break;
 						case 'sme_background_import':
 							self.backgroundImport(data, printed);
@@ -220,7 +218,7 @@ jQuery( document ).ready(function($) {
 		},
 
 		ajaxImport: function() {
-			console.log('AJAX import');
+			self.getBatchImportStatus(data, printed);
 		},
 
 		backgroundImport: function(data, printed) {
