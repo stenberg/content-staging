@@ -21,7 +21,7 @@ class Batch_Import_Job_DAO extends DAO {
 	 * @param $id
 	 * @return Batch_Import_Job
 	 */
-	public function get_importer_by_id( $id ) {
+	public function get_job_by_id( $id ) {
 		$importer_query = $this->wpdb->prepare(
 			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ID = %d',
 			$id
@@ -45,14 +45,14 @@ class Batch_Import_Job_DAO extends DAO {
 	/**
 	 * @param Batch_Import_Job $importer
 	 */
-	public function insert_importer( Batch_Import_Job $importer ) {
+	public function insert_job( Batch_Import_Job $importer ) {
 
 		$importer->set_date( current_time( 'mysql' ) );
 		$importer->set_date_gmt( current_time( 'mysql', 1 ) );
 		$importer->set_modified( $importer->get_date() );
 		$importer->set_modified_gmt( $importer->get_date_gmt() );
 
-		$data = $this->filter_importer_data( $importer );
+		$data = $this->sanitize_job( $importer );
 
 		$importer->set_id( wp_insert_post( $data['values'] ) );
 
@@ -64,12 +64,12 @@ class Batch_Import_Job_DAO extends DAO {
 	/**
 	 * @param Batch_Import_Job $importer
 	 */
-	public function update_importer( Batch_Import_Job $importer ) {
+	public function update_job( Batch_Import_Job $importer ) {
 
 		$importer->set_modified( current_time( 'mysql' ) );
 		$importer->set_modified_gmt( current_time( 'mysql', 1 ) );
 
-		$data = $this->filter_importer_data( $importer );
+		$data = $this->sanitize_job( $importer );
 
 		$this->update(
 			'posts', $data['values'], array( 'ID' => $importer->get_id() ), $data['format'], array( '%d' )
@@ -95,7 +95,7 @@ class Batch_Import_Job_DAO extends DAO {
 	 *
 	 * @param Batch_Import_Job $importer
 	 */
-	public function delete_importer( Batch_Import_Job $importer ) {
+	public function delete_job( Batch_Import_Job $importer ) {
 
 		$this->wpdb->update(
 			$this->wpdb->posts,
@@ -115,7 +115,7 @@ class Batch_Import_Job_DAO extends DAO {
 	 * @param Batch_Import_Job $importer
 	 * @return array
 	 */
-	private function filter_importer_data( Batch_Import_Job $importer ) {
+	private function sanitize_job( Batch_Import_Job $importer ) {
 
 		$values = array(
 			'post_status'    => 'publish',

@@ -412,26 +412,25 @@ class Batch_Ctrl {
 		// Get batch.
 		$batch = $result['batch'];
 
-		$import_job = new Batch_Import_Job();
-		$import_job->set_batch( $batch );
-		$this->batch_import_job_dao->insert_importer( $import_job );
+		$job = new Batch_Import_Job();
+		$job->set_batch( $batch );
+		$this->batch_import_job_dao->insert_job( $job );
 
-		$importer = $this->importer_factory->get_importer();
-		$importer->set_job( $import_job );
+		$importer = $this->importer_factory->get_importer( $job );
 		$importer->run();
 
-		$import_job->add_message(
+		$job->add_message(
 			sprintf(
 				'Import of batch has been started. Import job ID: <span id="sme-batch-import-job-id" class="%s">%s</span>',
 				$importer->get_type(),
-				$import_job->get_id()
+				$job->get_id()
 			),
 			'info'
 		);
 
 		$response = array(
-			'status'   => $import_job->get_status(),
-			'messages' => $import_job->get_messages()
+			'status'   => $job->get_status(),
+			'messages' => $job->get_messages()
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -489,8 +488,8 @@ class Batch_Ctrl {
 			$job_id = intval( $result['importer_id'] );
 		}
 
-		// Get batch importer.
-		$job = $this->batch_import_job_dao->get_importer_by_id( $job_id );
+		$job      = $this->batch_import_job_dao->get_job_by_id( $job_id );
+		$importer = $this->importer_factory->get_importer( $job );
 
 		// No job found, create a dummy job to set messages on.
 		if ( ! $job ) {

@@ -16,6 +16,22 @@ abstract class Batch_Importer {
 	protected $job;
 
 	/**
+	 * Constructor.
+	 *
+	 * @param string $type
+	 * @param Batch_Import_Job $job
+	 */
+	protected function __construct( $type, Batch_Import_Job $job ) {
+		$this->type = $type;
+		$this->job  = $job;
+	}
+
+	/**
+	 * Trigger importer.
+	 */
+	abstract function run();
+
+	/**
 	 * @return string
 	 */
 	public function get_type() {

@@ -118,7 +118,7 @@ class Import_Batch {
 		$import_key  = $_GET['sme_import_batch_key'];
 
 		// Get batch importer from database.
-		$importer = $this->import_job_dao->get_importer_by_id( $importer_id );
+		$importer = $this->import_job_dao->get_job_by_id( $importer_id );
 
 		// No importer found, error.
 		if ( ! $importer ) {
@@ -135,7 +135,7 @@ class Import_Batch {
 		// Import running.
 		$importer->set_status( 1 );
 		$importer->generate_key();
-		$this->import_job_dao->update_importer( $importer );
+		$this->import_job_dao->update_job( $importer );
 
 		// Get the batch.
 		$batch = $importer->get_batch();
@@ -172,14 +172,14 @@ class Import_Batch {
 		// Import finished, set success message and update import status.
 		$importer->add_message( 'Batch has been successfully imported!', 'success' );
 		$importer->set_status( 3 );
-		$this->import_job_dao->update_importer( $importer );
+		$this->import_job_dao->update_job( $importer );
 
 		/*
 		 * Delete importer. Importer is not actually deleted, just set to draft
 		 * mode. This is important since we need to access e.g. meta data telling
 		 * us the status of the import even when import has finished.
 		 */
-		$this->import_job_dao->delete_importer( $importer );
+		$this->import_job_dao->delete_job( $importer );
 	}
 
 	/**

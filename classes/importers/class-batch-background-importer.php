@@ -2,20 +2,28 @@
 namespace Me\Stenberg\Content\Staging\Importers;
 
 use Me\Stenberg\Content\Staging\Background_Process;
+use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
 class Batch_Background_Importer extends Batch_Importer {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param Batch_Import_Job $job
 	 */
-	public function __construct() {
-		$this->type = 'sme-background-import';
+	public function __construct( Batch_Import_Job $job ) {
+		parent::__construct( 'sme-background-import', $job );
 	}
 
 	/**
 	 * Start importer.
 	 */
 	public function run() {
+
+		// Make sure background import for this job is not already running.
+		if ( $this->job->get_status() > 0 ) {
+			return;
+		}
 
 		// Default site path.
 		$site_path = '/';
