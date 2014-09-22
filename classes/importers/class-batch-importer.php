@@ -11,6 +11,7 @@ use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Term;
+use Me\Stenberg\Content\Staging\Models\User;
 
 abstract class Batch_Importer {
 
@@ -32,11 +33,6 @@ abstract class Batch_Importer {
 	protected $postmeta_keys;
 
 	/**
-	 * @var Batch_Import_Job_DAO
-	 */
-	protected $import_job_dao;
-
-	/**
 	 * Array storing the relation between a post and its parent post.
 	 *
 	 * Key = Post ID.
@@ -44,7 +40,7 @@ abstract class Batch_Importer {
 	 *
 	 * @var array
 	 */
-	private $parent_post_relations;
+	protected $parent_post_relations;
 
 	/**
 	 * Array to keep track on the relation between a users ID on
@@ -55,7 +51,7 @@ abstract class Batch_Importer {
 	 *
 	 * @var array
 	 */
-	private $user_relations;
+	protected $user_relations;
 
 	/**
 	 * Array to keep track on the relation between a posts ID on
@@ -66,7 +62,7 @@ abstract class Batch_Importer {
 	 *
 	 * @var array
 	 */
-	private $post_relations;
+	protected $post_relations;
 
 	/**
 	 * Array where we store all posts that should be published when data has
@@ -74,7 +70,12 @@ abstract class Batch_Importer {
 	 *
 	 * @var array
 	 */
-	private $posts_to_publish;
+	protected $posts_to_publish;
+
+	/**
+	 * @var Batch_Import_Job_DAO
+	 */
+	protected $import_job_dao;
 
 	/**
 	 * @var Post_DAO
@@ -156,10 +157,18 @@ abstract class Batch_Importer {
 	 * @param array $users
 	 */
 	protected function import_users( $users ) {
-
 		foreach ( $users as $user ) {
+			$this->import_user( $user );
+		}
+	}
 
-			/*
+	/**
+	 * Import user.
+	 *
+	 * @param User $user
+	 */
+	protected function import_user( User $user ) {
+		/*
 			 * See if user exists in database.
 			 *
 			 * @todo Here we are assuming that there cannot be two users with the
@@ -168,47 +177,29 @@ abstract class Batch_Importer {
 			 *
 			 * @see http://codex.wordpress.org/Function_Reference/get_user_by
 			 */
-			$existing = $this->user_dao->get_user_by_user_login( $user->get_user_login() );
+		$existing = $this->user_dao->get_user_by_user_login( $user->get_user_login() );
 
-			// Create if user does not exist, update otherwise.
-			if ( empty( $existing ) ) {
-				$stage_user_id = $user->get_id();
-				$prod_user_id  = $this->user_dao->insert_user( $user );
+		// Create if user does not exist, update otherwise.
+		if ( empty( $existing ) ) {
+			$stage_user_id = $user->get_id();
+			$prod_user_id  = $this->user_dao->insert_user( $user );
 
-				$user->set_id( $prod_user_id );
-			} else {
-				$stage_user_id = $user->get_id();
-				$prod_user_id  = $existing->get_id();
+			$user->set_id( $prod_user_id );
+		} else {
+			$stage_user_id = $user->get_id();
+			$prod_user_id  = $existing->get_id();
 
-				$user->set_id( $prod_user_id );
-				$this->user_dao->update_user( $user, array( 'ID' => $user->get_id() ), array( '%d' ) );
-				$this->user_dao->delete_usermeta( array( 'user_id' => $prod_user_id ), array( '%d' ) );
-			}
-
-			// Add to the user_relations property
-			$this->user_relations[$stage_user_id] = $prod_user_id;
+			$user->set_id( $prod_user_id );
+			$this->user_dao->update_user( $user, array( 'ID' => $user->get_id() ), array( '%d' ) );
+			$this->user_dao->delete_usermeta( array( 'user_id' => $prod_user_id ), array( '%d' ) );
 		}
 
-		// Import usermeta.
-		$this->import_usermeta( $users );
-	}
+		// Add to the user_relations property
+		$this->user_relations[$stage_user_id] = $prod_user_id;
 
-	/**
-	 * Import usermeta.
-	 *
-	 * Start by changing content staging user IDs to production IDs.
-	 *
-	 * The content staging user ID is used as a key in the user relations
-	 * array and the production user ID is used as value.
-	 *
-	 * @param array $users
-	 */
-	protected function import_usermeta( $users ) {
-		foreach ( $users as $user ) {
-			foreach ( $user->get_meta() as $meta ) {
-				$meta['user_id'] = $user->get_id();
-				$this->user_dao->insert_usermeta( $meta );
-			}
+		foreach ( $user->get_meta() as $meta ) {
+			$meta['user_id'] = $user->get_id();
+			$this->user_dao->insert_usermeta( $meta );
 		}
 	}
 
@@ -275,6 +266,17 @@ abstract class Batch_Importer {
 	}
 
 	/**
+	 * Import all post meta for a post.
+	 *
+	 * @param array $posts
+	 */
+	protected function import_all_postmeta( array $posts) {
+		foreach ( $posts as $post ) {
+			$this->import_postmeta( $post );
+		}
+	}
+
+	/**
 	 * Import postmeta for a specific post.
 	 *
 	 * Never call before all posts has been imported! In case you do
@@ -334,22 +336,31 @@ abstract class Batch_Importer {
 		 */
 		$attachments = apply_filters( 'sme_import_attachments', $attachments, $importer );
 
-		$upload_dir = wp_upload_dir();
 		foreach ( $attachments as $attachment ) {
-			$path = $attachment['path'];
-			$filepath = $upload_dir['basedir'] . '/' . $path . '/';
+			$this->import_attachment( $attachment );
+		}
+	}
 
-			if ( ! is_dir( $filepath ) ) {
-				mkdir( $filepath );
-			}
+	/**
+	 * Import a single attachment.
+	 *
+	 * @param array $attachment
+	 */
+	protected function import_attachment( array $attachment ) {
+		$upload_dir = wp_upload_dir();
+		$path       = $attachment['path'];
+		$filepath   = $upload_dir['basedir'] . '/' . $path . '/';
 
-			foreach ( $attachment['sizes'] as $size ) {
-				$basename = pathinfo( $size, PATHINFO_BASENAME );
+		if ( ! is_dir( $filepath ) ) {
+			mkdir( $filepath );
+		}
 
-				// Get file if it exists.
-				if ( $image = file_get_contents( $size ) ) {
-					file_put_contents( $filepath . $basename, $image );
-				}
+		foreach ( $attachment['sizes'] as $size ) {
+			$basename = pathinfo( $size, PATHINFO_BASENAME );
+
+			// Get file if it exists.
+			if ( $image = file_get_contents( $size ) ) {
+				file_put_contents( $filepath . $basename, $image );
 			}
 		}
 	}

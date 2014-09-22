@@ -435,7 +435,7 @@ class Batch_Ctrl {
 
 		$response = array(
 			'status'   => $job->get_status(),
-			'messages' => $job->get_messages()
+			'messages' => $job->get_messages(),
 		);
 
 		// Prepare and return the XML-RPC response data.

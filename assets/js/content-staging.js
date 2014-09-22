@@ -172,9 +172,11 @@ jQuery( document ).ready(function($) {
 				importer: $('#sme-batch-importer-type').html()
 			};
 
+			var printed = $('.sme-cs-message').length;
+
 			// Check if a batch importer ID has been found.
 			if (data.job_id && data.importer) {
-				this.deployStatus(data, 0);
+				this.deployStatus(data, printed);
 			}
 		},
 
@@ -201,7 +203,7 @@ jQuery( document ).ready(function($) {
 
 				// If import is not completed, select import method.
 				if (response.status < 2) {
-					switch (data.action) {
+					switch (data.importer) {
 						case 'ajax':
 							self.ajaxImport(data, printed);
 							break;
@@ -213,8 +215,8 @@ jQuery( document ).ready(function($) {
 			});
 		},
 
-		ajaxImport: function() {
-			self.deployStatus(data, printed);
+		ajaxImport: function(data, printed) {
+			this.deployStatus(data, printed);
 		},
 
 		backgroundImport: function(data, printed) {

@@ -27,7 +27,7 @@ class Batch_Importer_Factory {
 	 */
 	public function __construct( Batch_Import_Job_DAO $job_dao, Post_DAO $post_dao, Postmeta_DAO $postmeta_dao,
 								 Term_DAO $term_dao, User_DAO $user_dao ) {
-		$this->job_dao     = $job_dao;
+		$this->job_dao      = $job_dao;
 		$this->post_dao     = $post_dao;
 		$this->postmeta_dao = $postmeta_dao;
 		$this->term_dao     = $term_dao;
@@ -51,7 +51,7 @@ class Batch_Importer_Factory {
 			);
 		}
 
-		return new Batch_Background_Importer(
+		return new Batch_AJAX_Importer(
 			$job, $this->job_dao, $this->post_dao, $this->postmeta_dao, $this->term_dao, $this->user_dao
 		);
 	}
