@@ -129,40 +129,37 @@ class Content_Staging {
 		$user_mapper           = new User_Mapper();
 
 		// Data access objects.
-		$batch_dao      = new Batch_DAO( $wpdb, $batch_mapper );
-		$import_job_dao = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
-		$post_dao       = new Post_DAO( $wpdb, $post_mapper );
-		$postmeta_dao   = new Postmeta_DAO( $wpdb );
-		$term_dao       = new Term_DAO( $wpdb, $term_mapper );
-		$user_dao       = new User_DAO( $wpdb, $user_mapper );
+		$batch_dao    = new Batch_DAO( $wpdb, $batch_mapper );
+		$job_dao      = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
+		$post_dao     = new Post_DAO( $wpdb, $post_mapper );
+		$postmeta_dao = new Postmeta_DAO( $wpdb );
+		$term_dao     = new Term_DAO( $wpdb, $term_mapper );
+		$user_dao     = new User_DAO( $wpdb, $user_mapper );
 
 		// XML-RPC client.
 		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
 
 		// Managers.
 		$batch_mgr        = new Batch_Mgr( $batch_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
-		$importer_factory = new Batch_Importer_Factory();
+		$importer_factory = new Batch_Importer_Factory( $job_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
 
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
 		// Controllers.
 		$batch_ctrl = new Batch_Ctrl(
-			$template, $batch_mgr, $xmlrpc_client, $importer_factory, $import_job_dao, $batch_dao, $post_dao
+			$template, $batch_mgr, $xmlrpc_client, $importer_factory, $job_dao, $batch_dao, $post_dao
 		);
 
 		// APIs.
 		$sme_content_staging_api = new API( $post_dao, $postmeta_dao );
-
-		// Controller responsible for importing a batch to production.
-		$import_batch = new Import_Batch( $import_job_dao, $post_dao, $postmeta_dao, $term_dao, $user_dao );
 
 		// Plugin setup.
 		$setup = new Setup( $batch_ctrl, $xmlrpc_client, $plugin_url );
 
 		// Actions.
 		add_action( 'init', array( $setup, 'register_post_types' ) );
-		add_action( 'init', array( $import_batch, 'init' ) );
+		add_action( 'init', array( $importer_factory, 'run_background_import' ) );
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
 		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );

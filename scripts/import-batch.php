@@ -52,8 +52,9 @@ $_SERVER = array(
 
 // Set up GET parameters.
 $_GET = array(
+	'sme_background_import'   => true,
 	'sme_batch_import_job_id' => $argv[3],
-	'sme_import_batch_key'  => $argv[5],
+	'sme_import_batch_key'    => $argv[5],
 );
 
 chdir( $argv[1] );
