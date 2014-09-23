@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/stenberg/content-staging
  * Description: Content Staging.
  * Author: Joakim Stenberg, Fredrik Hörte
- * Version: 1.0
+ * Version: 1.1
  * License: GPLv2
  */
 
