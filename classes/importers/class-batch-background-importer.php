@@ -63,6 +63,8 @@ class Batch_Background_Importer extends Batch_Importer {
 			$this->job->add_message( 'Batch import failed to start.', 'info' );
 			$this->job->set_status( 2 );
 		}
+
+		$this->import_job_dao->update_job( $this->job );
 	}
 
 	/**

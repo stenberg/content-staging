@@ -37,19 +37,10 @@ class Batch_Importer_Factory {
 	/**
 	 * Determine what importer to use and return it.
 	 */
-	public function get_importer( Batch_Import_Job $job, $type = 'ajax' ) {
+	public function get_importer( Batch_Import_Job $job, $type = null ) {
 
-		// Path to PHP executable.
-		$path = $this->get_executable_path();
-
-		// Test if the executable can be used.
-		if ( $this->is_executable( $path ) === true ) {
-			$type = 'background';
-		}
-
-		// Use AJAX importer on Windows environments.
-		if ( substr( php_uname(), 0, 7 ) == 'Windows' ) {
-			$type = 'ajax';
+		if ( ! $type ) {
+			$type = $this->get_import_type();
 		}
 
 		if ( $type == 'background' ) {
@@ -117,6 +108,32 @@ class Batch_Importer_Factory {
 	}
 
 	/**
+	 * Get importer type.
+	 *
+	 * @return string
+	 */
+	private function get_import_type() {
+
+		// Default importer type.
+		$type = 'ajax';
+
+		// Use AJAX importer on Windows environments.
+		if ( substr( php_uname(), 0, 7 ) == 'Windows' ) {
+			return 'ajax';
+		}
+
+		// Path to PHP executable.
+		$path = $this->get_executable_path();
+
+		// Test if the executable can be used.
+		if ( $this->is_executable( $path ) === true ) {
+			return 'background';
+		}
+
+		return $type;
+	}
+
+	/**
 	 * Get path to PHP executable.
 	 *
 	 * @return string
@@ -133,6 +150,11 @@ class Batch_Importer_Factory {
 					return $executable;
 				}
 			}
+		}
+
+		// Unix.
+		if ( $path = shell_exec( 'which php' ) ) {
+			return trim( $path );
 		}
 
 		// No executable found.
