@@ -65,4 +65,6 @@ third-party developers.
 
 == Changelog ==
 
-Pagination on Edit Batch page.
+= 1.1 =
+* New AJAX importer to use when Background importer is not an option.
+* Pagination on Edit Batch page.
