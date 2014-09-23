@@ -37,12 +37,19 @@ class Batch_Importer_Factory {
 	/**
 	 * Determine what importer to use and return it.
 	 */
-	public function get_importer( Batch_Import_Job $job, $type = null ) {
+	public function get_importer( Batch_Import_Job $job, $type = 'ajax' ) {
 
-		if ( $type == 'ajax' ) {
-			return new Batch_AJAX_Importer(
-				$job, $this->job_dao, $this->post_dao, $this->postmeta_dao, $this->term_dao, $this->user_dao
-			);
+		// Path to PHP executable.
+		$path = $this->get_executable_path();
+
+		// Test if the executable can be used.
+		if ( $this->is_executable( $path ) === true ) {
+			$type = 'background';
+		}
+
+		// Use AJAX importer on Windows environments.
+		if ( substr( php_uname(), 0, 7 ) == 'Windows' ) {
+			$type = 'ajax';
 		}
 
 		if ( $type == 'background' ) {
@@ -51,6 +58,7 @@ class Batch_Importer_Factory {
 			);
 		}
 
+		// Default to using the AJAX importer.
 		return new Batch_AJAX_Importer(
 			$job, $this->job_dao, $this->post_dao, $this->postmeta_dao, $this->term_dao, $this->user_dao
 		);
@@ -91,10 +99,13 @@ class Batch_Importer_Factory {
 		// Validate key.
 		if ( $import_key !== $job->get_key() ) {
 			error_log( 'Unauthorized batch import attempt terminated.' );
+			$job->add_message( __( 'Something went wrong', 'sme-content-staging' ), 'error' );
+			$job->set_status( 2 );
+			$this->job_dao->update_job( $job );
 			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );
 		}
 
-		// Import running.
+		// Background importer is running. Make the old import key useless.
 		$job->generate_key();
 		$this->job_dao->update_job( $job );
 
@@ -103,6 +114,52 @@ class Batch_Importer_Factory {
 		);
 
 		$importer->import();
+	}
+
+	/**
+	 * Get path to PHP executable.
+	 *
+	 * @return string
+	 */
+	private function get_executable_path() {
+		$paths = explode( PATH_SEPARATOR, getenv( 'PATH' ) );
+		foreach ( $paths as $path ) {
+			// XAMPP (Windows).
+			if ( strstr( $path, 'php.exe' ) && isset( $_SERVER['WINDIR'] ) && file_exists( $path ) && is_file( $path ) ) {
+				return $path;
+			} else {
+				$executable = $path . DIRECTORY_SEPARATOR . 'php' . ( isset( $_SERVER['WINDIR'] ) ? '.exe' : '');
+				if ( file_exists( $executable ) && is_file( $executable ) ) {
+					return $executable;
+				}
+			}
+		}
+
+		// No executable found.
+		return '';
+	}
+
+	/**
+	 * Tells whether the PHP path is executable.
+	 *
+	 * @param string $path
+	 * @return bool
+	 */
+	private function is_executable( $path ) {
+		$is_executable = @is_executable( $path );
+
+		if ( ! $is_executable ) {
+			return false;
+		}
+
+		// Use PHP executable path and try to execute a simple command.
+		$cmd = $path . ' -r \'echo "Success";\'';
+
+		if ( shell_exec( $cmd ) !== 'Success' ) {
+			return false;
+		}
+
+		return true;
 	}
 
 }

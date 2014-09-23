@@ -77,9 +77,6 @@ class Batch_Import_Job_DAO extends DAO {
 
 		$this->update_post_meta( $importer->get_id(), 'sme_import_messages', $importer->get_messages() );
 		$this->update_post_meta( $importer->get_id(), 'sme_import_status', $importer->get_status() );
-
-		// Make the import key unusable so it cannot be used in any more imports.
-		$importer->generate_key();
 		$this->update_post_meta( $importer->get_id(), 'sme_import_key', $importer->get_key() );
 	}
 
@@ -96,7 +93,6 @@ class Batch_Import_Job_DAO extends DAO {
 	 * @param Batch_Import_Job $importer
 	 */
 	public function delete_job( Batch_Import_Job $importer ) {
-
 		$this->wpdb->update(
 			$this->wpdb->posts,
 			array(

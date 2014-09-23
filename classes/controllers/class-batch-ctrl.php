@@ -428,6 +428,7 @@ class Batch_Ctrl {
 					),
 					'info'
 				);
+				$this->batch_import_job_dao->update_job( $job );
 			}
 
 			$importer->run();
