@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
 Tested up to: 4.0
-Stable tag: trunk
+Stable tag: 1.1
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
