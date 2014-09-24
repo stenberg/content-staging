@@ -79,7 +79,7 @@ class Batch_Background_Importer extends Batch_Importer {
 		$this->postmeta_keys = apply_filters( 'sme_post_relationship_keys', array() );
 
 		// Import attachments.
-		$this->import_attachments( $this->job );
+		$this->import_attachments();
 
 		// Create/update users.
 		$this->import_users( $batch->get_users() );

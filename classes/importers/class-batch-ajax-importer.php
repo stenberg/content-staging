@@ -65,14 +65,14 @@ class Batch_AJAX_Importer extends Batch_Importer {
 			$next = $val;
 		} else {
 			// This is the first thing we are going to import.
-			$next = $this->get_next( $batch, $next );
+			$next = $this->get_next( $next );
 		}
 
 		// Import.
 		call_user_func( array( $this, $next['method'] ), $next['params'] );
 
 		// Get next thing to import.
-		$next = $this->get_next( $batch, $next );
+		$next = $this->get_next( $next );
 
 		update_post_meta( $this->job->get_id(), 'sme_parent_post_relations', $this->parent_post_relations );
 		update_post_meta( $this->job->get_id(), 'sme_user_relations', $this->user_relations );
@@ -100,15 +100,14 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	/**
 	 * Get action to perform during next AJAX request.
 	 *
-	 * @param Batch $batch
 	 * @param array $current
 	 * @return array
 	 */
-	private function get_next( Batch $batch, array $current ) {
+	private function get_next( array $current ) {
 
 		// Attachments.
 		if ( $current['method'] == 'import_attachment' ) {
-			$attachments = $batch->get_attachments();
+			$attachments = $this->job->get_batch()->get_attachments();
 			if ( isset( $attachments[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],
@@ -125,7 +124,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Users.
 		if ( $current['method'] == 'import_user' ) {
-			$users = $batch->get_users();
+			$users = $this->job->get_batch()->get_users();
 			if ( isset( $users[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],
@@ -142,7 +141,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Posts.
 		if ( $current['method'] == 'import_post' ) {
-			$posts = $batch->get_posts();
+			$posts = $this->job->get_batch()->get_posts();
 			if ( isset( $posts[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],
@@ -175,7 +174,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Custom data.
 		if ( $current['method'] == 'import_custom_data' ) {
-			$custom = $batch->get_custom_data();
+			$custom = $this->job->get_batch()->get_custom_data();
 			if ( isset( $custom[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],

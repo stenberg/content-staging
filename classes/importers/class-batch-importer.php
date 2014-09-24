@@ -317,27 +317,25 @@ abstract class Batch_Importer {
 
 	/**
 	 * Import attachments.
-	 *
-	 * @param Batch_Import_Job $importer
 	 */
-	protected function import_attachments( Batch_Import_Job $importer ) {
+	protected function import_attachments() {
 
-		$attachments = $importer->get_batch()->get_attachments();
+		$attachments = $this->job->get_batch()->get_attachments();
 
 		/*
 		 * Make it possible for third-party developers to inject their custom
 		 * attachment import functionality.
 		 */
-		do_action( 'sme_import_attachments', $attachments, $importer );
+		do_action( 'sme_import_attachments', $attachments, $this->job );
 
 		/*
 		 * Make it possible for third-party developers to alter the list of
 		 * attachments to import.
 		 */
-		$attachments = apply_filters( 'sme_import_attachments', $attachments, $importer );
+		$attachments = apply_filters( 'sme_import_attachments', $attachments, $this->job );
 
 		foreach ( $attachments as $attachment ) {
-			$this->import_attachment( $attachment, $importer );
+			$this->import_attachment( $attachment );
 		}
 	}
 
@@ -345,10 +343,9 @@ abstract class Batch_Importer {
 	 * Import a single attachment.
 	 *
 	 * @param array $attachment
-	 * @param Batch_Import_Job $job
 	 * @return bool
 	 */
-	protected function import_attachment( array $attachment, Batch_Import_Job $job ) {
+	protected function import_attachment( array $attachment ) {
 		$upload_dir = wp_upload_dir();
 		$path       = $attachment['path'];
 		$filepath   = $upload_dir['basedir'] . '/' . $path . '/';
@@ -369,7 +366,7 @@ abstract class Batch_Importer {
 			}
 
 			// Add error message.
-			$job->add_message(
+			$this->job->add_message(
 				sprintf(
 					'Failed creating directory %s.%s',
 					$filepath,
