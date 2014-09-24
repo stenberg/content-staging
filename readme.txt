@@ -65,6 +65,9 @@ third-party developers.
 
 == Changelog ==
 
+= TBD =
+* Fix creating image directories on production.
+
 = 1.1 =
 * New AJAX importer to use when Background importer is not an option.
 * Pagination on Edit Batch page.
