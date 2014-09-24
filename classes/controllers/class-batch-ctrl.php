@@ -275,7 +275,11 @@ class Batch_Ctrl {
 			// Check if parent post exist on production or in batch.
 			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
 				$importer->add_message(
-					'Post ID ' . $post->get_id() . ' is missing its parent post (ID ' . $post->get_post_parent() . '). Parent post does not exist on production and is not part of this batch',
+					sprintf(
+						'Post with ID %d has a parent post that does not exist on production and is not part of this batch. Include post with ID %d in this batch to resolve this issue.',
+						$post->get_id(),
+						$post->get_post_parent()
+					),
 					'error'
 				);
 			}
