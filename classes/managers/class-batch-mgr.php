@@ -105,7 +105,7 @@ class Batch_Mgr {
 
 		$postmeta = $this->postmeta_dao->get_postmetas_by_post_id( $post->get_id() );
 
-		if ( $post->get_post_type() === 'attachment' ) {
+		if ( $post->get_type() === 'attachment' ) {
 			$this->add_attachment( $post->get_id() );
 		}
 
@@ -113,7 +113,7 @@ class Batch_Mgr {
 		 * To be able to find the parent post on the production server we must
 		 * include GUID of parent post in the batch.
 		 */
-		$post->set_post_parent_guid( $this->post_dao->get_guid_by_id( $post->get_post_parent() ) );
+		$post->set_parent_guid( $this->post_dao->get_guid_by_id( $post->get_parent() ) );
 
 		// Populate Post object with Post_Taxonomy relationship objects.
 		$this->term_dao->get_post_taxonomy_relationships( $post );
@@ -131,7 +131,7 @@ class Batch_Mgr {
 		$user_ids = array();
 
 		foreach ( $this->batch->get_posts() as $post ) {
-			$user_ids[] = $post->get_post_author();
+			$user_ids[] = $post->get_author();
 		}
 
 		$this->batch->set_users( $this->user_dao->get_users_by_ids( $user_ids, false ) );

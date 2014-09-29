@@ -684,9 +684,9 @@ class Batch_Ctrl {
 		$others = array();
 
 		foreach ( $posts as $post ) {
-			if ( $post->get_post_type() == 'page' ) {
+			if ( $post->get_type() == 'page' ) {
 				$pages[] = $post;
-			} else if ( $post->get_post_type() == 'post' ) {
+			} else if ( $post->get_type() == 'post' ) {
 				$blog_posts[] = $post;
 			} else {
 				$others[] = $post;

@@ -45,7 +45,7 @@ class Post_Table extends WP_List_Table {
 	public function column_default( Post $post, $column_name ) {
 		switch( $column_name ) {
 			case 'post_modified':
-				return call_user_func( array( $post, 'get_' . $column_name ) );
+				return call_user_func( array( $post, 'get_modified' ) );
 			default:
 				return '';
 		}
@@ -57,12 +57,10 @@ class Post_Table extends WP_List_Table {
 	 * @param Post $post
 	 * @return string HTML to be rendered inside column.
 	 */
-	public function column_post_title( Post $post ){
-
-		// Return the title contents.
+	public function column_post_title( Post $post ) {
 		return sprintf(
 			'<strong><span class="row-title">%s</span></strong>',
-			$post->get_post_title()
+			$post->get_title()
 		);
 	}
 

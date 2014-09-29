@@ -208,27 +208,27 @@ class Post_DAO extends DAO {
 	public function insert_post( Post $post ) {
 
 		$data = array(
-			'post_author'           => $post->get_post_author(),
-			'post_date'             => $post->get_post_date(),
-			'post_date_gmt'         => $post->get_post_date_gmt(),
-			'post_content'          => $post->get_post_content(),
-			'post_title'            => $post->get_post_title(),
-			'post_excerpt'          => $post->get_post_excerpt(),
+			'post_author'           => $post->get_author(),
+			'post_date'             => $post->get_date(),
+			'post_date_gmt'         => $post->get_date_gmt(),
+			'post_content'          => $post->get_content(),
+			'post_title'            => $post->get_title(),
+			'post_excerpt'          => $post->get_excerpt(),
 			'post_status'           => $post->get_post_status(),
 			'comment_status'        => $post->get_comment_status(),
 			'ping_status'           => $post->get_ping_status(),
-			'post_password'         => $post->get_post_password(),
-			'post_name'             => $post->get_post_name(),
+			'post_password'         => $post->get_password(),
+			'post_name'             => $post->get_name(),
 			'to_ping'               => $post->get_to_ping(),
 			'pinged'                => $post->get_pinged(),
-			'post_modified'         => $post->get_post_modified(),
-			'post_modified_gmt'     => $post->get_post_modified_gmt(),
-			'post_content_filtered' => $post->get_post_content_filtered(),
-			'post_parent'           => $post->get_post_parent(),
+			'post_modified'         => $post->get_modified(),
+			'post_modified_gmt'     => $post->get_modified_gmt(),
+			'post_content_filtered' => $post->get_content_filtered(),
+			'post_parent'           => $post->get_parent(),
 			'guid'                  => $post->get_guid(),
 			'menu_order'            => $post->get_menu_order(),
-			'post_type'             => $post->get_post_type(),
-			'post_mime_type'        => $post->get_post_mime_type(),
+			'post_type'             => $post->get_type(),
+			'post_mime_type'        => $post->get_mime_type(),
 			'comment_count'         => $post->get_comment_count()
 		);
 
@@ -266,27 +266,27 @@ class Post_DAO extends DAO {
 	public function update_post( Post $post ) {
 
 		$data = array(
-			'post_author'           => $post->get_post_author(),
-			'post_date'             => $post->get_post_date(),
-			'post_date_gmt'         => $post->get_post_date_gmt(),
-			'post_content'          => $post->get_post_content(),
-			'post_title'            => $post->get_post_title(),
-			'post_excerpt'          => $post->get_post_excerpt(),
+			'post_author'           => $post->get_author(),
+			'post_date'             => $post->get_date(),
+			'post_date_gmt'         => $post->get_date_gmt(),
+			'post_content'          => $post->get_content(),
+			'post_title'            => $post->get_title(),
+			'post_excerpt'          => $post->get_excerpt(),
 			'post_status'           => $post->get_post_status(),
 			'comment_status'        => $post->get_comment_status(),
 			'ping_status'           => $post->get_ping_status(),
-			'post_password'         => $post->get_post_password(),
-			'post_name'             => $post->get_post_name(),
+			'post_password'         => $post->get_password(),
+			'post_name'             => $post->get_name(),
 			'to_ping'               => $post->get_to_ping(),
 			'pinged'                => $post->get_pinged(),
-			'post_modified'         => $post->get_post_modified(),
-			'post_modified_gmt'     => $post->get_post_modified_gmt(),
-			'post_content_filtered' => $post->get_post_content_filtered(),
-			'post_parent'           => $post->get_post_parent(),
+			'post_modified'         => $post->get_modified(),
+			'post_modified_gmt'     => $post->get_modified_gmt(),
+			'post_content_filtered' => $post->get_content_filtered(),
+			'post_parent'           => $post->get_parent(),
 			'guid'                  => $post->get_guid(),
 			'menu_order'            => $post->get_menu_order(),
-			'post_type'             => $post->get_post_type(),
-			'post_mime_type'        => $post->get_post_mime_type(),
+			'post_type'             => $post->get_type(),
+			'post_mime_type'        => $post->get_mime_type(),
 			'comment_count'         => $post->get_comment_count()
 		);
 
@@ -318,9 +318,36 @@ class Post_DAO extends DAO {
 		);
 
 		$where_format = array( '%d' );
-
-
 		$this->update( 'posts', $data, $where, $format, $where_format );
+	}
+
+	/**
+	 * @param array $raw
+	 * @return Post
+	 */
+	protected function do_create_object( array $raw ) {
+		$obj = new Post( $raw['ID'] );
+		$obj->set_author( $raw['post_author'] );
+		$obj->set_date( $raw['post_date'] );
+		$obj->set_date_gmt( $raw['post_date_gmt'] );
+		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
+		$obj->set_content( $raw['post_content'] );
+		$obj->set_title( $raw['post_title'] );
+		$obj->set_excerpt( $raw['post_excerpt'] );
+		$obj->set_post_status( $raw['post_status'] );
+		$obj->set_comment_status( $raw['comment_status'] );
+		$obj->set_ping_status( $raw['ping_status'] );
+		$obj->set_password( $raw['post_password'] );
+		$obj->set_name( $raw['post_name'] );
+		$obj->set_to_ping( $raw['to_ping'] );
+		$obj->set_pinged( $raw['pinged'] );
+		$obj->set_content_filtered( $raw['post_content_filtered'] );
+		$obj->set_parent( $raw['post_parent'] );
+		$obj->set_guid( $raw['guid'] );
+		$obj->set_menu_order( $raw['menu_order'] );
+		$obj->set_type( $raw['post_type'] );
+		$obj->set_comment_count( $raw['comment_count'] );
+		return $obj;
 	}
 
 }

@@ -1,12 +1,16 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
-class DAO {
+abstract class DAO {
 
 	protected $wpdb;
 
 	protected function __constuct( $wpdb ) {
 		$this->wpdb = $wpdb;
+	}
+
+	public function create_object( array $raw) {
+		$this->do_create_object( $raw );
 	}
 
 	/**
@@ -63,6 +67,8 @@ class DAO {
 	public function update_post_meta( $post_id, $meta_key, $meta_value, $prev_value = null ) {
 		return update_post_meta( $post_id, $meta_key, $meta_value, $prev_value );
 	}
+
+	protected abstract function do_create_object( array $raw );
 
 	/**
 	 * Take an array of values that will be used in a SQL IN clause and
