@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\DB;
 use Exception;
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Import_Job_Mapper;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
+use Me\Stenberg\Content\Staging\Models\Model;
 
 class Batch_Import_Job_DAO extends DAO {
 
@@ -106,6 +107,9 @@ class Batch_Import_Job_DAO extends DAO {
 			array( '%d' )
 		);
 	}
+
+	protected function do_create_object( array $raw ) {}
+	protected function do_create_array( Model $obj ) {}
 
 	/**
 	 * @param Batch_Import_Job $importer

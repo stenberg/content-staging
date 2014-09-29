@@ -1,9 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Models;
 
-class Taxonomy {
+class Taxonomy extends Model {
 
-	private $id;
 	private $term;
 	private $taxonomy;
 	private $description;
@@ -11,21 +10,7 @@ class Taxonomy {
 	private $count;
 
 	public function __construct( $id = null ) {
-		$this->set_id( $id );
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_id( $id ) {
-		$this->id = $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_id() {
-		return $this->id;
+		parent::__construct( $id );
 	}
 
 	/**

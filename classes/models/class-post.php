@@ -3,9 +3,8 @@ namespace Me\Stenberg\Content\Staging\Models;
 
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 
-class Post {
+class Post extends Model {
 
-	private $id;
 	private $author;
 	private $date;
 	private $date_gmt;
@@ -36,24 +35,9 @@ class Post {
 	 * Constructor.
 	 */
 	public function __construct( $id = null ) {
-		$this->set_id( $id );
-
+		parent::__construct( $id );
 		$this->meta                        = array();
 		$this->post_taxonomy_relationships = array();
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_id( $id ) {
-		$this->id = (int) $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_id() {
-		return $this->id;
 	}
 
 	/**

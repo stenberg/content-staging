@@ -1,9 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Models;
 
-class User {
+class User extends Model {
 
-	private $id;
 	private $user_login;
 	private $user_pass;
 	private $user_nicename;
@@ -16,21 +15,7 @@ class User {
 	private $meta;
 
 	public function __construct( $id = null ) {
-		$this->set_id( $id );
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_id( $id ) {
-		$this->id = $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_id() {
-		return $this->id;
+		parent::__construct( $id );
 	}
 
 	/**

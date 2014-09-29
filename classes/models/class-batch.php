@@ -3,14 +3,7 @@ namespace Me\Stenberg\Content\Staging\Models;
 
 use Exception;
 
-class Batch {
-
-	/**
-	 * ID of this batch.
-	 *
-	 * @var int
-	 */
-	private $id;
+class Batch extends Model {
 
 	/**
 	 * Global unique identifier (GUID) of this batch.
@@ -104,26 +97,12 @@ class Batch {
 	 * @param int $id
 	 */
 	public function __construct( $id = null ) {
-		$this->id          = $id;
+		parent::__construct( $id );
 		$this->meta_data   = array();
 		$this->posts       = array();
 		$this->attachments = array();
 		$this->users       = array();
 		$this->custom_data = array();
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_id( $id ) {
-		$this->id = (int) $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_id() {
-		return $this->id;
 	}
 
 	/**

@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Mapper;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
 
 class Batch_DAO extends DAO {
@@ -208,6 +209,9 @@ class Batch_DAO extends DAO {
 			array( '%d' )
 		);
 	}
+
+	protected function do_create_object( array $raw ) {}
+	protected function do_create_array( Model $obj ) {}
 
 	/**
 	 * @param Batch $batch

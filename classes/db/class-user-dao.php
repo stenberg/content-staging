@@ -2,6 +2,7 @@
 namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\DB\Mappers\User_Mapper;
+use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\User;
 
 class User_DAO extends DAO {
@@ -130,6 +131,9 @@ class User_DAO extends DAO {
 	public function delete_usermeta( $where, $where_format ) {
 		$this->wpdb->delete( $this->wpdb->usermeta, $where, $where_format );
 	}
+
+	protected function do_create_object( array $raw ) {}
+	protected function do_create_array( Model $obj ) {}
 
 	/**
 	 * @param User $user

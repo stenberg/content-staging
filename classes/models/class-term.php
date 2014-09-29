@@ -1,30 +1,15 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Models;
 
-class Term {
+class Term extends Model {
 
-	private $id;
 	private $name;
 	private $slug;
 	private $group;
 	private $taxonomy;
 
 	public function __construct( $id = null ) {
-		$this->set_id( $id );
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_id( $id ) {
-		$this->id = $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_id() {
-		return $this->id;
+		parent::__construct( $id );
 	}
 
 	/**

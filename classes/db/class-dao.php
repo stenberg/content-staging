@@ -1,6 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Models\Model;
+
 abstract class DAO {
 
 	protected $wpdb;
@@ -9,8 +11,20 @@ abstract class DAO {
 		$this->wpdb = $wpdb;
 	}
 
+	/**
+	 * @param array $raw
+	 * @return Model
+	 */
 	public function create_object( array $raw) {
-		$this->do_create_object( $raw );
+		return $this->do_create_object( $raw );
+	}
+
+	/**
+	 * @param Model $obj
+	 * @return array
+	 */
+	public function create_array( Model $obj ) {
+		return $this->do_create_array( $obj );
 	}
 
 	/**
@@ -69,6 +83,7 @@ abstract class DAO {
 	}
 
 	protected abstract function do_create_object( array $raw );
+	protected abstract function do_create_array( Model $obj );
 
 	/**
 	 * Take an array of values that will be used in a SQL IN clause and

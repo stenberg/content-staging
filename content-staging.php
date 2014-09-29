@@ -34,7 +34,6 @@ require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/db/mappers/class-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-import-job-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-mapper.php' );
-require_once( 'classes/db/mappers/class-post-mapper.php' );
 require_once( 'classes/db/mappers/class-term-mapper.php' );
 require_once( 'classes/db/mappers/class-user-mapper.php' );
 require_once( 'classes/db/class-dao.php' );
@@ -49,6 +48,7 @@ require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
+require_once( 'classes/models/class-model.php' );
 require_once( 'classes/models/class-batch.php' );
 require_once( 'classes/models/class-batch-import-job.php' );
 require_once( 'classes/models/class-post.php' );
@@ -71,12 +71,10 @@ require_once( 'functions/helpers.php' );
 use Me\Stenberg\Content\Staging\API;
 use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Import_Job_Mapper;
-use Me\Stenberg\Content\Staging\Import_Batch;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Mapper;
-use Me\Stenberg\Content\Staging\DB\Mappers\Post_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\Term_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\User_Mapper;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
@@ -123,14 +121,13 @@ class Content_Staging {
 		// Database mappers
 		$batch_importer_mapper = new Batch_Import_Job_Mapper();
 		$batch_mapper          = new Batch_Mapper();
-		$post_mapper           = new Post_Mapper();
 		$term_mapper           = new Term_Mapper();
 		$user_mapper           = new User_Mapper();
 
 		// Data access objects.
 		$batch_dao    = new Batch_DAO( $wpdb, $batch_mapper );
 		$job_dao      = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
-		$post_dao     = new Post_DAO( $wpdb, $post_mapper );
+		$post_dao     = new Post_DAO( $wpdb );
 		$postmeta_dao = new Postmeta_DAO( $wpdb );
 		$term_dao     = new Term_DAO( $wpdb, $term_mapper );
 		$user_dao     = new User_DAO( $wpdb, $user_mapper );

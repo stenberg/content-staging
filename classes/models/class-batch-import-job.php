@@ -3,14 +3,7 @@ namespace Me\Stenberg\Content\Staging\Models;
 
 use Exception;
 
-class Batch_Import_Job {
-
-	/**
-	 * ID of this importer.
-	 *
-	 * @var int
-	 */
-	private $id;
+class Batch_Import_Job extends Model {
 
 	/**
 	 * ID of user who created this importer.
@@ -87,23 +80,9 @@ class Batch_Import_Job {
 	 * @param int $id
 	 */
 	public function __construct( $id = null ) {
-		$this->id       = $id;
+		parent::__construct( $id );
 		$this->status   = 0;
 		$this->messages = array();
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_id( $id ) {
-		$this->id = (int) $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_id() {
-		return $this->id;
 	}
 
 	/**
@@ -276,10 +255,10 @@ class Batch_Import_Job {
 	 * @throws Exception
 	 */
 	public function generate_key() {
-		if ( ! $this->id || ! $this->modified_gmt ) {
+		if ( ! $this->get_id() || ! $this->modified_gmt ) {
 			throw new Exception( 'Failed generating batch importer key.' );
 		}
-		$this->key = md5( $this->id . '-' . $this->modified_gmt . '-' . rand( 0, 100000 ) );
+		$this->key = md5( $this->get_id() . '-' . $this->modified_gmt . '-' . rand( 0, 100000 ) );
 	}
 
 }

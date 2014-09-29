@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\DB\Mappers\Taxonomy_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\Term_Mapper;
+use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
@@ -320,6 +321,9 @@ class Term_DAO extends DAO {
 		$data = $this->filter_term_data( $term );
 		$this->update( 'terms', $data['values'], array( 'term_id' => $term->get_id() ), $data['format'], array( '%d' ) );
 	}
+
+	protected function do_create_object( array $raw ) {}
+	protected function do_create_array( Model $obj ) {}
 
 	/**
 	 * @param Post_Taxonomy $post_taxonomy

@@ -1,6 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Models\Model;
+
 class Postmeta_DAO extends DAO {
 
 	public function __construct( $wpdb ) {
@@ -144,6 +146,9 @@ class Postmeta_DAO extends DAO {
 			$this->update_postmeta( $record );
 		}
 	}
+
+	protected function do_create_object( array $raw ) {}
+	protected function do_create_array( Model $obj ) {}
 
 	/**
 	 * Go through provided postmeta and filter out all values that we accept

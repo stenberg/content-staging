@@ -1,17 +1,16 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
-use Me\Stenberg\Content\Staging\DB\Mappers\Post_Mapper;
+use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
 
 class Post_DAO extends DAO {
 
-	private $post_mapper;
+	private $table;
 
-	public function __construct( $wpdb, Post_Mapper $post_mapper ) {
+	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-
-		$this->post_mapper = $post_mapper;
+		$this->table = $wpdb->posts;
 	}
 
 	/**
@@ -26,7 +25,13 @@ class Post_DAO extends DAO {
 			$id
 		);
 
-		return $this->post_mapper->array_to_post_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $result['ID'] ) ) {
+			return $this->create_object( $result );
+		}
+
+		return null;
 	}
 
 	/**
@@ -36,7 +41,6 @@ class Post_DAO extends DAO {
 	 * @return Post
 	 */
 	public function get_post_by_guid( $guid ) {
-
 		$guid = $this->normalize_guid( $guid );
 
 		// Select post with a specific GUID ending.
@@ -45,7 +49,13 @@ class Post_DAO extends DAO {
 			'%' . $guid
 		);
 
-		return $this->post_mapper->array_to_post_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $result['ID'] ) ) {
+			return $this->create_object( $result );
+		}
+
+		return null;
 	}
 
 	/**
@@ -86,10 +96,10 @@ class Post_DAO extends DAO {
 			$post_id
 		);
 
-		$post = $this->post_mapper->array_to_post_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
 
-		if ( $post !== null ) {
-			return $post->get_guid();
+		if ( isset( $result['guid'] ) ) {
+			return $result['guid'];
 		}
 
 		return null;
@@ -114,7 +124,9 @@ class Post_DAO extends DAO {
 		);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
-			$posts[] = $this->post_mapper->array_to_post_object( $post );
+			if ( isset( $post['ID'] ) ) {
+				$posts[] = $this->create_object( $post );
+			}
 		}
 
 		return $posts;
@@ -163,7 +175,9 @@ class Post_DAO extends DAO {
 		$query = $this->wpdb->prepare( $stmt, $values );
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
-			$posts[] = $this->post_mapper->array_to_post_object( $post );
+			if ( isset( $post['ID'] ) ) {
+				$posts[] = $this->create_object( $post );
+			}
 		}
 
 		return $posts;
@@ -196,7 +210,9 @@ class Post_DAO extends DAO {
 		);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
-			$posts[] = $this->post_mapper->array_to_post_object( $post );
+			if ( isset( $post['ID'] ) ) {
+				$posts[] = $this->create_object( $post );
+			}
 		}
 
 		return $posts;
@@ -206,119 +222,21 @@ class Post_DAO extends DAO {
 	 * @param Post $post
 	 */
 	public function insert_post( Post $post ) {
-
-		$data = array(
-			'post_author'           => $post->get_author(),
-			'post_date'             => $post->get_date(),
-			'post_date_gmt'         => $post->get_date_gmt(),
-			'post_content'          => $post->get_content(),
-			'post_title'            => $post->get_title(),
-			'post_excerpt'          => $post->get_excerpt(),
-			'post_status'           => $post->get_post_status(),
-			'comment_status'        => $post->get_comment_status(),
-			'ping_status'           => $post->get_ping_status(),
-			'post_password'         => $post->get_password(),
-			'post_name'             => $post->get_name(),
-			'to_ping'               => $post->get_to_ping(),
-			'pinged'                => $post->get_pinged(),
-			'post_modified'         => $post->get_modified(),
-			'post_modified_gmt'     => $post->get_modified_gmt(),
-			'post_content_filtered' => $post->get_content_filtered(),
-			'post_parent'           => $post->get_parent(),
-			'guid'                  => $post->get_guid(),
-			'menu_order'            => $post->get_menu_order(),
-			'post_type'             => $post->get_type(),
-			'post_mime_type'        => $post->get_mime_type(),
-			'comment_count'         => $post->get_comment_count()
-		);
-
-		$format =  array(
-			'%d',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%d',
-			'%s',
-			'%d',
-			'%s',
-			'%s',
-			'%d'
-		);
-
-		$post->set_id( $this->insert( 'posts', $data, $format ) );
+		$data   = $this->create_array( $post );
+		$format = $this->format();
+		$this->wpdb->insert( $this->table, $data, $format );
+		$post->set_id( $this->wpdb->insert_id );
 	}
 
 	/**
 	 * @param Post $post
 	 */
 	public function update_post( Post $post ) {
-
-		$data = array(
-			'post_author'           => $post->get_author(),
-			'post_date'             => $post->get_date(),
-			'post_date_gmt'         => $post->get_date_gmt(),
-			'post_content'          => $post->get_content(),
-			'post_title'            => $post->get_title(),
-			'post_excerpt'          => $post->get_excerpt(),
-			'post_status'           => $post->get_post_status(),
-			'comment_status'        => $post->get_comment_status(),
-			'ping_status'           => $post->get_ping_status(),
-			'post_password'         => $post->get_password(),
-			'post_name'             => $post->get_name(),
-			'to_ping'               => $post->get_to_ping(),
-			'pinged'                => $post->get_pinged(),
-			'post_modified'         => $post->get_modified(),
-			'post_modified_gmt'     => $post->get_modified_gmt(),
-			'post_content_filtered' => $post->get_content_filtered(),
-			'post_parent'           => $post->get_parent(),
-			'guid'                  => $post->get_guid(),
-			'menu_order'            => $post->get_menu_order(),
-			'post_type'             => $post->get_type(),
-			'post_mime_type'        => $post->get_mime_type(),
-			'comment_count'         => $post->get_comment_count()
-		);
-
-		$where = array( 'ID' => $post->get_id() );
-
-		$format = array(
-			'%d',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%s',
-			'%d',
-			'%s',
-			'%d',
-			'%s',
-			'%s',
-			'%d'
-		);
-
+		$data         = $this->create_array( $post );
+		$where        = array( 'ID' => $post->get_id() );
+		$format       = $this->format();
 		$where_format = array( '%d' );
-		$this->update( 'posts', $data, $where, $format, $where_format );
+		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
 	}
 
 	/**
@@ -330,6 +248,7 @@ class Post_DAO extends DAO {
 		$obj->set_author( $raw['post_author'] );
 		$obj->set_date( $raw['post_date'] );
 		$obj->set_date_gmt( $raw['post_date_gmt'] );
+		$obj->set_modified( $raw['post_modified'] );
 		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
 		$obj->set_content( $raw['post_content'] );
 		$obj->set_title( $raw['post_title'] );
@@ -346,8 +265,75 @@ class Post_DAO extends DAO {
 		$obj->set_guid( $raw['guid'] );
 		$obj->set_menu_order( $raw['menu_order'] );
 		$obj->set_type( $raw['post_type'] );
+		$obj->set_mime_type( $raw['post_mime_type'] );
 		$obj->set_comment_count( $raw['comment_count'] );
 		return $obj;
+	}
+
+	/**
+	 * @param Model $obj
+	 * @return array
+	 */
+	protected function do_create_array( Model $obj ) {
+		return array(
+			'post_author'           => $obj->get_author(),
+			'post_date'             => $obj->get_date(),
+			'post_date_gmt'         => $obj->get_date_gmt(),
+			'post_content'          => $obj->get_content(),
+			'post_title'            => $obj->get_title(),
+			'post_excerpt'          => $obj->get_excerpt(),
+			'post_status'           => $obj->get_post_status(),
+			'comment_status'        => $obj->get_comment_status(),
+			'ping_status'           => $obj->get_ping_status(),
+			'post_password'         => $obj->get_password(),
+			'post_name'             => $obj->get_name(),
+			'to_ping'               => $obj->get_to_ping(),
+			'pinged'                => $obj->get_pinged(),
+			'post_modified'         => $obj->get_modified(),
+			'post_modified_gmt'     => $obj->get_modified_gmt(),
+			'post_content_filtered' => $obj->get_content_filtered(),
+			'post_parent'           => $obj->get_parent(),
+			'guid'                  => $obj->get_guid(),
+			'menu_order'            => $obj->get_menu_order(),
+			'post_type'             => $obj->get_type(),
+			'post_mime_type'        => $obj->get_mime_type(),
+			'comment_count'         => $obj->get_comment_count(),
+		);
+	}
+
+	/**
+	 * Format of each of the values in the result set.
+	 *
+	 * Important! Must mimic the array returned by the
+	 * 'do_create_array' method.
+	 *
+	 * @return array
+	 */
+	private function format() {
+		return array(
+			'%d', // post_author
+			'%s', // post_date
+			'%s', // post_date_gmt
+			'%s', // post_content
+			'%s', // post_title
+			'%s', // post_excerpt
+			'%s', // post_status
+			'%s', // comment_status
+			'%s', // ping_status
+			'%s', // post_password
+			'%s', // post_name
+			'%s', // to_ping
+			'%s', // pinged
+			'%s', // post_modified
+			'%s', // post_modified_gmt
+			'%s', // post_content_filtered
+			'%d', // post_parent
+			'%s', // guid
+			'%d', // menu_order
+			'%s', // post_type
+			'%s', // post_mime_type
+			'%d', // comment_count
+		);
 	}
 
 }
