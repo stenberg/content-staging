@@ -65,6 +65,9 @@ third-party developers.
 
 == Changelog ==
 
+= 1.1.2 =
+* Sync term hierarchy.
+
 = 1.1.1 =
 * Fix creating image directories on production.
 
