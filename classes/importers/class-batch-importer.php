@@ -452,9 +452,6 @@ abstract class Batch_Importer {
 	 */
 	protected function import_term( Term $term ) {
 
-		// Term ID on content staging environment.
-		$stage_term_id = $term->get_id();
-
 		// Term ID on production environment.
 		$this->term_dao->get_term_id_by_slug( $term );
 

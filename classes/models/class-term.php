@@ -7,6 +7,7 @@ class Term {
 	private $name;
 	private $slug;
 	private $group;
+	private $taxonomy;
 
 	public function __construct( $id = null ) {
 		$this->set_id( $id );
@@ -66,6 +67,20 @@ class Term {
 	 */
 	public function get_group() {
 		return $this->group;
+	}
+
+	/**
+	 * @param Taxonomy $taxonomy
+	 */
+	public function set_taxonomy( Taxonomy $taxonomy ) {
+		$this->taxonomy = $taxonomy;
+	}
+
+	/**
+	 * @return Taxonomy
+	 */
+	public function get_taxonomy() {
+		return $this->taxonomy;
 	}
 
 	/**

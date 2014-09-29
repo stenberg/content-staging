@@ -14,8 +14,7 @@ class Term_DAO extends DAO {
 
 	public function __construct( $wpdb, Term_Mapper $term_mapper ) {
 		parent::__constuct( $wpdb );
-
-		$this->term_mapper     = $term_mapper;
+		$this->term_mapper = $term_mapper;
 	}
 
 	public function get_term_relationship( $object_id, $term_taxonomy_id ) {
@@ -288,6 +287,7 @@ class Term_DAO extends DAO {
 	public function insert_taxonomy( Taxonomy $taxonomy ) {
 		$data = $this->filter_taxonomy_data( $taxonomy );
 		$taxonomy->set_id( $this->insert( 'term_taxonomy', $data['values'], $data['format'] ) );
+		$this->update_term_hierarchy( $taxonomy );
 	}
 
 	/**
@@ -302,6 +302,7 @@ class Term_DAO extends DAO {
 			$data['format'],
 			array( '%d' )
 		);
+		$this->update_term_hierarchy( $taxonomy );
 	}
 
 	/**
@@ -454,6 +455,7 @@ class Term_DAO extends DAO {
 				$term = $this->get_term_by_id( $array['term_id'] );
 				if ( $term instanceof Term ) {
 					$taxonomy->set_term( $term );
+					$term->set_taxonomy( $taxonomy );
 				}
 			}
 
@@ -480,6 +482,119 @@ class Term_DAO extends DAO {
 		}
 
 		return $taxonomy;
+	}
+
+	/**
+	 * @param Taxonomy $taxonomy
+	 */
+	private function update_term_hierarchy( Taxonomy $taxonomy ) {
+
+		$do_insert = false;
+		$do_update = false;
+
+		// Get term hierarchy for this taxonomy.
+		$hierarchy = $this->get_term_hierarchy( $taxonomy );
+
+		// No term hierarchy exists. Should be created.
+		if ( $hierarchy === null ) {
+			$hierarchy = array();
+			$do_insert = true;
+		}
+
+		// ID of parent term.
+		$parent_id = null;
+		if ( $taxonomy->get_parent() ) {
+			$parent_id = $taxonomy->get_parent()->get_term()->get_id();
+		}
+
+		if ( array_key_exists( $parent_id, $hierarchy ) &&
+			 ! in_array( $taxonomy->get_term()->get_id(), $hierarchy[$parent_id] ) ) {
+			/*
+			 * The parent term exist in the hierarchy, but the term has not been
+			 * added as a child yet. Add the term as a child.
+			 */
+			array_push( $hierarchy[$parent_id], (int) $taxonomy->get_term()->get_id() );
+			$do_update = true;
+		}
+
+		if ( $parent_id && ! array_key_exists( $parent_id, $hierarchy ) ) {
+			/*
+			 * The parent term does not exist in the hierarchy. Add the parent term
+			 * to the hierarchy as an array index and the term as a child.
+			 */
+			$hierarchy[$parent_id] = array();
+			array_push( $hierarchy[$parent_id], (int) $taxonomy->get_term()->get_id() );
+			$do_update = true;
+		}
+
+		if ( ! $parent_id ) {
+			foreach( $hierarchy as $term => $children ) {
+				if ( ( $index = array_search( $taxonomy->get_term()->get_id(), $children) ) !== false ) {
+					/*
+					 * The term used to have a parent term, but that is no longer the case.
+					 * Remove the child term from the hierarchy.
+					 */
+					unset( $hierarchy[$term][$index] );
+
+					if ( empty( $hierarchy[$term] ) ) {
+						// No term children exist anymore, remove this parent term from hierarchy.
+						unset( $hierarchy[$term] );
+					}
+
+					$do_update = true;
+					break;
+				}
+			}
+		}
+
+		if ( $do_insert ) {
+			$this->wpdb->insert(
+				$this->wpdb->options,
+				array(
+					'option_name'  => $taxonomy->get_taxonomy() . '_children',
+					'option_value' => serialize( $hierarchy ),
+					'autoload'     => 'yes',
+				),
+				array( '%s', '%s', '%s' )
+			);
+		}
+
+		if ( ! $do_insert && $do_update ) {
+			$this->wpdb->update(
+				$this->wpdb->options,
+				array(
+					'option_value' => serialize( $hierarchy ),
+				),
+				array(
+					'option_name' => $taxonomy->get_taxonomy() . '_children',
+				),
+				array( '%s' ),
+				array( '%s' )
+			);
+		}
+	}
+
+	/**
+	 * @param Taxonomy $taxonomy
+	 * @return array
+	 */
+	private function get_term_hierarchy( Taxonomy $taxonomy ) {
+		$query = $this->wpdb->prepare(
+			'SELECT option_value FROM ' . $this->wpdb->options . ' WHERE option_name = %s',
+			$taxonomy->get_taxonomy() . '_children'
+		);
+
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $result['option_value'] ) ) {
+			if ( $array = unserialize( $result['option_value'] ) ) {
+				return $array;
+			} else {
+				return array();
+			}
+		}
+
+		return null;
 	}
 
 }
