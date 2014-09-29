@@ -278,7 +278,7 @@ class Batch_Ctrl {
 					sprintf(
 						'Post with ID %d has a parent post that does not exist on production and is not part of this batch. Include post with ID %d in this batch to resolve this issue.',
 						$post->get_id(),
-						$post->get_post_parent()
+						$post->get_parent()
 					),
 					'error'
 				);
@@ -708,18 +708,18 @@ class Batch_Ctrl {
 	private function parent_post_exists( $post, $posts ) {
 
 		// Check if the post has a parent post.
-		if ( $post->get_post_parent() <= 0 ) {
+		if ( $post->get_parent() <= 0 ) {
 			return true;
 		}
 
 		// Check if parent post exist on production server.
-		if ( $this->post_dao->get_post_by_guid( $post->get_post_parent_guid() ) ) {
+		if ( $this->post_dao->get_post_by_guid( $post->get_parent_guid() ) ) {
 			return true;
 		}
 
 		// Parent post is not on production, look in this batch for parent post.
 		foreach ( $posts as $item ) {
-			if ( $item->get_id() == $post->get_post_parent() ) {
+			if ( $item->get_id() == $post->get_parent() ) {
 				return true;
 			}
 		}
