@@ -31,11 +31,8 @@ require_once( ABSPATH . WPINC . '/class-IXR.php' );
 require_once( ABSPATH . WPINC . '/class-wp-http-ixr-client.php' );
 require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
-require_once( 'classes/db/mappers/class-mapper.php' );
 require_once( 'classes/db/mappers/class-batch-import-job-mapper.php' );
-require_once( 'classes/db/mappers/class-batch-mapper.php' );
 require_once( 'classes/db/mappers/class-term-mapper.php' );
-require_once( 'classes/db/mappers/class-user-mapper.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
 require_once( 'classes/db/class-batch-import-job-dao.php' );
@@ -74,9 +71,7 @@ use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Import_Job_Mapper;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
-use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Mapper;
 use Me\Stenberg\Content\Staging\DB\Mappers\Term_Mapper;
-use Me\Stenberg\Content\Staging\DB\Mappers\User_Mapper;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -120,17 +115,15 @@ class Content_Staging {
 
 		// Database mappers
 		$batch_importer_mapper = new Batch_Import_Job_Mapper();
-		$batch_mapper          = new Batch_Mapper();
 		$term_mapper           = new Term_Mapper();
-		$user_mapper           = new User_Mapper();
 
 		// Data access objects.
-		$batch_dao    = new Batch_DAO( $wpdb, $batch_mapper );
+		$batch_dao    = new Batch_DAO( $wpdb );
 		$job_dao      = new Batch_Import_Job_DAO( $wpdb, $batch_importer_mapper );
 		$post_dao     = new Post_DAO( $wpdb );
 		$postmeta_dao = new Postmeta_DAO( $wpdb );
 		$term_dao     = new Term_DAO( $wpdb, $term_mapper );
-		$user_dao     = new User_DAO( $wpdb, $user_mapper );
+		$user_dao     = new User_DAO( $wpdb );
 
 		// XML-RPC client.
 		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );

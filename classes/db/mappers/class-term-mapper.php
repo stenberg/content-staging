@@ -3,7 +3,7 @@ namespace Me\Stenberg\Content\Staging\DB\Mappers;
 
 use Me\Stenberg\Content\Staging\Models\Term;
 
-class Term_Mapper extends Mapper {
+class Term_Mapper {
 
 	/**
 	 * Constructor.

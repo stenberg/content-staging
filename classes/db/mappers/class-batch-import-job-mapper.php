@@ -4,7 +4,7 @@ namespace Me\Stenberg\Content\Staging\DB\Mappers;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
-class Batch_Import_Job_Mapper extends Mapper {
+class Batch_Import_Job_Mapper {
 
 	/**
 	 * Constructor.

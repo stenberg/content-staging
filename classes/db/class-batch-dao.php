@@ -1,19 +1,16 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
-use Me\Stenberg\Content\Staging\DB\Mappers\Batch_Mapper;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Model;
-use Me\Stenberg\Content\Staging\Models\Post;
 
 class Batch_DAO extends DAO {
 
-	private $batch_mapper;
+	private $table;
 
-	public function __construct( $wpdb, Batch_Mapper $batch_mapper ) {
+	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-
-		$this->batch_mapper = $batch_mapper;
+		$this->table = $wpdb->posts;
 	}
 
 	/**
@@ -28,7 +25,13 @@ class Batch_DAO extends DAO {
 			$id
 		);
 
-		return $this->batch_mapper->array_to_batch_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $result['ID'] ) ) {
+			return $this->create_object( $result );
+		}
+
+		return null;
 	}
 
 	/**
@@ -38,7 +41,6 @@ class Batch_DAO extends DAO {
 	 * @return Batch
 	 */
 	public function get_batch_by_guid( $guid ) {
-
 		$guid = $this->normalize_guid( $guid );
 
 		// Select post with a specific GUID ending.
@@ -47,7 +49,13 @@ class Batch_DAO extends DAO {
 			'%' . $guid
 		);
 
-		return $this->batch_mapper->array_to_batch_object( $this->wpdb->get_row( $query, ARRAY_A ) );
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $result['ID'] ) ) {
+			return $this->create_object( $result );
+		}
+
+		return null;
 	}
 
 	/**
@@ -57,7 +65,6 @@ class Batch_DAO extends DAO {
 	 * @return int
 	 */
 	public function get_batch_id_by_guid( $guid ) {
-
 		$guid = $this->normalize_guid( $guid );
 
 		// Select post with a specific GUID ending.
@@ -81,7 +88,6 @@ class Batch_DAO extends DAO {
 	 * @return array
 	 */
 	public function get_published_content_batches( $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
-
 		$batches = array();
 
 		// Only allow to order the query result by the following fields.
@@ -114,7 +120,7 @@ class Batch_DAO extends DAO {
 		$query = $this->wpdb->prepare( $stmt, $values );
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $batch ) {
-			$batches[] = $this->batch_mapper->array_to_batch_object( $batch );
+			$batches[] = $this->create_object( $batch );
 		}
 
 		return $batches;
@@ -133,30 +139,31 @@ class Batch_DAO extends DAO {
 	 * @param Batch $batch
 	 */
 	public function insert_batch( Batch $batch ) {
-
 		$batch->set_creator_id( get_current_user_id() );
 		$batch->set_date( current_time( 'mysql' ) );
 		$batch->set_date_gmt( current_time( 'mysql', 1 ) );
 		$batch->set_modified( $batch->get_date() );
 		$batch->set_modified_gmt( $batch->get_date_gmt() );
 
-		$data = $this->filter_batch_data( $batch );
+		$data   = $this->create_array( $batch );
+		$format = $this->format();
 
-		$batch->set_id( $this->insert( 'posts', $data['values'], $data['format'] ) );
+		$this->wpdb->insert( $this->table, $data, $format );
+		$batch->set_id( $this->wpdb->insert_id );
 
 		$name = wp_unique_post_slug(
 			sanitize_title( $batch->get_title() ),
 			$batch->get_id(),
-			$data['values']['post_status'],
-			$data['values']['post_type'],
+			$data['post_status'],
+			$data['post_type'],
 			0
 		);
 
 		$guid = get_permalink( $batch->get_id() );
 
-		// Update post with GUID and name.
-		$this->update(
-			'posts',
+		// Update batch with GUID and post name.
+		$this->wpdb->update(
+			$this->table,
 			array(
 				'post_name' => $name,
 				'guid'      => $guid,
@@ -171,15 +178,15 @@ class Batch_DAO extends DAO {
 	 * @param Batch $batch
 	 */
 	public function update_batch( Batch $batch ) {
-
 		$batch->set_modified( current_time( 'mysql' ) );
 		$batch->set_modified_gmt( current_time( 'mysql', 1 ) );
 
-		$data = $this->filter_batch_data( $batch );
+		$data         = $this->create_array( $batch );
+		$where        = array( 'ID' => $batch->get_id() );
+		$format       = $this->format();
+		$where_format = array( '%d' );
 
-		$this->update(
-			'posts', $data['values'], array( 'ID' => $batch->get_id() ), $data['format'], array( '%d' )
-		);
+		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
 	}
 
 	/**
@@ -195,9 +202,8 @@ class Batch_DAO extends DAO {
 	 * @param Batch $batch
 	 */
 	public function delete_batch( Batch $batch ) {
-
 		$this->wpdb->update(
-			$this->wpdb->posts,
+			$this->table,
 			array(
 				'post_content' => '',
 				'post_status'  => 'draft',
@@ -210,67 +216,64 @@ class Batch_DAO extends DAO {
 		);
 	}
 
-	protected function do_create_object( array $raw ) {}
-	protected function do_create_array( Model $obj ) {}
+	/**
+	 * @param array $raw
+	 * @return Batch
+	 */
+	protected function do_create_object( array $raw ) {
+		$obj = new Batch( $raw['ID'] );
+		$obj->set_guid( $raw['guid'] );
+		$obj->set_title( $raw['post_title'] );
+		$obj->set_content( $raw['post_content'] );
+		$obj->set_creator_id( $raw['post_author'] );
+		$obj->set_date( $raw['post_date'] );
+		$obj->set_date_gmt( $raw['post_date_gmt'] );
+		$obj->set_modified( $raw['post_modified'] );
+		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
+		return $obj;
+	}
+
+	protected function do_create_array( Model $obj ) {
+		return array(
+			'post_author'       => $obj->get_creator_id(),
+			'post_date'         => $obj->get_date(),
+			'post_date_gmt'     => $obj->get_date_gmt(),
+			'post_content'      => $obj->get_content(),
+			'post_title'        => $obj->get_title(),
+			'post_status'       => 'publish',
+			'comment_status'    => 'closed',
+			'ping_status'       => 'closed',
+			'post_name'         => '',
+			'post_modified'     => $obj->get_modified(),
+			'post_modified_gmt' => $obj->get_modified_gmt(),
+			'guid'              => $obj->get_guid(),
+			'post_type'         => 'sme_content_batch',
+		);
+	}
 
 	/**
-	 * @param Batch $batch
+	 * Format of each of the values in the result set.
+	 *
+	 * Important! Must mimic the array returned by the
+	 * 'do_create_array' method.
+	 *
 	 * @return array
 	 */
-	private function filter_batch_data( Batch $batch ) {
-
-		$values = array(
-			'post_status'    => 'publish',
-			'comment_status' => 'closed',
-			'ping_status'    => 'closed',
-			'post_type'      => 'sme_content_batch'
-		);
-
-		$format = array( '%s', '%s', '%s', '%s' );
-
-		if ( $batch->get_creator_id() ) {
-			$values['post_author'] = $batch->get_creator_id();
-			$format[]              = '%d';
-		}
-
-		if ( $batch->get_date() ) {
-			$values['post_date'] = $batch->get_date();
-			$format[]            = '%s';
-		}
-
-		if ( $batch->get_date_gmt() ) {
-			$values['post_date_gmt'] = $batch->get_date_gmt();
-			$format[]                = '%s';
-		}
-
-		if ( $batch->get_content() ) {
-			$values['post_content'] = $batch->get_content();
-			$format[]               = '%s';
-		}
-
-		if ( $batch->get_title() ) {
-			$values['post_title'] = $batch->get_title();
-			$format[]             = '%s';
-		}
-
-		if ( $batch->get_modified() ) {
-			$values['post_modified'] = $batch->get_modified();
-			$format[]                = '%s';
-		}
-
-		if ( $batch->get_modified_gmt() ) {
-			$values['post_modified_gmt'] = $batch->get_modified_gmt();
-			$format[]                    = '%s';
-		}
-
-		if ( $batch->get_guid() ) {
-			$values['guid'] = $batch->get_guid();
-			$format[]       = '%s';
-		}
-
+	private function format() {
 		return array(
-			'values' => $values,
-			'format' => $format,
+			'%d', // post_author
+			'%s', // post_date
+			'%s', // post_date_gmt
+			'%s', // post_content
+			'%s', // post_title
+			'%s', // post_status
+			'%s', // comment_status
+			'%s', // ping_status
+			'%s', // post_name
+			'%s', // post_modified
+			'%s', // post_modified_gmt
+			'%s', // guid
+			'%s', // post_type
 		);
 	}
 

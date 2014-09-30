@@ -3,14 +3,14 @@ namespace Me\Stenberg\Content\Staging\Models;
 
 class User extends Model {
 
-	private $user_login;
-	private $user_pass;
-	private $user_nicename;
-	private $user_email;
-	private $user_url;
-	private $user_registered;
-	private $user_activation_key;
-	private $user_status;
+	private $login;
+	private $password;
+	private $nicename;
+	private $email;
+	private $url;
+	private $registered;
+	private $activation_key;
+	private $status;
 	private $display_name;
 	private $meta;
 
@@ -35,113 +35,113 @@ class User extends Model {
 	/**
 	 * @param string $user_activation_key
 	 */
-	public function set_user_activation_key( $user_activation_key ) {
-		$this->user_activation_key = $user_activation_key;
+	public function set_activation_key( $user_activation_key ) {
+		$this->activation_key = $user_activation_key;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_activation_key() {
-		return $this->user_activation_key;
+	public function get_activation_key() {
+		return $this->activation_key;
 	}
 
 	/**
 	 * @param string $user_email
 	 */
-	public function set_user_email( $user_email ) {
-		$this->user_email = $user_email;
+	public function set_email( $user_email ) {
+		$this->email = $user_email;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_email() {
-		return $this->user_email;
+	public function get_email() {
+		return $this->email;
 	}
 
 	/**
 	 * @param string $user_login
 	 */
-	public function set_user_login( $user_login ) {
-		$this->user_login = $user_login;
+	public function set_login( $user_login ) {
+		$this->login = $user_login;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_login() {
-		return $this->user_login;
+	public function get_login() {
+		return $this->login;
 	}
 
 	/**
 	 * @param string $user_nicename
 	 */
-	public function set_user_nicename( $user_nicename ) {
-		$this->user_nicename = $user_nicename;
+	public function set_nicename( $user_nicename ) {
+		$this->nicename = $user_nicename;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_nicename() {
-		return $this->user_nicename;
+	public function get_nicename() {
+		return $this->nicename;
 	}
 
 	/**
 	 * @param string $user_pass
 	 */
-	public function set_user_pass( $user_pass ) {
-		$this->user_pass = $user_pass;
+	public function set_password( $user_pass ) {
+		$this->password = $user_pass;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_pass() {
-		return $this->user_pass;
+	public function get_password() {
+		return $this->password;
 	}
 
 	/**
 	 * @param string $user_registered
 	 */
-	public function set_user_registered( $user_registered ) {
-		$this->user_registered = $user_registered;
+	public function set_registered( $user_registered ) {
+		$this->registered = $user_registered;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_registered() {
-		return $this->user_registered;
+	public function get_registered() {
+		return $this->registered;
 	}
 
 	/**
 	 * @param int $user_status
 	 */
-	public function set_user_status( $user_status ) {
-		$this->user_status = $user_status;
+	public function set_status( $user_status ) {
+		$this->status = $user_status;
 	}
 
 	/**
 	 * @return int
 	 */
-	public function get_user_status() {
-		return $this->user_status;
+	public function get_status() {
+		return $this->status;
 	}
 
 	/**
 	 * @param string $user_url
 	 */
-	public function set_user_url( $user_url ) {
-		$this->user_url = $user_url;
+	public function set_url( $user_url ) {
+		$this->url = $user_url;
 	}
 
 	/**
 	 * @return string
 	 */
-	public function get_user_url() {
-		return $this->user_url;
+	public function get_url() {
+		return $this->url;
 	}
 
 	/**

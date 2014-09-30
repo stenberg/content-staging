@@ -49,10 +49,6 @@ class Batch_AJAX_Importer extends Batch_Importer {
 			$this->parent_post_relations = $val;
 		}
 
-		if ( $val = get_post_meta( $this->job->get_id(), 'sme_user_relations', true ) ) {
-			$this->user_relations = $val;
-		}
-
 		if ( $val = get_post_meta( $this->job->get_id(), 'sme_post_relations', true ) ) {
 			$this->post_relations = $val;
 		}
@@ -75,7 +71,6 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		$next = $this->get_next( $next );
 
 		update_post_meta( $this->job->get_id(), 'sme_parent_post_relations', $this->parent_post_relations );
-		update_post_meta( $this->job->get_id(), 'sme_user_relations', $this->user_relations );
 		update_post_meta( $this->job->get_id(), 'sme_post_relations', $this->post_relations );
 		update_post_meta( $this->job->get_id(), 'sme_posts_to_publish', $this->posts_to_publish );
 		update_post_meta( $this->job->get_id(), 'sme_import_next', $next );

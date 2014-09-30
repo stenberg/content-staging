@@ -43,17 +43,6 @@ abstract class Batch_Importer {
 	protected $parent_post_relations;
 
 	/**
-	 * Array to keep track on the relation between a users ID on
-	 * content stage and its ID on production:
-	 *
-	 * Key = Content stage user ID.
-	 * Value = Production user ID.
-	 *
-	 * @var array
-	 */
-	protected $user_relations;
-
-	/**
 	 * Array to keep track on the relation between a posts ID on
 	 * content stage and its ID on production:
 	 *
@@ -120,7 +109,6 @@ abstract class Batch_Importer {
 		$this->user_dao              = $user_dao;
 		$this->postmeta_keys         = array();
 		$this->parent_post_relations = array();
-		$this->user_relations        = array();
 		$this->post_relations        = array();
 		$this->posts_to_publish      = array();
 	}
@@ -166,40 +154,23 @@ abstract class Batch_Importer {
 	 * Import user.
 	 *
 	 * @param User $user
+	 *
+	 * @todo Here we are assuming that there cannot be two users with the
+	 * same user_login. This might be wrong. Investigate!
+	 * Consider using WP function get_user_by.
+	 *
+	 * @see http://codex.wordpress.org/Function_Reference/get_user_by
 	 */
 	protected function import_user( User $user ) {
-		/*
-			 * See if user exists in database.
-			 *
-			 * @todo Here we are assuming that there cannot be two users with the
-			 * same user_login. This might be wrong. Investigate!
-			 * Consider using WP function get_user_by.
-			 *
-			 * @see http://codex.wordpress.org/Function_Reference/get_user_by
-			 */
-		$existing = $this->user_dao->get_user_by_user_login( $user->get_user_login() );
+		// See if user exists in database.
+		$existing = $this->user_dao->get_user_by_user_login( $user->get_login() );
 
 		// Create if user does not exist, update otherwise.
 		if ( empty( $existing ) ) {
-			$stage_user_id = $user->get_id();
-			$prod_user_id  = $this->user_dao->insert_user( $user );
-
-			$user->set_id( $prod_user_id );
+			$this->user_dao->insert_user( $user );
 		} else {
-			$stage_user_id = $user->get_id();
-			$prod_user_id  = $existing->get_id();
-
-			$user->set_id( $prod_user_id );
-			$this->user_dao->update_user( $user, array( 'ID' => $user->get_id() ), array( '%d' ) );
-			$this->user_dao->delete_usermeta( array( 'user_id' => $prod_user_id ), array( '%d' ) );
-		}
-
-		// Add to the user_relations property
-		$this->user_relations[$stage_user_id] = $prod_user_id;
-
-		foreach ( $user->get_meta() as $meta ) {
-			$meta['user_id'] = $user->get_id();
-			$this->user_dao->insert_usermeta( $meta );
+			$user->set_id( $existing->get_id() );
+			$this->user_dao->update_user( $user );
 		}
 	}
 
