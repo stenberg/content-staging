@@ -286,11 +286,12 @@ class Batch_Ctrl {
 		}
 
 		foreach ( $batch->get_attachments() as $attachment ) {
-			foreach ( $attachment['sizes'] as $size ) {
+			foreach ( $attachment['items'] as $item ) {
+				$url = $attachment['url'] . '/' . $item;
 				// Check if attachment exists on content stage.
-				if ( ! $this->attachment_exists( $size) ) {
+				if ( ! $this->attachment_exists( $url ) ) {
 					$importer->add_message(
-						'Attachment <a href="' . $size . '" target="_blank">' . $size . '</a> is missing on content stage and will not be deployed to production.',
+						'Attachment <a href="' . $url . '" target="_blank">' . $url . '</a> is missing on content stage and will not be deployed to production.',
 						'warning'
 					);
 				}
@@ -374,6 +375,20 @@ class Batch_Ctrl {
 		 */
 		$batch = unserialize( base64_decode( $_POST['batch_data'] ) );
 
+		/*
+		 * Give third-party developers the option to import images before batch
+		 * is sent to production.
+		 */
+		do_action( 'sme_deploy_custom_attachment_importer', $batch->get_attachments(), $batch );
+
+		/*
+		 * Make it possible for third-party developers to alter the list of
+		 * attachments to deploy.
+		 */
+		$batch->set_attachments(
+			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
+		);
+
 		$request = array(
 			'batch'  => $batch,
 		);
@@ -455,7 +470,7 @@ class Batch_Ctrl {
 	 *
 	 * Runs on staging environment.
 	 */
-	public  function import_request() {
+	public function import_request() {
 
 		$request = array(
 			'job_id'   => intval( $_POST['job_id'] ),

@@ -143,16 +143,24 @@ class Batch_Mgr {
 	 * @param int $attachment_id
 	 */
 	private function add_attachment( $attachment_id ) {
+		$attachment            = array();
+		$upload_dir            = wp_upload_dir();
+		$attachment_meta       = wp_get_attachment_metadata( $attachment_id );
+		$attachment_info       = pathinfo( $attachment_meta['file'] );
+		$attachment['subdir']  = '/' .$attachment_info['dirname'];
+		$attachment['basedir'] = $upload_dir['basedir'];
+		$attachment['baseurl'] = $upload_dir['baseurl'];
 
-		$attachment = array();
+		/*
+		 * Replace subdir of today (e.g. /2014/09) with subdir of this
+		 * attachment (e.g. /2013/07).
+		 */
+		$attachment['path']    = str_replace( $upload_dir['subdir'], $attachment['subdir'], $upload_dir['path'] );
+		$attachment['url']     = str_replace( $upload_dir['subdir'], $attachment['subdir'], $upload_dir['url'] );
+		$attachment['items'][] = $attachment_info['basename'];
 
-		$meta = wp_get_attachment_metadata( $attachment_id );
-		$attachment['path']    = pathinfo( $meta['file'], PATHINFO_DIRNAME );
-		$attachment['sizes'][] = wp_get_attachment_url( $attachment_id );
-
-		foreach ( $meta['sizes'] as $size => $meta ) {
-			$info = wp_get_attachment_image_src( $attachment_id, $size );
-			$attachment['sizes'][] = $info[0];
+		foreach ( $attachment_meta['sizes'] as $item ) {
+			$attachment['items'][] = $item['file'];
 		}
 
 		$this->batch->add_attachment( $attachment );

@@ -320,21 +320,21 @@ abstract class Batch_Importer {
 	 */
 	protected function import_attachments() {
 
-		$attachments = $this->job->get_batch()->get_attachments();
-
 		/*
 		 * Make it possible for third-party developers to inject their custom
 		 * attachment import functionality.
 		 */
-		do_action( 'sme_custom_attachment_importer', $attachments, $this->job );
+		do_action( 'sme_import_custom_attachment_importer', $this->job->get_batch()->get_attachments(), $this->job );
 
 		/*
 		 * Make it possible for third-party developers to alter the list of
 		 * attachments to import.
 		 */
-		$attachments = apply_filters( 'sme_import_attachments', $attachments, $this->job );
+		$this->job->get_batch()->set_attachments(
+			apply_filters( 'sme_import_attachments', $this->job->get_batch()->get_attachments(), $this->job )
+		);
 
-		foreach ( $attachments as $attachment ) {
+		foreach ( $this->job->get_batch()->get_attachments() as $attachment ) {
 			$this->import_attachment( $attachment );
 		}
 	}
@@ -347,8 +347,7 @@ abstract class Batch_Importer {
 	 */
 	protected function import_attachment( array $attachment ) {
 		$upload_dir = wp_upload_dir();
-		$path       = $attachment['path'];
-		$filepath   = $upload_dir['basedir'] . '/' . $path . '/';
+		$filepath   = $upload_dir['basedir'] . $attachment['subdir'] . '/';
 
 		if ( ! is_dir( $filepath ) && ! wp_mkdir_p( $filepath ) ) {
 			/*
@@ -358,10 +357,10 @@ abstract class Batch_Importer {
 
 			$failed_attachment = '';
 
-			if ( isset( $attachment['sizes'][0] ) ) {
+			if ( isset( $attachment['items'][0] ) ) {
 				$failed_attachment = sprintf(
 					' Attachment %s and generated sizes could not be deployed to production. This is most likely a file permission error, make sure your web server can write to the image upload directory.',
-					pathinfo( $attachment['sizes'][0], PATHINFO_BASENAME )
+					$attachment['items'][0]
 				);
 			}
 
@@ -378,12 +377,10 @@ abstract class Batch_Importer {
 			return false;
 		}
 
-		foreach ( $attachment['sizes'] as $size ) {
-			$basename = pathinfo( $size, PATHINFO_BASENAME );
-
+		foreach ( $attachment['items'] as $item ) {
 			// Get file if it exists.
-			if ( $image = file_get_contents( $size ) ) {
-				file_put_contents( $filepath . $basename, $image );
+			if ( $image = file_get_contents( $attachment['url'] . '/' . $item ) ) {
+				file_put_contents( $filepath . $item, $image );
 			}
 		}
 

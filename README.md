@@ -81,6 +81,9 @@ Filter or add attachments to batch. Runs on *content stage* just before data is 
 **sme\_prepare\_users** <br/>
 Filter or add users to batch. Runs on *content stage* just before data is sent to production during pre-flight.
 
+**sme\_deploy\_attachments** <br/>
+Filter array of attachments. Runs on *content stage* just before attachments is deployed to production.
+
 **sme\_import\_attachments** <br/>
 Filter array of attachments. Runs just before attachments is imported on production.
 
@@ -89,7 +92,10 @@ Filter array of attachments. Runs just before attachments is imported on product
 **sme\_prepare\_custom\_data** <br/>
 Add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight.
 
-**sme\_custom\_attachment\_importer** <br/>
+**sme\_deploy\_custom\_attachment\_importer** <br/>
+Inject your custom attachment importer. Runs on content stage just before attachments is deployed to production. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_deploy\_attachments* filter hook (filter out all images).
+
+**sme\_import\_custom\_attachment\_importer** <br/>
 Inject your custom attachment importer. Runs just before attachments is imported on production. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_import\_attachments* filter hook (filter out all images).
 
 **sme\_import\_\[ADDON\_NAME\]** <br/>
@@ -142,4 +148,4 @@ During pre-flight and deploy you might want to pass messages from the production
 		$importer->set_status( 2 ); // 2 = Failed.
 	}
 
-	add_action( 'sme_custom_attachment_importer', 'my_custom_attachment_importer', 10, 2 );
+	add_action( 'sme_custom_attachment_import', 'my_custom_attachment_importer', 10, 2 );
