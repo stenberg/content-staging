@@ -326,7 +326,7 @@ abstract class Batch_Importer {
 		 * Make it possible for third-party developers to inject their custom
 		 * attachment import functionality.
 		 */
-		do_action( 'sme_import_attachments', $attachments, $this->job );
+		do_action( 'sme_custom_attachment_importer', $attachments, $this->job );
 
 		/*
 		 * Make it possible for third-party developers to alter the list of
