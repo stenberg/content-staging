@@ -221,22 +221,37 @@ class Post_DAO extends DAO {
 	/**
 	 * @param Post $post
 	 */
-	public function insert_post( Post $post ) {
-		$data   = $this->create_array( $post );
-		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
-		$post->set_id( $this->wpdb->insert_id );
-	}
-
-	/**
-	 * @param Post $post
-	 */
 	public function update_post( Post $post ) {
 		$data         = $this->create_array( $post );
 		$where        = array( 'ID' => $post->get_id() );
 		$format       = $this->format();
 		$where_format = array( '%d' );
 		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\Post';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['ID'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+		$this->wpdb->insert( $this->table, $data, $format );
+		$obj->set_id( $this->wpdb->insert_id );
 	}
 
 	/**

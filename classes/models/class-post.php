@@ -35,7 +35,7 @@ class Post extends Model {
 	 * Constructor.
 	 */
 	public function __construct( $id = null ) {
-		parent::__construct( $id );
+		parent::__construct( (int) $id );
 		$this->meta                        = array();
 		$this->post_taxonomy_relationships = array();
 	}

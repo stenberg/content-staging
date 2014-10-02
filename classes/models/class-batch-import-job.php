@@ -80,7 +80,7 @@ class Batch_Import_Job extends Model {
 	 * @param int $id
 	 */
 	public function __construct( $id = null ) {
-		parent::__construct( $id );
+		parent::__construct( (int) $id );
 		$this->status   = 0;
 		$this->messages = array();
 	}

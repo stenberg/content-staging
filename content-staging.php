@@ -58,6 +58,7 @@ require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
 require_once( 'classes/class-api.php' );
 require_once( 'classes/class-background-process.php' );
+require_once( 'classes/class-object-watcher.php' );
 require_once( 'classes/class-setup.php' );
 require_once( 'classes/view/class-template.php' );
 require_once( 'functions/helpers.php' );

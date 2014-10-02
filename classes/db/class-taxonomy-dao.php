@@ -88,17 +88,6 @@ class Taxonomy_DAO extends DAO {
 	/**
 	 * @param Taxonomy $taxonomy
 	 */
-	public function insert_taxonomy( Taxonomy $taxonomy ) {
-		$data   = $this->create_array( $taxonomy );
-		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
-		$taxonomy->set_id( $this->wpdb->insert_id );
-		$this->update_term_hierarchy( $taxonomy );
-	}
-
-	/**
-	 * @param Taxonomy $taxonomy
-	 */
 	public function update_taxonomy( Taxonomy $taxonomy ) {
 		$data         = $this->create_array( $taxonomy );
 		$where        = array( 'term_taxonomy_id' => $taxonomy->get_id() );
@@ -106,6 +95,32 @@ class Taxonomy_DAO extends DAO {
 		$where_format = array( '%d' );
 		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
 		$this->update_term_hierarchy( $taxonomy );
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\Taxonomy';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['term_taxonomy_id'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+		$this->wpdb->insert( $this->table, $data, $format );
+		$obj->set_id( $this->wpdb->insert_id );
+		$this->update_term_hierarchy( $obj );
 	}
 
 	/**

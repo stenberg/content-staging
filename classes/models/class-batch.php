@@ -97,7 +97,7 @@ class Batch extends Model {
 	 * @param int $id
 	 */
 	public function __construct( $id = null ) {
-		parent::__construct( $id );
+		parent::__construct( (int) $id );
 		$this->meta_data   = array();
 		$this->posts       = array();
 		$this->attachments = array();

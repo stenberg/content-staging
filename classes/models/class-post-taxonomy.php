@@ -15,8 +15,9 @@ class Post_Taxonomy extends Model {
 	 * @param Post $post
 	 * @param Taxonomy $taxonomy
 	 */
-	public function __construct( Post $post = null, Taxonomy $taxonomy = null ) {
+	public function __construct( Post $post, Taxonomy $taxonomy ) {
 		parent::__construct();
+		$this->set_id( $post->get_id() . '-' . $taxonomy->get_id() );
 		$this->post     = $post;
 		$this->taxonomy = $taxonomy;
 	}
@@ -25,6 +26,7 @@ class Post_Taxonomy extends Model {
 	 * @param Post $post
 	 */
 	public function set_post( Post $post ) {
+		$this->set_id( $post->get_id() . '-' . $this->taxonomy->get_id() );
 		$this->post = $post;
 	}
 
@@ -39,6 +41,7 @@ class Post_Taxonomy extends Model {
 	 * @param Taxonomy $taxonomy
 	 */
 	public function set_taxonomy( Taxonomy $taxonomy ) {
+		$this->set_id( $this->post->get_id() . '-' . $taxonomy->get_id() );
 		$this->taxonomy = $taxonomy;
 	}
 

@@ -2,6 +2,7 @@
 namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\Models\Model;
+use Me\Stenberg\Content\Staging\Object_Watcher;
 
 abstract class DAO {
 
@@ -11,12 +12,33 @@ abstract class DAO {
 		$this->wpdb = $wpdb;
 	}
 
+//	public function find( $id ) {
+//		$old = $this->get_from_map( $id );
+//		if ( ! is_null( $old ) ) {
+//			return $old;
+//		}
+//		// work with db
+//		return $obj;
+//	}
+
+	public function insert( Model $obj ) {
+		$this->do_insert( $obj );
+		$this->add_to_map( $obj );
+	}
+
 	/**
 	 * @param array $raw
 	 * @return Model
 	 */
-	public function create_object( array $raw) {
-		return $this->do_create_object( $raw );
+	public function create_object( array $raw ) {
+		$key = $this->unique_key( $raw );
+		$old = $this->get_from_map( $key );
+		if ( ! is_null( $old ) ) {
+			return $old;
+		}
+		$obj = $this->do_create_object( $raw );
+		$this->add_to_map( $obj );
+		return $obj;
 	}
 
 	/**
@@ -25,19 +47,6 @@ abstract class DAO {
 	 */
 	public function create_array( Model $obj ) {
 		return $this->do_create_array( $obj );
-	}
-
-	/**
-	 * Insert data.
-	 *
-	 * @param string $table
-	 * @param array $data
-	 * @param array $format
-	 * @return int
-	 */
-	public function insert( $table, $data, $format ) {
-		$this->wpdb->insert( $this->wpdb->$table, $data, $format );
-		return $this->wpdb->insert_id;
 	}
 
 	/**
@@ -82,6 +91,9 @@ abstract class DAO {
 		return update_post_meta( $post_id, $meta_key, $meta_value, $prev_value );
 	}
 
+	protected abstract function target_class();
+	protected abstract function unique_key( array $raw );
+	protected abstract function do_insert( Model $obj );
 	protected abstract function do_create_object( array $raw );
 	protected abstract function do_create_array( Model $obj );
 
@@ -131,6 +143,14 @@ abstract class DAO {
 		}
 
 		return str_replace( $info['scheme'] . '://' . $info['host'], '', $guid );
+	}
+
+	private function get_from_map( $id ) {
+		return Object_Watcher::exists( $this->target_class(), $id );
+	}
+
+	private function add_to_map( Model $obj ) {
+		Object_Watcher::add( $obj );
 	}
 
 }

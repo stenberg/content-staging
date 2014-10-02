@@ -138,45 +138,6 @@ class Batch_DAO extends DAO {
 	/**
 	 * @param Batch $batch
 	 */
-	public function insert_batch( Batch $batch ) {
-		$batch->set_creator_id( get_current_user_id() );
-		$batch->set_date( current_time( 'mysql' ) );
-		$batch->set_date_gmt( current_time( 'mysql', 1 ) );
-		$batch->set_modified( $batch->get_date() );
-		$batch->set_modified_gmt( $batch->get_date_gmt() );
-
-		$data   = $this->create_array( $batch );
-		$format = $this->format();
-
-		$this->wpdb->insert( $this->table, $data, $format );
-		$batch->set_id( $this->wpdb->insert_id );
-
-		$name = wp_unique_post_slug(
-			sanitize_title( $batch->get_title() ),
-			$batch->get_id(),
-			$data['post_status'],
-			$data['post_type'],
-			0
-		);
-
-		$guid = get_permalink( $batch->get_id() );
-
-		// Update batch with GUID and post name.
-		$this->wpdb->update(
-			$this->table,
-			array(
-				'post_name' => $name,
-				'guid'      => $guid,
-			),
-			array( 'ID' => $batch->get_id() ),
-			array( '%s', '%s' ),
-			array( '%d' )
-		);
-	}
-
-	/**
-	 * @param Batch $batch
-	 */
 	public function update_batch( Batch $batch ) {
 		$batch->set_modified( current_time( 'mysql' ) );
 		$batch->set_modified_gmt( current_time( 'mysql', 1 ) );
@@ -211,6 +172,60 @@ class Batch_DAO extends DAO {
 			array(
 				'ID' => $batch->get_id(),
 			),
+			array( '%s', '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\Batch';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['ID'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$obj->set_creator_id( get_current_user_id() );
+		$obj->set_date( current_time( 'mysql' ) );
+		$obj->set_date_gmt( current_time( 'mysql', 1 ) );
+		$obj->set_modified( $obj->get_date() );
+		$obj->set_modified_gmt( $obj->get_date_gmt() );
+
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+
+		$this->wpdb->insert( $this->table, $data, $format );
+		$obj->set_id( $this->wpdb->insert_id );
+
+		$name = wp_unique_post_slug(
+			sanitize_title( $obj->get_title() ),
+			$obj->get_id(),
+			$data['post_status'],
+			$data['post_type'],
+			0
+		);
+
+		$guid = get_permalink( $obj->get_id() );
+
+		// Update batch with GUID and post name.
+		$this->wpdb->update(
+			$this->table,
+			array(
+				'post_name' => $name,
+				'guid'      => $guid,
+			),
+			array( 'ID' => $obj->get_id() ),
 			array( '%s', '%s' ),
 			array( '%d' )
 		);

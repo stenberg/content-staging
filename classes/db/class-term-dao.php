@@ -82,22 +82,37 @@ class Term_DAO extends DAO {
 	/**
 	 * @param Term $term
 	 */
-	public function insert_term( Term $term ) {
-		$data   = $this->create_array( $term );
-		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
-		$term->set_id( $this->wpdb->insert_id );
-	}
-
-	/**
-	 * @param Term $term
-	 */
 	public function update_term( Term $term ) {
 		$data         = $this->create_array( $term );
 		$where        = array( 'term_id' => $term->get_id() );
 		$format       = $this->format();
 		$where_format = array( '%d' );
 		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\Term';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['term_id'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+		$this->wpdb->insert( $this->table, $data, $format );
+		$obj->set_id( $this->wpdb->insert_id );
 	}
 
 	/**

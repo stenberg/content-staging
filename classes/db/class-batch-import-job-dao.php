@@ -38,25 +38,6 @@ class Batch_Import_Job_DAO extends DAO {
 	/**
 	 * @param Batch_Import_Job $job
 	 */
-	public function insert_job( Batch_Import_Job $job ) {
-		$job->set_date( current_time( 'mysql' ) );
-		$job->set_date_gmt( current_time( 'mysql', 1 ) );
-		$job->set_modified( $job->get_date() );
-		$job->set_modified_gmt( $job->get_date_gmt() );
-
-		$data   = $this->create_array( $job );
-		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
-		$job->set_id( $this->wpdb->insert_id );
-
-		// Create a key needed to run this import job.
-		$job->generate_key();
-		$this->update_post_meta( $job->get_id(), 'sme_import_key', $job->get_key() );
-	}
-
-	/**
-	 * @param Batch_Import_Job $job
-	 */
 	public function update_job( Batch_Import_Job $job ) {
 		$job->set_modified( current_time( 'mysql' ) );
 		$job->set_modified_gmt( current_time( 'mysql', 1 ) );
@@ -98,6 +79,40 @@ class Batch_Import_Job_DAO extends DAO {
 			array( '%s', '%s' ),
 			array( '%d' )
 		);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\Batch_Import_Job';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['ID'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$obj->set_date( current_time( 'mysql' ) );
+		$obj->set_date_gmt( current_time( 'mysql', 1 ) );
+		$obj->set_modified( $obj->get_date() );
+		$obj->set_modified_gmt( $obj->get_date_gmt() );
+
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+		$this->wpdb->insert( $this->table, $data, $format );
+		$obj->set_id( $this->wpdb->insert_id );
+
+		// Create a key needed to run this import job.
+		$obj->generate_key();
+		$this->update_post_meta( $obj->get_id(), 'sme_import_key', $obj->get_key() );
 	}
 
 	/**

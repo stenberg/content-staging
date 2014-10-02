@@ -1,7 +1,6 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
-use Me\Stenberg\Content\Staging\DB\Mappers\User_Mapper;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\User;
 
@@ -105,18 +104,6 @@ class User_DAO extends DAO {
 	/**
 	 * @param User $user
 	 */
-	public function insert_user( User $user ) {
-		$data   = $this->create_array( $user );
-		$format = $this->format();
-
-		$this->wpdb->insert( $this->table, $data, $format );
-		$user->set_id( $this->wpdb->insert_id );
-		$this->insert_user_meta( $user );
-	}
-
-	/**
-	 * @param User $user
-	 */
 	public function update_user( User $user ) {
 		$data         = $this->create_array( $user );
 		$where        = array( 'ID' => $user->get_id() );
@@ -165,6 +152,33 @@ class User_DAO extends DAO {
 			array( 'user_id' => $user->get_id() ),
 			array( '%d' )
 		);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\User';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['ID'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+
+		$this->wpdb->insert( $this->table, $data, $format );
+		$obj->set_id( $this->wpdb->insert_id );
+		$this->insert_user_meta( $obj );
 	}
 
 	/**

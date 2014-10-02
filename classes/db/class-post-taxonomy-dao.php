@@ -63,15 +63,6 @@ class Post_Taxonomy_DAO extends DAO {
 	/**
 	 * @param Post_Taxonomy $post_taxonomy
 	 */
-	public function insert_post_taxonomy( Post_Taxonomy $post_taxonomy ) {
-		$data   = $this->create_array( $post_taxonomy );
-		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
-	}
-
-	/**
-	 * @param Post_Taxonomy $post_taxonomy
-	 */
 	public function update_post_taxonomy( Post_Taxonomy $post_taxonomy ) {
 		$data  = $this->create_array( $post_taxonomy );
 		$where = array(
@@ -84,13 +75,37 @@ class Post_Taxonomy_DAO extends DAO {
 	}
 
 	/**
+	 * @return string
+	 */
+	protected function target_class() {
+		return '\Me\Stenberg\Content\Staging\Models\Post_Taxonomy';
+	}
+
+	/**
+	 * @param array $raw
+	 * @return string
+	 */
+	protected function unique_key( array $raw ) {
+		return $raw['object_id'] . '-' . $raw['term_taxonomy_id'];
+	}
+
+	/**
+	 * @param Model $obj
+	 */
+	protected function do_insert( Model $obj ) {
+		$data   = $this->create_array( $obj );
+		$format = $this->format();
+		$this->wpdb->insert( $this->table, $data, $format );
+	}
+
+	/**
 	 * @param array $raw
 	 * @return Post_Taxonomy
 	 */
 	protected function do_create_object( array $raw ) {
-		$obj      = new Post_Taxonomy();
 		$post     = $this->post_dao->get_post_by_id( $raw['object_id'] );
 		$taxonomy = $this->taxonomy_dao->get_taxonomy_by_id( $raw['term_taxonomy_id'] );
+		$obj      = new Post_Taxonomy( $post, $taxonomy );
 		$obj->set_post( $post );
 		$obj->set_taxonomy( $taxonomy );
 		$obj->set_term_order( $raw['term_order'] );

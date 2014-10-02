@@ -338,7 +338,7 @@ class Batch_Ctrl {
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
 		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
-		$this->batch_dao->insert_batch( $batch );
+		$this->batch_dao->insert( $batch );
 
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', array( $post_id ) );
 
@@ -504,7 +504,7 @@ class Batch_Ctrl {
 		}
 
 		$job->set_batch( $result['batch'] );
-		$this->batch_import_job_dao->insert_job( $job );
+		$this->batch_import_job_dao->insert( $job );
 		$job->add_message(
 			sprintf(
 				'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
@@ -543,7 +543,7 @@ class Batch_Ctrl {
 
 		// Create new batch if needed.
 		if ( ! $batch->get_id() ) {
-			$this->batch_dao->insert_batch( $batch );
+			$this->batch_dao->insert( $batch );
 		}
 
 		// Get IDs of posts already included in the batch.
@@ -666,7 +666,7 @@ class Batch_Ctrl {
 
 		if ( $batch->get_id() <= 0 ) {
 			// Create new batch.
-			$this->batch_dao->insert_batch( $batch );
+			$this->batch_dao->insert( $batch );
 		} else {
 			// Update existing batch.
 			$this->batch_dao->update_batch( $batch );

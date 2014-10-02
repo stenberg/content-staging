@@ -183,7 +183,7 @@ abstract class Batch_Importer {
 
 		// Create if user does not exist, update otherwise.
 		if ( empty( $existing ) ) {
-			$this->user_dao->insert_user( $user );
+			$this->user_dao->insert( $user );
 		} else {
 			$user->set_id( $existing->get_id() );
 			$this->user_dao->update_user( $user );
@@ -222,7 +222,7 @@ abstract class Batch_Importer {
 			}
 
 			// This post does not exist on production, create it.
-			$this->post_dao->insert_post( $post );
+			$this->post_dao->insert( $post );
 
 			/*
 			 * Store ID of post so we can publish it when data has been completely
@@ -396,7 +396,7 @@ abstract class Batch_Importer {
 			 * This post/taxonomy relationship does not exist on production,
 			 * create it.
 			 */
-			$this->post_taxonomy_dao->insert_post_taxonomy( $post_taxonomy );
+			$this->post_taxonomy_dao->insert( $post_taxonomy );
 		} else {
 			// This post/taxonomy relationship exists on production, update it.
 			$this->post_taxonomy_dao->update_post_taxonomy( $post_taxonomy );
@@ -422,7 +422,7 @@ abstract class Batch_Importer {
 
 		if ( ! $taxonomy->get_id() ) {
 			// This taxonomy does not exist on production, create it.
-			$this->taxonomy_dao->insert_taxonomy( $taxonomy );
+			$this->taxonomy_dao->insert( $taxonomy );
 		} else {
 			// This taxonomy exists on production, update it.
 			$this->taxonomy_dao->update_taxonomy( $taxonomy );
@@ -440,7 +440,7 @@ abstract class Batch_Importer {
 
 		if ( ! $term->get_id() ) {
 			// This term does not exist on production, create it.
-			$this->term_dao->insert_term( $term );
+			$this->term_dao->insert( $term );
 		} else {
 			// This term exists on production, update it.
 			$this->term_dao->update_term( $term );
