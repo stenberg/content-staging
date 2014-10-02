@@ -66,7 +66,7 @@ class Batch_Mgr {
 		}
 
 		// Get default batch data from database (ID, modification date, etc.).
-		$this->batch = $this->batch_dao->get_batch_by_id( $id );
+		$this->batch = $this->batch_dao->find( $id );
 
 		// Populate batch with data (posts, terms, etc.).
 		if ( ! $lazy ) {
@@ -183,7 +183,7 @@ class Batch_Mgr {
 			if ( $postmeta['meta_key'] === $key ) {
 
 				// Get post thumbnail.
-				$post = $this->post_dao->get_post_by_id( $postmeta['meta_value'] );
+				$post = $this->post_dao->find( $postmeta['meta_value'] );
 
 				if ( isset( $post ) && $post->get_id() !== null ) {
 					$this->add_post( $post );

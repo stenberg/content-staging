@@ -11,12 +11,14 @@ class Post_Taxonomy_DAO extends DAO {
 	private $table;
 	private $post_dao;
 	private $taxonomy_dao;
+	private $select_stmt;
 
 	public function __construct( $wpdb, Post_DAO $post_dao, Taxonomy_DAO $taxonomy_dao ) {
 		parent::__constuct( $wpdb );
 		$this->table        = $wpdb->term_relationships;
 		$this->post_dao     = $post_dao;
 		$this->taxonomy_dao = $taxonomy_dao;
+		$this->select_stmt  = '';
 	}
 
 	/**
@@ -52,7 +54,7 @@ class Post_Taxonomy_DAO extends DAO {
 		);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $relationship ) {
-			$taxonomy = $this->taxonomy_dao->get_taxonomy_by_id( $relationship['term_taxonomy_id'] );
+			$taxonomy = $this->taxonomy_dao->find( $relationship['term_taxonomy_id'] );
 
 			if ( $taxonomy instanceof Taxonomy ) {
 				$post->add_post_taxonomy( new Post_Taxonomy( $post, $taxonomy ) );
@@ -90,6 +92,13 @@ class Post_Taxonomy_DAO extends DAO {
 	}
 
 	/**
+	 * @return string
+	 */
+	protected function select_stmt() {
+		return $this->select_stmt;
+	}
+
+	/**
 	 * @param Model $obj
 	 */
 	protected function do_insert( Model $obj ) {
@@ -103,8 +112,8 @@ class Post_Taxonomy_DAO extends DAO {
 	 * @return Post_Taxonomy
 	 */
 	protected function do_create_object( array $raw ) {
-		$post     = $this->post_dao->get_post_by_id( $raw['object_id'] );
-		$taxonomy = $this->taxonomy_dao->get_taxonomy_by_id( $raw['term_taxonomy_id'] );
+		$post     = $this->post_dao->find( $raw['object_id'] );
+		$taxonomy = $this->taxonomy_dao->find( $raw['term_taxonomy_id'] );
 		$obj      = new Post_Taxonomy( $post, $taxonomy );
 		$obj->set_post( $post );
 		$obj->set_taxonomy( $taxonomy );

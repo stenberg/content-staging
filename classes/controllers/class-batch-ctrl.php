@@ -424,7 +424,7 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 
 		if ( isset( $result['job_id'] ) ) {
-			$job = $this->batch_import_job_dao->get_job_by_id( intval( $result['job_id'] ) );
+			$job = $this->batch_import_job_dao->find( intval( $result['job_id'] ) );
 		}
 
 		if ( ! $job ) {

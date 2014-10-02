@@ -8,32 +8,13 @@ class Taxonomy_DAO extends DAO {
 
 	private $table;
 	private $term_dao;
+	private $select_stmt;
 
 	public function __construct( $wpdb, Term_DAO $term_dao ) {
 		parent::__constuct( $wpdb );
-		$this->table    = $wpdb->term_taxonomy;
-		$this->term_dao = $term_dao;
-	}
-
-	/**
-	 * Get taxonomy by ID.
-	 *
-	 * @param int $term_taxonomy_id
-	 * @return object
-	 */
-	public function get_taxonomy_by_id( $term_taxonomy_id ) {
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id = %d',
-			$term_taxonomy_id
-		);
-
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
-
-		if ( isset( $result['term_taxonomy_id'] ) ) {
-			return $this->create_object( $result );
-		}
-
-		return null;
+		$this->table       = $wpdb->term_taxonomy;
+		$this->term_dao    = $term_dao;
+		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id = %d';
 	}
 
 	/**
@@ -113,6 +94,13 @@ class Taxonomy_DAO extends DAO {
 	}
 
 	/**
+	 * @return string
+	 */
+	protected function select_stmt() {
+		return $this->select_stmt;
+	}
+
+	/**
 	 * @param Model $obj
 	 */
 	protected function do_insert( Model $obj ) {
@@ -129,7 +117,7 @@ class Taxonomy_DAO extends DAO {
 	 */
 	protected function do_create_object( array $raw ) {
 		$obj  = new Taxonomy( $raw['term_taxonomy_id'] );
-		$term = $this->term_dao->get_term_by_id( $raw['term_id'] );
+		$term = $this->term_dao->find( $raw['term_id'] );
 		$term->set_taxonomy( $obj );
 		$parent = $this->get_taxonomy_by_term_id_taxonomy( $raw['parent'], $raw['taxonomy'] );
 		$obj->set_term( $term );

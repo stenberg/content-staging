@@ -7,31 +7,12 @@ use Me\Stenberg\Content\Staging\Models\Post;
 class Post_DAO extends DAO {
 
 	private $table;
+	private $select_stmt;
 
 	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-		$this->table = $wpdb->posts;
-	}
-
-	/**
-	 * Get post by id.
-	 *
-	 * @param $id
-	 * @return Post
-	 */
-	public function get_post_by_id( $id ) {
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ID = %d',
-			$id
-		);
-
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
-
-		if ( isset( $result['ID'] ) ) {
-			return $this->create_object( $result );
-		}
-
-		return null;
+		$this->table       = $wpdb->posts;
+		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
 	}
 
 	/**
@@ -242,6 +223,13 @@ class Post_DAO extends DAO {
 	 */
 	protected function unique_key( array $raw ) {
 		return $raw['ID'];
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function select_stmt() {
+		return $this->select_stmt;
 	}
 
 	/**

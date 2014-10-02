@@ -12,14 +12,21 @@ abstract class DAO {
 		$this->wpdb = $wpdb;
 	}
 
-//	public function find( $id ) {
-//		$old = $this->get_from_map( $id );
-//		if ( ! is_null( $old ) ) {
-//			return $old;
-//		}
-//		// work with db
-//		return $obj;
-//	}
+	public function find( $id ) {
+		$old = $this->get_from_map( $id );
+		if ( ! is_null( $old ) ) {
+			return $old;
+		}
+
+		$query  = $this->wpdb->prepare( $this->select_stmt(), $id );
+		$result = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( $result === null ) {
+			return null;
+		}
+
+		return $this->create_object( $result );
+	}
 
 	public function insert( Model $obj ) {
 		$this->do_insert( $obj );
@@ -93,6 +100,7 @@ abstract class DAO {
 
 	protected abstract function target_class();
 	protected abstract function unique_key( array $raw );
+	protected abstract function select_stmt();
 	protected abstract function do_insert( Model $obj );
 	protected abstract function do_create_object( array $raw );
 	protected abstract function do_create_array( Model $obj );

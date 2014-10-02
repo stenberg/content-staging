@@ -149,6 +149,7 @@ class Postmeta_DAO extends DAO {
 
 	protected function target_class() {}
 	protected function unique_key( array $raw ) {}
+	protected function select_stmt() {}
 	protected function do_insert( Model $obj ) {}
 	protected function do_create_object( array $raw ) {}
 	protected function do_create_array( Model $obj ) {}

@@ -7,31 +7,12 @@ use Me\Stenberg\Content\Staging\Models\Term;
 class Term_DAO extends DAO {
 
 	private $table;
+	private $select_stmt;
 
 	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-		$this->table = $wpdb->terms;
-	}
-
-	/**
-	 * Get term by term ID.
-	 *
-	 * @param int $term_id
-	 * @return Term
-	 */
-	public function get_term_by_id( $term_id ) {
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->table . ' WHERE term_id = %d',
-			$term_id
-		);
-
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
-
-		if ( isset( $result['term_id'] ) ) {
-			return $this->create_object( $result );
-		}
-
-		return null;
+		$this->table       = $wpdb->terms;
+		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE term_id = %d';
 	}
 
 	/**
@@ -103,6 +84,13 @@ class Term_DAO extends DAO {
 	 */
 	protected function unique_key( array $raw ) {
 		return $raw['term_id'];
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function select_stmt() {
+		return $this->select_stmt;
 	}
 
 	/**

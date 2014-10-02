@@ -90,7 +90,7 @@ class Batch_Importer_Factory {
 		$import_key = $_GET['sme_import_batch_key'];
 
 		// Get batch importer from database.
-		$job = $this->job_dao->get_job_by_id( $job_id );
+		$job = $this->job_dao->find( $job_id );
 
 		// No job found, error.
 		if ( ! $job ) {
