@@ -3,7 +3,9 @@ namespace Me\Stenberg\Content\Staging\Importers;
 
 use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
+use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
@@ -72,9 +74,19 @@ abstract class Batch_Importer {
 	private $post_dao;
 
 	/**
+	 * @var Post_Taxonomy_DAO
+	 */
+	private $post_taxonomy_dao;
+
+	/**
 	 * @var Postmeta_DAO
 	 */
 	private $postmeta_dao;
+
+	/**
+	 * @var Taxonomy_DAO
+	 */
+	private $taxonomy_dao;
 
 	/**
 	 * @var Term_DAO
@@ -93,18 +105,22 @@ abstract class Batch_Importer {
 	 * @param Batch_Import_Job $job
 	 * @param Batch_Import_Job_DAO $import_job_dao
 	 * @param Post_DAO $post_dao
+	 * @param Post_Taxonomy_DAO $post_taxonomy_dao
 	 * @param Postmeta_DAO $postmeta_dao
+	 * @param Taxonomy_DAO $taxonomy_dao
 	 * @param Term_DAO $term_dao
 	 * @param User_DAO $user_dao
 	 */
-	protected function __construct( $type, Batch_Import_Job $job, Batch_Import_Job_DAO $import_job_dao,
-									Post_DAO $post_dao, Postmeta_DAO $postmeta_dao, Term_DAO $term_dao,
-									User_DAO $user_dao ) {
+	protected function __construct( $type, Batch_Import_Job $job, Batch_Import_Job_DAO $import_job_dao, Post_DAO $post_dao,
+									Post_Taxonomy_DAO $post_taxonomy_dao, Postmeta_DAO $postmeta_dao,
+									Taxonomy_DAO $taxonomy_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
 		$this->type                  = $type;
 		$this->job                   = $job;
 		$this->import_job_dao        = $import_job_dao;
 		$this->post_dao              = $post_dao;
+		$this->post_taxonomy_dao     = $post_taxonomy_dao;
 		$this->postmeta_dao          = $postmeta_dao;
+		$this->taxonomy_dao          = $taxonomy_dao;
 		$this->term_dao              = $term_dao;
 		$this->user_dao              = $user_dao;
 		$this->postmeta_keys         = array();
@@ -372,7 +388,7 @@ abstract class Batch_Importer {
 		 * Check if a relationship between a post and a taxonomy exists on
 		 * production.
 		 */
-		$has_relationship = $this->term_dao->has_post_taxonomy_relationship( $post_taxonomy );
+		$has_relationship = $this->post_taxonomy_dao->has_post_taxonomy_relationship( $post_taxonomy );
 
 		// Check if this is a new term-taxonomy.
 		if ( ! $has_relationship ) {
@@ -380,10 +396,10 @@ abstract class Batch_Importer {
 			 * This post/taxonomy relationship does not exist on production,
 			 * create it.
 			 */
-			$this->term_dao->insert_post_taxonomy_relationship( $post_taxonomy );
+			$this->post_taxonomy_dao->insert_post_taxonomy( $post_taxonomy );
 		} else {
 			// This post/taxonomy relationship exists on production, update it.
-			$this->term_dao->update_post_taxonomy_relationship( $post_taxonomy );
+			$this->post_taxonomy_dao->update_post_taxonomy( $post_taxonomy );
 		}
 	}
 
@@ -397,19 +413,19 @@ abstract class Batch_Importer {
 		$this->import_term( $taxonomy->get_term() );
 
 		// If a parent taxonomy exists, import it.
-		if ( $taxonomy->get_parent() instanceof Taxonomy ) {
+		if ( $taxonomy->get_parent() !== null ) {
 			$this->import_taxonomy( $taxonomy->get_parent() );
 		}
 
 		// Taxonomy ID on production environment.
-		$this->term_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
+		$this->taxonomy_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
 
 		if ( ! $taxonomy->get_id() ) {
 			// This taxonomy does not exist on production, create it.
-			$this->term_dao->insert_taxonomy( $taxonomy );
+			$this->taxonomy_dao->insert_taxonomy( $taxonomy );
 		} else {
 			// This taxonomy exists on production, update it.
-			$this->term_dao->update_taxonomy( $taxonomy );
+			$this->taxonomy_dao->update_taxonomy( $taxonomy );
 		}
 	}
 
@@ -419,7 +435,6 @@ abstract class Batch_Importer {
 	 * @param Term $term
 	 */
 	protected function import_term( Term $term ) {
-
 		// Term ID on production environment.
 		$this->term_dao->get_term_id_by_slug( $term );
 

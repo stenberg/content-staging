@@ -47,7 +47,7 @@ class Batch_Test extends PHPUnit_Framework_TestCase {
 			array(
 				'get_term_relationships_by_post_ids',
 				'get_term_taxonomies_by_ids',
-				'get_term_taxonomy_by_term_id_taxonomy',
+				'get_taxonomy_by_term_id_taxonomy',
 				'get_terms_by_ids'
 			)
 		);
@@ -253,17 +253,17 @@ class Batch_Test extends PHPUnit_Framework_TestCase {
 
 		// Get parent term-taxonomies.
 		$this->term_dao->expects( $this->at( 2 ) )
-			->method( 'get_term_taxonomy_by_term_id_taxonomy' )
+			->method( 'get_taxonomy_by_term_id_taxonomy' )
 			->with( $this->equalTo( 3 ), $this->equalTo( 'category' ) )
 			->will( $this->returnValue( $this->parent_term_taxonomies[1] ) );
 
 		$this->term_dao->expects( $this->at( 3 ) )
-			->method( 'get_term_taxonomy_by_term_id_taxonomy' )
+			->method( 'get_taxonomy_by_term_id_taxonomy' )
 			->with( $this->equalTo( 8 ), $this->equalTo( 'category' ) )
 			->will( $this->returnValue( $this->parent_term_taxonomies[0] ) );
 
 		$this->term_dao->expects( $this->at( 4 ) )
-			->method( 'get_term_taxonomy_by_term_id_taxonomy' )
+			->method( 'get_taxonomy_by_term_id_taxonomy' )
 			->with( $this->equalTo( 3 ), $this->equalTo( 'category' ) )
 			->will( $this->returnValue( $this->parent_term_taxonomies[2] ) );
 

@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\Managers;
 
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
@@ -28,17 +29,17 @@ class Batch_Mgr {
 
 	private $batch_dao;
 	private $post_dao;
+	private $post_taxonomy_dao;
 	private $postmeta_dao;
-	private $term_dao;
 	private $user_dao;
 
-	public function __construct( Batch_DAO $batch_dao, Post_DAO $post_dao, Postmeta_DAO $postmeta_dao,
-								 Term_DAO $term_dao, User_DAO $user_dao ) {
-		$this->batch_dao    = $batch_dao;
-		$this->post_dao     = $post_dao;
-		$this->postmeta_dao = $postmeta_dao;
-		$this->term_dao     = $term_dao;
-		$this->user_dao     = $user_dao;
+	public function __construct( Batch_DAO $batch_dao, Post_DAO $post_dao, Post_Taxonomy_DAO $post_taxonomy_dao,
+								 Postmeta_DAO $postmeta_dao, User_DAO $user_dao ) {
+		$this->batch_dao         = $batch_dao;
+		$this->post_dao          = $post_dao;
+		$this->post_taxonomy_dao = $post_taxonomy_dao;
+		$this->postmeta_dao      = $postmeta_dao;
+		$this->user_dao          = $user_dao;
 	}
 
 	/**
@@ -116,7 +117,7 @@ class Batch_Mgr {
 		$post->set_parent_guid( $this->post_dao->get_guid_by_id( $post->get_parent() ) );
 
 		// Populate Post object with Post_Taxonomy relationship objects.
-		$this->term_dao->get_post_taxonomy_relationships( $post );
+		$this->post_taxonomy_dao->get_post_taxonomy_relationships( $post );
 
 		// Add post to batch.
 		$this->batch->add_post( $post );
