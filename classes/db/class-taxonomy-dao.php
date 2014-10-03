@@ -8,13 +8,11 @@ class Taxonomy_DAO extends DAO {
 
 	private $table;
 	private $term_dao;
-	private $select_stmt;
 
 	public function __construct( $wpdb, Term_DAO $term_dao ) {
 		parent::__constuct( $wpdb );
-		$this->table       = $wpdb->term_taxonomy;
-		$this->term_dao    = $term_dao;
-		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id = %d';
+		$this->table    = $wpdb->term_taxonomy;
+		$this->term_dao = $term_dao;
 	}
 
 	/**
@@ -97,7 +95,16 @@ class Taxonomy_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return $this->select_stmt;
+		return 'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id = %d';
+	}
+
+	/**
+	 * @param array $ids
+	 * @return string
+	 */
+	protected function select_by_ids_stmt( array $ids ) {
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		return 'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id in (' . $placeholders . ')';
 	}
 
 	/**

@@ -11,14 +11,12 @@ class Post_Taxonomy_DAO extends DAO {
 	private $table;
 	private $post_dao;
 	private $taxonomy_dao;
-	private $select_stmt;
 
 	public function __construct( $wpdb, Post_DAO $post_dao, Taxonomy_DAO $taxonomy_dao ) {
 		parent::__constuct( $wpdb );
 		$this->table        = $wpdb->term_relationships;
 		$this->post_dao     = $post_dao;
 		$this->taxonomy_dao = $taxonomy_dao;
-		$this->select_stmt  = '';
 	}
 
 	/**
@@ -95,7 +93,15 @@ class Post_Taxonomy_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return $this->select_stmt;
+		return '';
+	}
+
+	/**
+	 * @param array $ids
+	 * @return string
+	 */
+	protected function select_by_ids_stmt( array $ids ) {
+		return '';
 	}
 
 	/**

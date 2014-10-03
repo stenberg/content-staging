@@ -7,12 +7,10 @@ use Me\Stenberg\Content\Staging\Models\Post;
 class Post_DAO extends DAO {
 
 	private $table;
-	private $select_stmt;
 
 	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-		$this->table       = $wpdb->posts;
-		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+		$this->table = $wpdb->posts;
 	}
 
 	/**
@@ -21,7 +19,7 @@ class Post_DAO extends DAO {
 	 * @param $guid
 	 * @return Post
 	 */
-	public function get_post_by_guid( $guid ) {
+	public function find_by_guid( $guid ) {
 		$guid = $this->normalize_guid( $guid );
 
 		// Select post with a specific GUID ending.
@@ -49,7 +47,6 @@ class Post_DAO extends DAO {
 	 * @param Post $post
 	 */
 	public function get_id_by_guid( Post $post ) {
-
 		$query = $this->wpdb->prepare(
 			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
 			$post->get_guid()
@@ -84,33 +81,6 @@ class Post_DAO extends DAO {
 		}
 
 		return null;
-	}
-
-	/**
-	 * @param array $ids
-	 * @return array
-	 */
-	public function get_posts_by_ids( $ids ) {
-
-		$posts        = array();
-		$placeholders = $this->in_clause_placeholders( $ids, '%d' );
-
-		if ( ! $placeholders ) {
-			return array();
-		}
-
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ID in (' . $placeholders . ')',
-			$ids
-		);
-
-		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
-			if ( isset( $post['ID'] ) ) {
-				$posts[] = $this->create_object( $post );
-			}
-		}
-
-		return $posts;
 	}
 
 	/**
@@ -229,7 +199,16 @@ class Post_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return $this->select_stmt;
+		return 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+	}
+
+	/**
+	 * @param array $ids
+	 * @return string
+	 */
+	protected function select_by_ids_stmt( array $ids ) {
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		return 'SELECT * FROM ' . $this->table . ' WHERE ID in (' . $placeholders . ')';
 	}
 
 	/**

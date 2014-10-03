@@ -28,6 +28,31 @@ abstract class DAO {
 		return $this->create_object( $result );
 	}
 
+	/**
+	 * Get any object that matches one of the provided IDs.
+	 *
+	 * @param array $ids Array of IDs.
+	 * @return array
+	 */
+	public function find_by_ids( $ids ) {
+		$collection = array();
+
+		foreach ( $ids as $index => $id ) {
+			$old = $this->get_from_map( $id );
+			if ( ! is_null( $old ) ) {
+				$collection[] = $old;
+				unset( $ids[$index] );
+			}
+		}
+
+		$query = $this->wpdb->prepare( $this->select_by_ids_stmt( $ids ), $ids );
+		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $record ) {
+			$collection[] = $this->create_object( $record );
+		}
+
+		return $collection;
+	}
+
 	public function insert( Model $obj ) {
 		$this->do_insert( $obj );
 		$this->add_to_map( $obj );
@@ -101,6 +126,7 @@ abstract class DAO {
 	protected abstract function target_class();
 	protected abstract function unique_key( array $raw );
 	protected abstract function select_stmt();
+	protected abstract function select_by_ids_stmt( array $ids );
 	protected abstract function do_insert( Model $obj );
 	protected abstract function do_create_object( array $raw );
 	protected abstract function do_create_array( Model $obj );
@@ -153,6 +179,13 @@ abstract class DAO {
 		return str_replace( $info['scheme'] . '://' . $info['host'], '', $guid );
 	}
 
+	/**
+	 * Get object that has been instantiated and added to the object watcher.
+	 * Return null if object is not found in watcher.
+	 *
+	 * @param $id
+	 * @return Model
+	 */
 	private function get_from_map( $id ) {
 		return Object_Watcher::exists( $this->target_class(), $id );
 	}

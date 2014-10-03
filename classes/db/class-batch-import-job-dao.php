@@ -8,12 +8,10 @@ use Me\Stenberg\Content\Staging\Models\Model;
 class Batch_Import_Job_DAO extends DAO {
 
 	private $table;
-	private $select_stmt;
 
 	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-		$this->table       = $wpdb->posts;
-		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+		$this->table = $wpdb->posts;
 	}
 
 	/**
@@ -81,7 +79,16 @@ class Batch_Import_Job_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return $this->select_stmt;
+		return 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+	}
+
+	/**
+	 * @param array $ids
+	 * @return string
+	 */
+	protected function select_by_ids_stmt( array $ids ) {
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		return 'SELECT * FROM ' . $this->table . ' WHERE ID in (' . $placeholders . ')';
 	}
 
 	/**

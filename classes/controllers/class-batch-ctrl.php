@@ -728,7 +728,7 @@ class Batch_Ctrl {
 		}
 
 		// Check if parent post exist on production server.
-		if ( $this->post_dao->get_post_by_guid( $post->get_parent_guid() ) ) {
+		if ( $this->post_dao->find_by_guid( $post->get_parent_guid() ) ) {
 			return true;
 		}
 

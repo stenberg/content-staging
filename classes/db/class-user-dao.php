@@ -7,12 +7,10 @@ use Me\Stenberg\Content\Staging\Models\User;
 class User_DAO extends DAO {
 
 	private $table;
-	private $select_stmt;
 
 	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
-		$this->table       = $wpdb->users;
-		$this->select_stmt = 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+		$this->table = $wpdb->users;
 	}
 
 	/**
@@ -32,56 +30,6 @@ class User_DAO extends DAO {
 		}
 
 		return null;
-	}
-
-	/**
-	 * Get users by user IDs.
-	 *
-	 * To fetch meta data on the users as well, set $lazy to false.
-	 *
-	 * @param array $user_ids
-	 * @param bool $lazy
-	 * @return array
-	 */
-	public function get_users_by_ids( $user_ids, $lazy = true ) {
-		$users        = array();
-		$placeholders = $this->in_clause_placeholders( $user_ids, '%d' );
-
-		if ( ! $placeholders ) {
-			return $users;
-		}
-
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->table . ' WHERE ID IN (' . $placeholders . ')',
-			$user_ids
-		);
-
-		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $user ) {
-			if ( isset( $user['ID'] ) ) {
-				$obj = $this->create_object( $user );
-
-				// Add user meta to user object.
-				if ( ! $lazy ) {
-					$this->get_user_meta( $obj );
-				}
-
-				$users[] = $obj;
-			}
-		}
-
-		return $users;
-	}
-
-	/**
-	 * @param User $user
-	 */
-	public function get_user_meta( User $user ) {
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->usermeta . ' WHERE user_id = %d',
-			$user->get_id()
-		);
-
-		$user->set_meta( $this->wpdb->get_results( $query, ARRAY_A ) );
 	}
 
 	/**
@@ -156,7 +104,16 @@ class User_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return $this->select_stmt;
+		return 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+	}
+
+	/**
+	 * @param array $ids
+	 * @return string
+	 */
+	protected function select_by_ids_stmt( array $ids ) {
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		return 'SELECT * FROM ' . $this->table . ' WHERE ID in (' . $placeholders . ')';
 	}
 
 	/**
@@ -186,6 +143,7 @@ class User_DAO extends DAO {
 		$obj->set_activation_key( $raw['user_activation_key'] );
 		$obj->set_status( $raw['user_status'] );
 		$obj->set_display_name( $raw['display_name'] );
+		$this->get_user_meta( $obj );
 		return $obj;
 	}
 
@@ -227,5 +185,17 @@ class User_DAO extends DAO {
 			'%d', // user_status
 			'%s', // display_name
 		);
+	}
+
+	/**
+	 * @param User $user
+	 */
+	private function get_user_meta( User $user ) {
+		$query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->wpdb->usermeta . ' WHERE user_id = %d',
+			$user->get_id()
+		);
+
+		$user->set_meta( $this->wpdb->get_results( $query, ARRAY_A ) );
 	}
 }

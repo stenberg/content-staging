@@ -88,9 +88,8 @@ class Batch_Mgr {
 	 * @param array $post_ids
 	 */
 	private function add_posts( $post_ids ) {
-
 		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
-		$posts = $this->post_dao->get_posts_by_ids( $post_ids );
+		$posts    = $this->post_dao->find_by_ids( $post_ids );
 
 		foreach( $posts as $post ) {
 			$this->add_post( $post );
@@ -135,7 +134,7 @@ class Batch_Mgr {
 			$user_ids[] = $post->get_author();
 		}
 
-		$this->batch->set_users( $this->user_dao->get_users_by_ids( $user_ids, false ) );
+		$this->batch->set_users( $this->user_dao->find_by_ids( $user_ids ) );
 	}
 
 	/**

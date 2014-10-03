@@ -200,7 +200,7 @@ abstract class Batch_Importer {
 		// Post ID on content staging environment.
 		$stage_post_id = $post->get_id();
 
-		// Taxonomy ID on production environment.
+		// Post ID on production environment.
 		$this->post_dao->get_id_by_guid( $post );
 
 		/*
@@ -463,7 +463,7 @@ abstract class Batch_Importer {
 	 */
 	protected function update_parent_post_relations() {
 		foreach ( $this->parent_post_relations as $post_id => $parent_guid ) {
-			$parent = $this->post_dao->get_post_by_guid( $parent_guid );
+			$parent = $this->post_dao->find_by_guid( $parent_guid );
 			$this->post_dao->update(
 				'posts',
 				array( 'post_parent' => $parent->get_id() ),
