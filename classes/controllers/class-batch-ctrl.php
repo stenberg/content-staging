@@ -668,8 +668,10 @@ class Batch_Ctrl {
 	private function handle_edit_batch_form_data( Batch $batch, $request_data ) {
 
 		// Check if a title has been set.
-		if ( isset( $request_data['batch_title'] ) ) {
+		if ( isset( $request_data['batch_title'] ) && $request_data['batch_title'] ) {
 			$batch->set_title( $request_data['batch_title'] );
+		} else {
+			$batch->set_title( 'Batch ' . date( 'Y-m-d H:i:s' ) );
 		}
 
 		if ( $batch->get_id() <= 0 ) {
