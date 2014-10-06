@@ -154,8 +154,16 @@ class Batch_Ctrl {
 		);
 		$table->prepare_items();
 
+		$type = get_post_type_object( 'sme_content_batch' );
+		if ( ! $batch->get_id() ) {
+			$label = $type->labels->new_item;
+		} else {
+			$label = $type->labels->edit_item;
+		}
+
 		$data = array(
 			'batch'    => $batch,
+			'label'    => $label,
 			'table'    => $table,
 			'post_ids' => implode( ',', $post_ids ),
 		);

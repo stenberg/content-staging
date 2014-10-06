@@ -45,6 +45,10 @@ abstract class DAO {
 			}
 		}
 
+		if ( count( $ids ) < 1 ) {
+			return $collection;
+		}
+
 		$query = $this->wpdb->prepare( $this->select_by_ids_stmt( $ids ), $ids );
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $record ) {
 			$collection[] = $this->create_object( $record );

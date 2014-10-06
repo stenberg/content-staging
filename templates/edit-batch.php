@@ -3,6 +3,9 @@
 	<!-- Enable JavaScript to pick up the batch ID. -->
 	<span id="sme-batch-id" class="hidden"><?php echo $batch->get_id();?></span>
 
+	<h2><?php echo $label; ?></h2>
+	<p><?php _e( 'Select posts you would like to include in your content batch.', 'sme-content-staging' ); ?></p>
+
 	<?php if ( isset( $_GET['updated'] ) ) { ?>
 		<div class="updated">
 			<p><?php _e( 'Content batch has been updated!', 'sme-content-staging' ); ?></p>
@@ -14,7 +17,7 @@
 		<?php wp_nonce_field( 'sme-save-batch','sme_save_batch_nonce' ); ?>
 		<input type="hidden" name="post_ids" value="<?php echo $post_ids; ?>">
 
-		<input type="text" name="batch_title" size="30" value="<?php echo $batch->get_title(); ?>" class="sme-input-text" placeholder="Batch Title" autocomplete="off">
+		<input type="text" name="batch_title" size="30" value="<?php echo $batch->get_title(); ?>" class="sme-input-text" placeholder="Enter batch title here" autocomplete="off">
 		<?php $table->display(); ?>
 
 		<?php submit_button( 'Save Batch', 'primary', 'submit', false ); ?>
