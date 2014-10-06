@@ -173,7 +173,7 @@ class User_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%s', // user_login
 			'%s', // user_pass

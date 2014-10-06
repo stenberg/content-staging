@@ -130,6 +130,7 @@ abstract class DAO {
 	protected abstract function do_insert( Model $obj );
 	protected abstract function do_create_object( array $raw );
 	protected abstract function do_create_array( Model $obj );
+	protected abstract function format();
 
 	/**
 	 * Take an array of values that will be used in a SQL IN clause and

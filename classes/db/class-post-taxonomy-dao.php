@@ -147,7 +147,7 @@ class Post_Taxonomy_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%d', // object_id
 			'%d', // term_taxonomy_id

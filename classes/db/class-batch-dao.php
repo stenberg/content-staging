@@ -14,50 +14,6 @@ class Batch_DAO extends DAO {
 	}
 
 	/**
-	 * Get batch by global unique identifier.
-	 *
-	 * @param $guid
-	 * @return Batch
-	 */
-	public function get_batch_by_guid( $guid ) {
-		$guid = $this->normalize_guid( $guid );
-
-		// Select post with a specific GUID ending.
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE guid LIKE %s',
-			'%' . $guid
-		);
-
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
-
-		if ( isset( $result['ID'] ) ) {
-			return $this->create_object( $result );
-		}
-
-		return null;
-	}
-
-	/**
-	 * Get batch ID by global unique identifier.
-	 *
-	 * @param $guid
-	 * @return int
-	 */
-	public function get_batch_id_by_guid( $guid ) {
-		$guid = $this->normalize_guid( $guid );
-
-		// Select post with a specific GUID ending.
-		$query = $this->wpdb->prepare(
-			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid LIKE %s',
-			'%' . $guid
-		);
-
-		$row = $this->wpdb->get_row( $query, ARRAY_A );
-
-		return $row['ID'];
-	}
-
-	/**
 	 * Get published content batches.
 	 *
 	 * @param string $order_by
@@ -86,7 +42,7 @@ class Batch_DAO extends DAO {
 		$values = array();
 
 		if ( ! empty( $order_by ) && ! empty( $order ) ) {
-			$stmt    .= ' ORDER BY ' . $order_by . ' ' . $order;
+			$stmt .= ' ORDER BY ' . $order_by . ' ' . $order;
 		}
 
 		// Adjust the query to take pagination into account.
@@ -269,7 +225,7 @@ class Batch_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%d', // post_author
 			'%s', // post_date

@@ -15,6 +15,6 @@ class API {
 	}
 
 	public function get_post_by_guid( $guid ) {
-		return $this->post_dao->find_by_guid( $guid );
+		return $this->post_dao->get_by_guid( $guid );
 	}
 }

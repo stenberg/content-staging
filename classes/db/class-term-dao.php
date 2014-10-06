@@ -142,7 +142,7 @@ class Term_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%s', // name
 			'%s', // slug

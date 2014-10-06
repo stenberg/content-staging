@@ -167,7 +167,7 @@ class Taxonomy_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%d', // term_id
 			'%s', // taxonomy

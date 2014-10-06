@@ -19,7 +19,7 @@ class Post_DAO extends DAO {
 	 * @param $guid
 	 * @return Post
 	 */
-	public function find_by_guid( $guid ) {
+	public function get_by_guid( $guid ) {
 		$guid = $this->normalize_guid( $guid );
 
 		// Select post with a specific GUID ending.
@@ -291,7 +291,7 @@ class Post_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%d', // post_author
 			'%s', // post_date

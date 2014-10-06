@@ -156,7 +156,7 @@ class Batch_Import_Job_DAO extends DAO {
 	 *
 	 * @return array
 	 */
-	private function format() {
+	protected function format() {
 		return array(
 			'%d', // post_author
 			'%s', // post_date

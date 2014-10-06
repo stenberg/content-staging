@@ -154,6 +154,7 @@ class Postmeta_DAO extends DAO {
 	protected function do_insert( Model $obj ) {}
 	protected function do_create_object( array $raw ) {}
 	protected function do_create_array( Model $obj ) {}
+	protected function format() {}
 
 	/**
 	 * Go through provided postmeta and filter out all values that we accept
