@@ -143,7 +143,6 @@ class Post_DAO extends DAO {
 		$values[] = $limit;
 
 		$query = $this->wpdb->prepare( $stmt, $values );
-		var_dump($query);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
 			if ( isset( $post['ID'] ) ) {
