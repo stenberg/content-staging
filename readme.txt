@@ -65,8 +65,10 @@ third-party developers.
 
 == Changelog ==
 
-= 1.1.2 =
+= Next =
 * Sync term hierarchy.
+* Selected posts always placed on top of the 'Edit Batch' list.
+* A Batch title is now auto-generated if no title has been set by user.
 
 = 1.1.1 =
 * Fix creating image directories on production.
