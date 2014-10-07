@@ -124,16 +124,12 @@ class Batch_Ctrl {
 			$paged = $_GET['paged'];
 		}
 
-		// Get posts user can select to include in the batch.
-		$posts = $this->post_dao->get_published_posts( $order_by, $order, $per_page, $paged );
-		$posts = $this->sort_posts( $posts );
-
 		// Get IDs of posts user has selected to include in this batch.
 		$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
 
 		/*
 		 * When fetching post IDs an empty string could be returned if no
-		 * post meta record with the given key exist since before. To prevent
+		 * post meta record with the given key exist since before. To
 		 * ensure the system can rely on us working with an array we perform a
 		 * check setting $post_ids to array if it is currently an empty.
 		 */
@@ -141,10 +137,21 @@ class Batch_Ctrl {
 			$post_ids = array();
 		}
 
+		// Get selected posts.
+		$selected_posts = array();
+		$chunks         = array_chunk( $post_ids, $per_page );
+		if ( isset( $chunks[( $paged - 1 )] ) ) {
+			$use_post_ids   = $chunks[( $paged - 1 )];
+			$selected_posts = $this->post_dao->find_by_ids( $use_post_ids );
+		}
+
+		// Get posts user can select to include in the batch.
+		$posts       = $this->post_dao->get_published_posts( $order_by, $order, $per_page, $paged, $post_ids );
 		$total_posts = $this->post_dao->get_published_posts_count();
+		$posts       = array_merge( $selected_posts, $posts );
 
 		// Create and prepare table of posts.
-		$table        = new Post_Table( $batch, $post_ids );
+		$table        = new Post_Table( $batch );
 		$table->items = $posts;
 		$table->set_pagination_args(
 			array(
@@ -692,33 +699,6 @@ class Batch_Ctrl {
 
 		// Update batch meta with IDs of posts user selected to include in batch.
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
-	}
-
-	/**
-	 * Sort array of posts so posts of post type 'page' comes first followed
-	 * by post type 'post' and then remaining post types are sorted by
-	 * post type alphabetical.
-	 *
-	 * @param array $posts
-	 * @return array
-	 */
-	private function sort_posts( array $posts ) {
-
-		$pages = array();
-		$blog_posts = array();
-		$others = array();
-
-		foreach ( $posts as $post ) {
-			if ( $post->get_type() == 'page' ) {
-				$pages[] = $post;
-			} else if ( $post->get_type() == 'post' ) {
-				$blog_posts[] = $post;
-			} else {
-				$others[] = $post;
-			}
-		}
-
-		return array_merge( $pages, $blog_posts, $others );
 	}
 
 	/**

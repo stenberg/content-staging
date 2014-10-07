@@ -13,15 +13,9 @@ class Post_Table extends WP_List_Table {
 	private $batch;
 
 	/**
-	 * @var array Post IDs in batch
-	 */
-	private $post_ids;
-
-	/**
 	 * @param Batch $batch
-	 * @param array $post_ids
 	 */
-	public function __construct( Batch $batch, array $post_ids = array() ) {
+	public function __construct( Batch $batch ) {
 
 		// Set parent defaults.
 		parent::__construct( array(
@@ -30,8 +24,7 @@ class Post_Table extends WP_List_Table {
 			'ajax'      => false
 		) );
 
-		$this->batch    = $batch;
-		$this->post_ids = $post_ids;
+		$this->batch = $batch;
 	}
 
 	/**

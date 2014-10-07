@@ -90,11 +90,26 @@ class Post_DAO extends DAO {
 	 * @param string $order
 	 * @param int $per_page
 	 * @param int $paged
+	 * @param array $selected
 	 * @return array
 	 */
-	public function get_published_posts( $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
+	public function get_published_posts( $order_by = null, $order = 'asc', $per_page = 5,
+										 $paged = 1, $selected = array() ) {
+		$posts           = array();
+		$nbr_of_selected = count( $selected );
+		$limit           = $per_page;
 
-		$posts = array();
+		if ( ( $offset = ( ( $paged - 1 ) * $per_page ) - $nbr_of_selected ) < 0 ) {
+			$offset = 0;
+		}
+
+		if ( ( ( ( $paged - 1 ) * $per_page ) - $nbr_of_selected ) < 0 ) {
+			$limit = $per_page - $nbr_of_selected;
+		}
+
+		if ( $limit < 0 ) {
+			return $posts;
+		}
 
 		// Only allow to order the query result by the following fields.
 		$allowed_order_by_values = array( 'post_title', 'post_modified' );
@@ -112,18 +127,23 @@ class Post_DAO extends DAO {
 		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE post_type != "sme_content_batch" AND post_status = "publish"';
 		$values = array();
 
-		if ( ! empty( $order_by ) && ! empty( $order ) ) {
-			$stmt    .= ' ORDER BY ' . $order_by . ' ' . $order;
+		if ( ( $nbr_of_selected = count( $selected ) ) > 0 ) {
+			$placeholders = implode( ',', array_fill( 0, $nbr_of_selected, '%d' ) );
+			$values       = array_merge( $values, $selected );
+			$stmt        .= ' AND ID NOT IN (' . $placeholders . ')';
+		}
+
+		if ( ! is_null( $order_by ) ) {
+			$stmt .= ' ORDER BY ' . $order_by . ' ' . $order;
 		}
 
 		// Adjust the query to take pagination into account.
-		if ( ! empty( $paged ) && ! empty( $per_page ) ) {
-			$stmt    .= ' LIMIT %d, %d';
-			$values[] = ( $paged - 1 ) * $per_page;
-			$values[] = $per_page;
-		}
+		$stmt    .= ' LIMIT %d, %d';
+		$values[] = $offset;
+		$values[] = $limit;
 
 		$query = $this->wpdb->prepare( $stmt, $values );
+		var_dump($query);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
 			if ( isset( $post['ID'] ) ) {
