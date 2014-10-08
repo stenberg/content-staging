@@ -115,7 +115,6 @@ class Content_Staging {
 		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
 
 		// Data access objects.
-		$batch_dao         = new Batch_DAO( $wpdb );
 		$job_dao           = new Batch_Import_Job_DAO( $wpdb );
 		$post_dao          = new Post_DAO( $wpdb );
 		$postmeta_dao      = new Postmeta_DAO( $wpdb );
@@ -123,6 +122,7 @@ class Content_Staging {
 		$taxonomy_dao      = new Taxonomy_DAO( $wpdb, $term_dao );
 		$post_taxonomy_dao = new Post_Taxonomy_DAO( $wpdb, $post_dao, $taxonomy_dao );
 		$user_dao          = new User_DAO( $wpdb );
+		$batch_dao         = new Batch_DAO( $wpdb, $user_dao );
 
 		// XML-RPC client.
 		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );

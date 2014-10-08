@@ -7,10 +7,12 @@ use Me\Stenberg\Content\Staging\Models\Model;
 class Batch_DAO extends DAO {
 
 	private $table;
+	private $user_dao;
 
-	public function __construct( $wpdb ) {
+	public function __construct( $wpdb, User_DAO $user_dao ) {
 		parent::__constuct( $wpdb );
-		$this->table = $wpdb->posts;
+		$this->table    = $wpdb->posts;
+		$this->user_dao = $user_dao;
 	}
 
 	/**
@@ -26,7 +28,7 @@ class Batch_DAO extends DAO {
 		$batches = array();
 
 		// Only allow to order the query result by the following fields.
-		$allowed_order_by_values = array( 'post_title', 'post_modified' );
+		$allowed_order_by_values = array( 'post_title', 'post_modified', 'post_author' );
 
 		// Make sure provided order by value is allowed.
 		if ( ! in_array( $order_by, $allowed_order_by_values ) ) {
@@ -56,6 +58,13 @@ class Batch_DAO extends DAO {
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $batch ) {
 			$batches[] = $this->create_object( $batch );
+		}
+
+		if ( $order_by == 'post_author' ) {
+			usort( $batches, array( $this, 'post_author_sort' ) );
+			if ( $order == 'desc' ) {
+				$batches = array_reverse( $batches );
+			}
 		}
 
 		return $batches;
@@ -147,7 +156,8 @@ class Batch_DAO extends DAO {
 	 * @param Model $obj
 	 */
 	protected function do_insert( Model $obj ) {
-		$obj->set_creator_id( get_current_user_id() );
+		$user = $this->user_dao->find( get_current_user_id() );
+		$obj->set_creator( $user );
 		$obj->set_date( current_time( 'mysql' ) );
 		$obj->set_date_gmt( current_time( 'mysql', 1 ) );
 		$obj->set_modified( $obj->get_date() );
@@ -187,11 +197,12 @@ class Batch_DAO extends DAO {
 	 * @return Batch
 	 */
 	protected function do_create_object( array $raw ) {
-		$obj = new Batch( $raw['ID'] );
+		$obj  = new Batch( $raw['ID'] );
+		$user = $this->user_dao->find( $raw['post_author'] );
 		$obj->set_guid( $raw['guid'] );
 		$obj->set_title( $raw['post_title'] );
 		$obj->set_content( $raw['post_content'] );
-		$obj->set_creator_id( $raw['post_author'] );
+		$obj->set_creator( $user );
 		$obj->set_date( $raw['post_date'] );
 		$obj->set_date_gmt( $raw['post_date_gmt'] );
 		$obj->set_modified( $raw['post_modified'] );
@@ -201,7 +212,7 @@ class Batch_DAO extends DAO {
 
 	protected function do_create_array( Model $obj ) {
 		return array(
-			'post_author'       => $obj->get_creator_id(),
+			'post_author'       => $obj->get_creator()->get_id(),
 			'post_date'         => $obj->get_date(),
 			'post_date_gmt'     => $obj->get_date_gmt(),
 			'post_content'      => $obj->get_content(),
@@ -241,6 +252,17 @@ class Batch_DAO extends DAO {
 			'%s', // guid
 			'%s', // post_type
 		);
+	}
+
+	/**
+	 * Sort batches by the display name of batch creators.
+	 *
+	 * @param Batch $a
+	 * @param Batch $b
+	 * @return int
+	 */
+	private function post_author_sort( Batch $a, Batch $b ) {
+		return $a->get_creator()->get_display_name() == $b->get_creator()->get_display_name() ? 0 : ( $a->get_creator()->get_display_name() > $b->get_creator()->get_display_name() ) ? 1 : -1;
 	}
 
 }

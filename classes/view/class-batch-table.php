@@ -28,7 +28,9 @@ class Batch_Table extends WP_List_Table {
 	public function column_default( Batch $item, $column_name ) {
 		switch( $column_name ) {
 			case 'post_modified':
-				return call_user_func( array( $item, 'get_modified' ) );
+				return $item->get_modified();
+			case 'post_author':
+				return $item->get_creator()->get_display_name();
 			default:
 				return '';
 		}
@@ -74,6 +76,7 @@ class Batch_Table extends WP_List_Table {
 		return array(
 			'post_title'    => 'Batch Title',
 			'post_modified' => 'Modified',
+			'post_author'   => 'Created By',
 		);
 	}
 
@@ -88,6 +91,7 @@ class Batch_Table extends WP_List_Table {
 		return array(
 			'post_title'    => array( 'post_title', false ),
 			'post_modified' => array( 'post_modified', false ),
+			'post_author'   => array( 'post_author', false ),
 		);
 	}
 

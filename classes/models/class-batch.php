@@ -28,10 +28,11 @@ class Batch extends Model {
 	private $content;
 
 	/**
-	 * ID of user who created this batch.
-	 * @var
+	 * User who created this batch.
+	 *
+	 * @var User
 	 */
-	private $creator_id;
+	private $creator;
 
 	/**
 	 * Date when this batch was created. Timezone according to settings of
@@ -120,17 +121,17 @@ class Batch extends Model {
 	}
 
 	/**
-	 * @param int $creator_id
+	 * @param User $creator
 	 */
-	public function set_creator_id( $creator_id ) {
-		$this->creator_id = (int) $creator_id;
+	public function set_creator( $creator ) {
+		$this->creator = $creator;
 	}
 
 	/**
-	 * @return int
+	 * @return User
 	 */
-	public function get_creator_id() {
-		return $this->creator_id;
+	public function get_creator() {
+		return $this->creator;
 	}
 
 	/**
