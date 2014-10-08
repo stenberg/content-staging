@@ -57,16 +57,7 @@ jQuery( document ).ready(function($) {
 			// Get value from cookie.
 			cookie = document.cookie.replace(/(?:(?:^|.*;\s*)wp-sme-bpl\s*\=\s*([^;]*).*$)|^.*$/, '$1');
 
-			if (cookie === '') {
-				/*
-				 * Cookie is empty, use post IDs from HTML form as selected posts.
-				 */
-				postIds = postIdsObj.val().split(',');
-			} else {
-				/*
-				 * Cookie has been populated. Use post IDs from cookie as selected posts.
-				 */
-
+			if (cookie !== '') {
 				// Split batch and posts.
 				batch = cookie.split(':');
 
@@ -80,6 +71,11 @@ jQuery( document ).ready(function($) {
 					// Add posts to array.
 					postIds = batch[1].split(',');
 				}
+			}
+
+			// No selected post IDs found, try to grab them from HTML.
+			if (postIds.length <= 0) {
+				postIds = postIdsObj.val().split(',');
 			}
 
 			// Convert all post IDs to integers.
