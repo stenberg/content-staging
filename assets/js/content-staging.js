@@ -168,7 +168,7 @@ jQuery( document ).ready(function($) {
 				importer: $('#sme-batch-importer-type').html()
 			};
 
-			var printed = $('.sme-cs-message').length;
+			var printed = $('.sme-deploy-messages .sme-cs-message').length;
 
 			// Check if a batch importer ID has been found.
 			if (data.job_id && data.importer) {
@@ -190,11 +190,16 @@ jQuery( document ).ready(function($) {
 
 				// Number of messages in this response.
 				var nbrOfMsg = response.messages.length;
+				var reloadLoader = false;
 
 				// Only print messages we haven't printed before.
 				for (var i = printed; i < nbrOfMsg; i++) {
-					$('.wrap').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
+					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
 					printed++;
+				}
+
+				if (response.status > 1) {
+					$('#sme-importing').remove();
 				}
 
 				// If import is not completed, select import method.

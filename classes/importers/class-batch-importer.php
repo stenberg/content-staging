@@ -250,6 +250,16 @@ abstract class Batch_Importer {
 		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
 			$this->import_post_taxonomy_relationship( $post_taxonomy );
 		}
+
+		$this->job->add_message(
+			sprintf(
+				'Post <strong>%s</strong> has been successfully imported.',
+				$post->get_title()
+			),
+			'success'
+		);
+
+		$this->import_job_dao->update_job( $this->job );
 	}
 
 	/**
