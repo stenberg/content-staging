@@ -1,4 +1,5 @@
 .idea
 .DS_Store
 !addons/index.php
+addons/.gitignore
 tests/acceptance/features/support/env.rb
