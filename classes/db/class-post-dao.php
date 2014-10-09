@@ -124,7 +124,9 @@ class Post_DAO extends DAO {
 			$order = 'desc';
 		}
 
-		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE post_type != "sme_content_batch" AND post_status = "publish"';
+		$where  = 'post_type != "sme_content_batch" AND post_status = "publish"';
+		$where  = apply_filters( 'sme_query_posts_where', $where );
+		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
 		$values = array();
 
 		if ( ( $nbr_of_selected = count( $selected ) ) > 0 ) {
@@ -142,9 +144,10 @@ class Post_DAO extends DAO {
 		$values[] = $offset;
 		$values[] = $limit;
 
-		$query = $this->wpdb->prepare( $stmt, $values );
+		$query  = $this->wpdb->prepare( $stmt, $values );
+		$result = ( $result = $this->wpdb->get_results( $query, ARRAY_A ) ) ? $result : array();
 
-		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
+		foreach ( $result as $post ) {
 			if ( isset( $post['ID'] ) ) {
 				$posts[] = $this->create_object( $post );
 			}

@@ -607,7 +607,8 @@ class Batch_Ctrl {
 		}
 
 		// Get batch.
-		$batch = $this->batch_mgr->get_batch( intval( $_GET['id'] ), true );
+		$batch_id = $_GET['id'] > 0 ? intval( $_GET['id'] ) : null;
+		$batch    = $this->batch_mgr->get_batch( $batch_id, true );
 
 		/*
 		 * Make it possible for third-party developers to modify 'Save Batch'
