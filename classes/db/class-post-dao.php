@@ -162,7 +162,10 @@ class Post_DAO extends DAO {
 	 * @return int
 	 */
 	public function get_published_posts_count() {
-		return $this->wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE post_type != "sme_content_batch" AND post_status = "publish"' );
+		$where = 'post_type != "sme_content_batch" AND post_status = "publish"';
+		$where = apply_filters( 'sme_query_posts_where', $where );
+		$query = 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
+		return $this->wpdb->get_var( $query );
 	}
 
 	/**
