@@ -168,9 +168,13 @@ class Batch_Ctrl {
 			$label = $type->labels->edit_item;
 		}
 
+		// Custom filters for finding posts to include in batch.
+		$filters = apply_filters( 'sme_post_filters', $filters = '', $table );
+
 		$data = array(
 			'batch'    => $batch,
 			'label'    => $label,
+			'filters'  => $filters,
 			'table'    => $table,
 			'post_ids' => implode( ',', $post_ids ),
 		);
@@ -594,37 +598,35 @@ class Batch_Ctrl {
 	 */
 	public function save_batch() {
 
-		$batch_id = null;
-
 		// Check that the current request carries a valid nonce.
 		check_admin_referer( 'sme-save-batch', 'sme_save_batch_nonce' );
-
-		// Make sure post data has been provided.
-		if ( ! isset( $_POST['submit'] ) ) {
-			wp_die( __( 'No data been provided.', 'sme-content-staging' ) );
-		}
 
 		// Make sure a query param ID exists in current URL.
 		if ( ! isset( $_GET['id'] ) ) {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
-		// Get batch ID from URL query param.
-		if ( $_GET['id'] > 0 ) {
-			$batch_id = intval( $_GET['id'] );
-		}
-
 		// Get batch.
-		$batch = $this->batch_mgr->get_batch( $batch_id, true );
+		$batch = $this->batch_mgr->get_batch( intval( $_GET['id'] ), true );
+
+		/*
+		 * Make it possible for third-party developers to modify 'Save Batch'
+		 * behaviour.
+		 */
+		do_action( 'sme_save_batch', $batch );
 
 		// Handle input data.
-		$this->handle_edit_batch_form_data( $batch, $_POST );
+		$updated = '';
+		if ( isset( $_POST['submit'] ) ) {
+			$this->handle_edit_batch_form_data( $batch, $_POST );
+			$updated = '&updated';
+		}
 
 		// Default redirect URL on successful batch update.
-		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch->get_id() . '&updated' );
+		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch->get_id() . $updated );
 
 		// Set different redirect URL if user has requested a pre-flight.
-		if ( $_POST['submit'] === 'Pre-Flight Batch' ) {
+		if ( isset( $_POST['submit'] ) && $_POST['submit'] === 'Pre-Flight Batch' ) {
 			$redirect_url = admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() );
 		}
 

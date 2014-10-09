@@ -18,6 +18,8 @@
 		<input type="hidden" name="post_ids" value="<?php echo $post_ids; ?>">
 
 		<input type="text" name="batch_title" size="30" value="<?php echo $batch->get_title(); ?>" class="sme-input-text" placeholder="Enter batch title here" autocomplete="off">
+
+		<?php echo $filters; ?>
 		<?php $table->display(); ?>
 
 		<?php submit_button( 'Save Batch', 'primary', 'submit', false ); ?>

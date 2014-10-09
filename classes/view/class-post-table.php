@@ -28,6 +28,13 @@ class Post_Table extends WP_List_Table {
 	}
 
 	/**
+	 * @return Batch
+	 */
+	public function get_batch() {
+		return $this->batch;
+	}
+
+	/**
 	 * Called if a column does not have a method that provides logic for
 	 * rendering that column.
 	 *

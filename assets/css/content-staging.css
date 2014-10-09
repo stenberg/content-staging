@@ -31,7 +31,7 @@ div.sme-cs-success {
 .sme-input-text {
 	width: 100%;
 	padding: 6px 8px;
-	margin: 0;
+	margin: 0 0 10px 0;
 	line-height: 150%;
 	font-size: 1.7em;
 }

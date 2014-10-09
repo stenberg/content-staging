@@ -111,6 +111,17 @@ class Content_Staging {
 		$plugin_path = dirname( __FILE__ );
 		$plugin_url  = plugins_url( basename( $plugin_path ), $plugin_path );
 
+		// Include add-ons.
+		if ( $handle = @opendir( $plugin_path . '/addons' ) ) {
+			while ( false !== ( $entry = readdir( $handle ) ) ) {
+				$file = $plugin_path . '/addons/' . $entry . '/' .$entry . '.php';
+				if ( $entry != '.' && $entry != '..' && file_exists( $file ) ) {
+					require_once( $file );
+				}
+			}
+			closedir( $handle );
+		}
+
 		// Set endpoint.
 		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
 
