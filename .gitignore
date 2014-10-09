@@ -1,4 +1,4 @@
 .idea
 .DS_Store
-addons/*
+addons
 tests/acceptance/features/support/env.rb
