@@ -503,4 +503,27 @@ abstract class Batch_Importer {
 			);
 		}
 	}
+
+	protected function tear_down() {
+		$links  = array();
+		$output = '';
+
+		foreach ( $this->job->get_batch()->get_posts() as $post ) {
+			$links[] = array(
+				'link' => get_permalink( $post->get_id() ),
+				'post' => $post,
+			);
+		}
+
+		$links = apply_filters( 'sme_imported_post_links', $links );
+
+		foreach ( $links as $link ) {
+			$output .= '<li><a href="' . $link['link'] . '" target="_blank">' . $link['post']->get_title() . '</a></li>';
+		}
+
+		if ( $output !== '' ) {
+			$output = '<ul>' . $output . '</ul>';
+			$this->job->add_message( '<h3>Posts deployed to the live site:</h3>' . $output );
+		}
+	}
 }

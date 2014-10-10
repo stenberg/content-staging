@@ -111,6 +111,9 @@ class Batch_Background_Importer extends Batch_Importer {
 		// Publish posts.
 		$this->publish_posts();
 
+		// Perform clean-up operations.
+		$this->tear_down();
+
 		// Import finished, set success message and update import status.
 		$this->job->add_message( 'Batch has been successfully imported!', 'success' );
 		$this->job->set_status( 3 );

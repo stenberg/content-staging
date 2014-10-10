@@ -193,6 +193,15 @@ class Batch_AJAX_Importer extends Batch_Importer {
 			}
 		}
 
+		// Finish and clean up.
+		if ( $current['method'] == 'publish_posts' ) {
+			return array(
+				'method' => 'tear_down',
+				'params' => array(),
+				'index'  => -1,
+			);
+		}
+
 		return array();
 	}
 
