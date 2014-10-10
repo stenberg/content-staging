@@ -13,6 +13,11 @@ class Post_Table extends WP_List_Table {
 	private $batch;
 
 	/**
+	 * @var array
+	 */
+	private $custom_items;
+
+	/**
 	 * @param Batch $batch
 	 */
 	public function __construct( Batch $batch ) {
@@ -44,24 +49,20 @@ class Post_Table extends WP_List_Table {
 	 */
 	public function column_default( Post $post, $column_name ) {
 		switch( $column_name ) {
+			case 'post_title':
+				$value = sprintf(
+					'<strong><span class="row-title">%s</span></strong>',
+					$post->get_title()
+				);
+				break;
 			case 'post_modified':
-				return call_user_func( array( $post, 'get_modified' ) );
+				$value = call_user_func( array( $post, 'get_modified' ) );
+				break;
 			default:
-				return '';
+				$value = '';
 		}
-	}
 
-	/**
-	 * Render the 'post_title' column.
-	 *
-	 * @param Post $post
-	 * @return string HTML to be rendered inside column.
-	 */
-	public function column_post_title( Post $post ) {
-		return sprintf(
-			'<strong><span class="row-title">%s</span></strong>',
-			$post->get_title()
-		);
+		return apply_filters( 'sme_edit_batch_column_value', $value, $column_name, $post );
 	}
 
 	/**
@@ -90,11 +91,11 @@ class Post_Table extends WP_List_Table {
 	 * Value = Column title (except for key 'cb')
 	 */
 	public function get_columns() {
-		return array(
-			'cb'            => '<input type="checkbox" />',
-			'post_title'    => 'Post Title',
-			'post_modified' => 'Modified',
-		);
+		$columns = array( 'cb' => '<input type="checkbox" />' );
+		foreach ( $this->custom_items as $key => $item ) {
+			$columns[$key] = $item['title'];
+		}
+		return $columns;
 	}
 
 	/**
@@ -105,21 +106,37 @@ class Post_Table extends WP_List_Table {
 	 * Value = array( value from database (most likely), bool )
 	 */
 	public function get_sortable_columns() {
-		return array(
-			'post_title'    => array( 'post_title', false ),
-			'post_modified' => array( 'post_modified', false ),
-		);
+		$columns = array();
+		foreach ( $this->custom_items as $key => $item ) {
+			if ( $item['sortable'] === true ) {
+				$columns[$key] = array( $item['sort_by'], $item['pre_sorted'] );
+			}
+		}
+		return $columns;
 	}
 
 	/**
 	 * Prepare posts for being displayed.
 	 */
 	public function prepare_items() {
-
-		$columns  = $this->get_columns();
-		$hidden   = array();
-		$sortable = $this->get_sortable_columns();
-
+		$this->custom_items = array(
+			'post_title' => array(
+				'title'      => 'Post Title',
+				'sortable'   => true,
+				'sort_by'    => 'post_title',
+				'pre_sorted' => false,
+			),
+			'post_modified' => array(
+				'title' => 'Modified',
+				'sortable'   => true,
+				'sort_by'    => 'post_title',
+				'pre_sorted' => false,
+			),
+		);
+		$this->custom_items    = apply_filters( 'sme_edit_batch_columns', $this->custom_items );
+		$columns               = $this->get_columns();
+		$hidden                = array();
+		$sortable              = $this->get_sortable_columns();
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 	}
 

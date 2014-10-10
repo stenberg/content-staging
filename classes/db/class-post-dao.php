@@ -111,14 +111,6 @@ class Post_DAO extends DAO {
 			return $posts;
 		}
 
-		// Only allow to order the query result by the following fields.
-		$allowed_order_by_values = array( 'post_title', 'post_modified' );
-
-		// Make sure provided order by value is allowed.
-		if ( ! in_array( $order_by, $allowed_order_by_values ) ) {
-			$order_by = null;
-		}
-
 		// Only allow sorting results ascending or descending.
 		if ( $order !== 'asc' ) {
 			$order = 'desc';
