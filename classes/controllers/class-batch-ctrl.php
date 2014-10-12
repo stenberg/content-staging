@@ -273,13 +273,16 @@ class Batch_Ctrl {
 	 */
 	public function verify( array $args ) {
 
-		$this->xmlrpc_client->handle_request( $args );
+		if ( $messages = $this->xmlrpc_client->handle_request( $args ) ) {
+			return $messages;
+		}
+
 		$result = $this->xmlrpc_client->get_request_data();
 
 		// Check if a batch has been provided.
 		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
 			return $this->xmlrpc_client->prepare_response(
-				array( 'error' => array( 'Invalid batch!' ) )
+				array( array( 'level' => 'error', 'message' => 'Invalid batch!' ) )
 			);
 		}
 

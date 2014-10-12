@@ -25,7 +25,6 @@ class Client {
 	 * @return array
 	 */
 	public function query( $method, $data = array() ) {
-
 		$data = $this->encode( serialize( $data ) );
 
 		$args = array(
@@ -47,13 +46,30 @@ class Client {
 		$this->enable_ssl_verification();
 
 		if ( ! $status ) {
-			/*
-			 * @todo No response! Give all possible feedback to user, e.g. could it be that
-			 * server address is wrong? Print server address.
-			 */
+			if ( strpos( $this->wp_http_ixr_client->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
+				$this->response = array(
+					array(
+						'level'   => 'error',
+						'message' => 'Content Staging plugin not activated on host <strong>' . $this->server . '</strong>',
+					)
+				);
+				return;
+			}
+
+			if ( strpos( $this->wp_http_ixr_client->getErrorMessage(), 'Could not resolve host' ) !== false ) {
+				$this->response = array(
+					array(
+						'level'   => 'error',
+						'message' => 'Could not connect to host <strong>' . $this->server . '</strong>',
+					)
+				);
+				return;
+			}
+
 			$this->response = array(
-				'error' => array(
-					$this->wp_http_ixr_client->getErrorMessage() . ' - on host: ' . $this->server . ' (error code ' . $this->wp_http_ixr_client->getErrorCode() . ')'
+				array(
+					'level'   => 'error',
+					'message' => $this->wp_http_ixr_client->getErrorMessage() . ' - on host: ' . $this->server . ' (error code ' . $this->wp_http_ixr_client->getErrorCode() . ')',
 				)
 			);
 
@@ -73,17 +89,22 @@ class Client {
 	 * @return array
 	 */
 	public function handle_request( $args ) {
+		$messages = array();
 
 		if ( ! isset( $args[0] ) ) {
-			return $this->prepare_response(
-				array( 'error' => array( 'No access token has been provided. Request failed.' ) )
+			$messages[] = array(
+				'level'   => 'error',
+				'message' => 'No access token has been provided. Request failed.',
 			);
+			return $this->prepare_response( $messages );
 		}
 
 		if ( ! isset( $args[1] ) ) {
-			return $this->prepare_response(
-				array( 'error' => array( 'No data has been provided. Request failed.' ) )
+			$messages[] = array(
+				'level'   => 'error',
+				'message' => 'No data has been provided. Request failed.',
 			);
+			return $this->prepare_response( $messages );
 		}
 
 		$access_token = $args[0];
@@ -101,9 +122,11 @@ class Client {
 			$msg .= 'Check that your content staging environment and your production environment is using the same secret key.';
 
 			// Respond with error message.
-			return $this->prepare_response(
-				array( 'error' => array( $msg ) )
+			$messages[] = array(
+				'level'   => 'error',
+				'message' => $msg,
 			);
+			return $this->prepare_response( $messages );
 		}
 
 		// Get the request data.
