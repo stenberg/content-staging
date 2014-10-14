@@ -128,7 +128,7 @@ class Post_Table extends WP_List_Table {
 				'pre_sorted' => false,
 			),
 			'post_modified' => array(
-				'title' => 'Modified',
+				'title'      => 'Modified',
 				'sortable'   => true,
 				'sort_by'    => 'post_modified',
 				'pre_sorted' => false,
