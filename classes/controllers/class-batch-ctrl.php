@@ -183,6 +183,78 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Save batch data user has submitted through form.
+	 */
+	public function save_batch() {
+
+		// Check that the current request carries a valid nonce.
+		check_admin_referer( 'sme-save-batch', 'sme_save_batch_nonce' );
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Get batch.
+		$batch_id = $_GET['id'] > 0 ? intval( $_GET['id'] ) : null;
+		$batch    = $this->batch_mgr->get_batch( $batch_id, true );
+
+		/*
+		 * Make it possible for third-party developers to modify 'Save Batch'
+		 * behaviour.
+		 */
+		do_action( 'sme_save_batch', $batch );
+
+		// Handle input data.
+		$updated = '';
+		if ( isset( $_POST['submit'] ) ) {
+			$this->handle_edit_batch_form_data( $batch, $_POST );
+			$updated = '&updated';
+		}
+
+		// Default redirect URL on successful batch update.
+		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch->get_id() . $updated );
+
+		// Set different redirect URL if user has requested a pre-flight.
+		if ( isset( $_POST['submit'] ) && $_POST['submit'] === 'Pre-Flight Batch' ) {
+			$redirect_url = admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() );
+		}
+
+		// Redirect user.
+		wp_redirect( $redirect_url );
+		exit();
+	}
+
+	/**
+	 * Delete a batch.
+	 */
+	public function delete_batch() {
+
+		// Make sure a query param ID exists in current URL.
+		if ( ! isset( $_GET['id'] ) ) {
+			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+		}
+
+		// Make sure user has sent in a request to delete batch.
+		if ( ! isset( $_POST['delete'] ) || $_POST['delete'] !== 'delete' ) {
+			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
+		}
+
+		// Check that the current request carries a valid nonce.
+		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
+
+		// Get batch ID from URL query param.
+		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+
+		// Delete batch.
+		$this->batch_dao->delete_batch( $batch );
+
+		// Redirect user.
+		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
+		exit();
+	}
+
+	/**
 	 * Confirm that we want to delete a batch.
 	 */
 	public function confirm_delete_batch() {
@@ -509,35 +581,6 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Runs on production when an import status request has been received.
-	 *
-	 * @param array $result
-	 * @return Batch_Import_Job
-	 */
-	private function create_import_job( $result ) {
-
-		$job = new Batch_Import_Job();
-
-		// Check if a batch has been provided.
-		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			$job->add_message( 'Failed creating import job.', 'error' );
-			$job->set_status( 2 );
-			return $job;
-		}
-
-		$job->set_batch( $result['batch'] );
-		$this->batch_import_job_dao->insert( $job );
-		$job->add_message(
-			sprintf(
-				'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
-				$job->get_id()
-			),
-			'info'
-		);
-		return $job;
-	}
-
-	/**
 	 * Add a post ID to batch.
 	 *
 	 * Triggered by an AJAX call.
@@ -597,78 +640,6 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Save batch data user has submitted through form.
-	 */
-	public function save_batch() {
-
-		// Check that the current request carries a valid nonce.
-		check_admin_referer( 'sme-save-batch', 'sme_save_batch_nonce' );
-
-		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) ) {
-			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
-		}
-
-		// Get batch.
-		$batch_id = $_GET['id'] > 0 ? intval( $_GET['id'] ) : null;
-		$batch    = $this->batch_mgr->get_batch( $batch_id, true );
-
-		/*
-		 * Make it possible for third-party developers to modify 'Save Batch'
-		 * behaviour.
-		 */
-		do_action( 'sme_save_batch', $batch );
-
-		// Handle input data.
-		$updated = '';
-		if ( isset( $_POST['submit'] ) ) {
-			$this->handle_edit_batch_form_data( $batch, $_POST );
-			$updated = '&updated';
-		}
-
-		// Default redirect URL on successful batch update.
-		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch->get_id() . $updated );
-
-		// Set different redirect URL if user has requested a pre-flight.
-		if ( isset( $_POST['submit'] ) && $_POST['submit'] === 'Pre-Flight Batch' ) {
-			$redirect_url = admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() );
-		}
-
-		// Redirect user.
-		wp_redirect( $redirect_url );
-		exit();
-	}
-
-	/**
-	 * Delete a batch.
-	 */
-	public function delete_batch() {
-
-		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) ) {
-			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
-		}
-
-		// Make sure user has sent in a request to delete batch.
-		if ( ! isset( $_POST['delete'] ) || $_POST['delete'] !== 'delete' ) {
-			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
-		}
-
-		// Check that the current request carries a valid nonce.
-		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
-
-		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
-
-		// Delete batch.
-		$this->batch_dao->delete_batch( $batch );
-
-		// Redirect user.
-		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
-		exit();
-	}
-
-	/**
 	 * Create/update a batch based on input data submitted by user from the
 	 * Edit Batch page.
 	 *
@@ -705,6 +676,35 @@ class Batch_Ctrl {
 
 		// Update batch meta with IDs of posts user selected to include in batch.
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
+	}
+
+	/**
+	 * Runs on production when an import status request has been received.
+	 *
+	 * @param array $result
+	 * @return Batch_Import_Job
+	 */
+	private function create_import_job( $result ) {
+
+		$job = new Batch_Import_Job();
+
+		// Check if a batch has been provided.
+		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+			$job->add_message( 'Failed creating import job.', 'error' );
+			$job->set_status( 2 );
+			return $job;
+		}
+
+		$job->set_batch( $result['batch'] );
+		$this->batch_import_job_dao->insert( $job );
+		$job->add_message(
+			sprintf(
+				'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
+				$job->get_id()
+			),
+			'info'
+		);
+		return $job;
 	}
 
 	/**

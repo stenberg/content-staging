@@ -140,4 +140,8 @@ class Post_Table extends WP_List_Table {
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 	}
 
+	public function extra_tablenav( $which ) {
+		do_action( 'sme_edit_batch_extra_tablenav', $which );
+	}
+
 }
