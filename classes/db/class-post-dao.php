@@ -118,8 +118,8 @@ class Post_DAO extends DAO {
 
 		$where  = 'post_type != "sme_content_batch" AND post_status = "publish"';
 		$where  = apply_filters( 'sme_query_posts_where', $where );
+		$values = apply_filters( 'sme_values_posts_where', array() );
 		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
-		$values = array();
 
 		if ( ( $nbr_of_selected = count( $selected ) ) > 0 ) {
 			$placeholders = implode( ',', array_fill( 0, $nbr_of_selected, '%d' ) );
@@ -154,9 +154,13 @@ class Post_DAO extends DAO {
 	 * @return int
 	 */
 	public function get_published_posts_count() {
-		$where = 'post_type != "sme_content_batch" AND post_status = "publish"';
-		$where = apply_filters( 'sme_query_posts_where', $where );
-		$query = 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
+		$where  = 'post_type != "sme_content_batch" AND post_status = "publish"';
+		$where  = apply_filters( 'sme_query_posts_where', $where );
+		$values = apply_filters( 'sme_values_posts_where', array() );
+		$query  = 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
+		if ( ! empty( $values ) ) {
+			$query  = $this->wpdb->prepare( $query, $values );
+		}
 		return $this->wpdb->get_var( $query );
 	}
 
