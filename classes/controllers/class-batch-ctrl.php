@@ -671,7 +671,7 @@ class Batch_Ctrl {
 
 		// Check if any posts to include in batch has been selected.
 		if ( isset( $request_data['post_ids'] ) && $request_data['post_ids'] ) {
-			$post_ids = explode( ',', $request_data['post_ids'] );
+			$post_ids = array_map( 'intval', explode( ',', $request_data['post_ids'] ) );
 		}
 
 		// Update batch meta with IDs of posts user selected to include in batch.

@@ -45,6 +45,7 @@ require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
+require_once( 'classes/managers/class-helper-factory.php' );
 require_once( 'classes/models/class-model.php' );
 require_once( 'classes/models/class-batch.php' );
 require_once( 'classes/models/class-batch-import-job.php' );
@@ -70,6 +71,7 @@ use Me\Stenberg\Content\Staging\API;
 use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
@@ -134,6 +136,15 @@ class Content_Staging {
 		$post_taxonomy_dao = new Post_Taxonomy_DAO( $wpdb, $post_dao, $taxonomy_dao );
 		$user_dao          = new User_DAO( $wpdb );
 		$batch_dao         = new Batch_DAO( $wpdb, $user_dao );
+
+		$helper = Helper_Factory::get_instance();
+		$helper->add_dao( $job_dao );
+		$helper->add_dao( $post_dao );
+		$helper->add_dao( $postmeta_dao );
+		$helper->add_dao( $term_dao );
+		$helper->add_dao( $taxonomy_dao );
+		$helper->add_dao( $user_dao );
+		$helper->add_dao( $batch_dao );
 
 		// XML-RPC client.
 		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );

@@ -71,6 +71,9 @@ third-party developers.
 * A Batch title is now auto-generated if no title has been set by user.
 * Sort batches by creator.
 * Display loader while importing batch.
+* Improved error reporting.
+* Link to post in Edit Batch view.
+* New hooks.
 
 = 1.1.1 =
 * Fix creating image directories on production.

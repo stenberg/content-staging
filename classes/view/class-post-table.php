@@ -51,7 +51,8 @@ class Post_Table extends WP_List_Table {
 		switch( $column_name ) {
 			case 'post_title':
 				$value = sprintf(
-					'<strong><span class="row-title">%s</span></strong>',
+					'<strong><span class="row-title"><a href="%s" target="_blank">%s</a></span></strong>',
+					get_edit_post_link( $post->get_id() ),
 					$post->get_title()
 				);
 				break;
@@ -129,7 +130,7 @@ class Post_Table extends WP_List_Table {
 			'post_modified' => array(
 				'title' => 'Modified',
 				'sortable'   => true,
-				'sort_by'    => 'post_title',
+				'sort_by'    => 'post_modified',
 				'pre_sorted' => false,
 			),
 		);
