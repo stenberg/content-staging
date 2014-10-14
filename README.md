@@ -43,7 +43,7 @@ A batch goes through a couple of different steps on its way to being deployed on
 * **Prepare** - Runs on *content stage*. Prepare batch data that we want to send to production.
 * **Pre-Flight** - Runs on *production*. Verifies that batch data can be imported on production.
 * **Deploy** - Runs on *content stage*. Send batch data to production.
-* **Import** - Runs on * production*. Imports batch data.
+* **Import** - Runs on *production*. Imports batch data.
 
 Hooks
 -----
@@ -85,21 +85,21 @@ Filter or add users to batch. Runs on *content stage* just before data is sent t
 Filter array of attachments. Runs on *content stage* just before attachments is deployed to production.
 
 **sme\_import\_attachments** <br/>
-Filter array of attachments. Runs just before attachments is imported on production.
+Filter array of attachments. Runs on *production* just before attachments is imported.
 
 ### Action Hooks
 
 **sme\_prepare\_custom\_data** <br/>
-Add custom data to a batch. Runs on content stage just before data is sent to production during pre-flight.
+Add custom data to a batch. Runs on *content stage* just before data is sent to production during pre-flight.
 
 **sme\_deploy\_custom\_attachment\_importer** <br/>
-Inject your custom attachment importer. Runs on content stage just before attachments is deployed to production. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_deploy\_attachments* filter hook (filter out all images).
+Inject your custom attachment importer. Runs on *content stage* just before attachments is deployed to production. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_deploy\_attachments* filter hook (filter out all images).
 
 **sme\_import\_custom\_attachment\_importer** <br/>
-Inject your custom attachment importer. Runs just before attachments is imported on production. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_import\_attachments* filter hook (filter out all images).
+Inject your custom attachment importer. Runs on *production* just before attachments is imported. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_import\_attachments* filter hook (filter out all images).
 
 **sme\_import\_\[ADDON\_NAME\]** <br/>
-Import custom add-on data. Replace \[ADDON\_NAME\] with the name of your add-on. Runs on production during batch import.
+Import custom add-on data. Replace \[ADDON\_NAME\] with the name of your add-on. Runs on *production* during batch import.
 
 Creating Add-ons
 ----------------
