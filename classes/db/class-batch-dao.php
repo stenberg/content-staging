@@ -207,6 +207,7 @@ class Batch_DAO extends DAO {
 		$obj->set_date_gmt( $raw['post_date_gmt'] );
 		$obj->set_modified( $raw['post_modified'] );
 		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
+		$obj->set_backend( admin_url() );
 		return $obj;
 	}
 

@@ -109,12 +109,6 @@ class Batch_Mgr {
 			$this->add_attachment( $post->get_id() );
 		}
 
-		/*
-		 * To be able to find the parent post on the production server we must
-		 * include GUID of parent post in the batch.
-		 */
-		$post->set_parent_guid( $this->post_dao->get_guid_by_id( $post->get_parent() ) );
-
 		// Populate Post object with Post_Taxonomy relationship objects.
 		$this->post_taxonomy_dao->get_post_taxonomy_relationships( $post );
 

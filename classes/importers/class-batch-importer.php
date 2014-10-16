@@ -239,8 +239,8 @@ abstract class Batch_Importer {
 		$this->post_relations[$stage_post_id] = $post->get_id();
 
 		// Store relation between a post and its parent post.
-		if ( $post->get_parent_guid() ) {
-			$this->parent_post_relations[$post->get_id()] = $post->get_parent_guid();
+		if ( $post->get_parent() !== null ) {
+			$this->parent_post_relations[$post->get_id()] = $post->get_parent()->get_guid();
 		}
 
 		// Store relation between post ID on content stage and ID on production.

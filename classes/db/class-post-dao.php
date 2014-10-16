@@ -56,34 +56,6 @@ class Post_DAO extends DAO {
 	}
 
 	/**
-	 * Get global unique identifier (GUID) for post with provided ID. Return
-	 * null if no post with provided ID is found.
-	 *
-	 * @param int $post_id
-	 * @return string|null Return GUID if found, null otherwise.
-	 */
-	public function get_guid_by_id( $post_id ) {
-
-		// Check if a parent post exists.
-		if ( $post_id <= 0 ) {
-			return null;
-		}
-
-		$query = $this->wpdb->prepare(
-			'SELECT guid FROM ' . $this->wpdb->posts . ' WHERE ID = %d',
-			$post_id
-		);
-
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
-
-		if ( isset( $result['guid'] ) ) {
-			return $result['guid'];
-		}
-
-		return null;
-	}
-
-	/**
 	 * Get published posts.
 	 *
 	 * @param string $order_by
@@ -248,6 +220,11 @@ class Post_DAO extends DAO {
 	 */
 	protected function do_create_object( array $raw ) {
 		$obj = new Post( $raw['ID'] );
+
+		if ( ( $parent = $this->find( $raw['post_parent'] ) ) !== null ) {
+			$obj->set_parent( $parent );
+		}
+
 		$obj->set_author( $raw['post_author'] );
 		$obj->set_date( $raw['post_date'] );
 		$obj->set_date_gmt( $raw['post_date_gmt'] );
@@ -264,7 +241,6 @@ class Post_DAO extends DAO {
 		$obj->set_to_ping( $raw['to_ping'] );
 		$obj->set_pinged( $raw['pinged'] );
 		$obj->set_content_filtered( $raw['post_content_filtered'] );
-		$obj->set_parent( $raw['post_parent'] );
 		$obj->set_guid( $raw['guid'] );
 		$obj->set_menu_order( $raw['menu_order'] );
 		$obj->set_type( $raw['post_type'] );
@@ -278,6 +254,12 @@ class Post_DAO extends DAO {
 	 * @return array
 	 */
 	protected function do_create_array( Model $obj ) {
+		$parent = 0;
+
+		if ( $obj->get_parent() !== null ) {
+			$parent = $obj->get_parent()->get_id();
+		}
+
 		return array(
 			'post_author'           => $obj->get_author(),
 			'post_date'             => $obj->get_date(),
@@ -295,7 +277,7 @@ class Post_DAO extends DAO {
 			'post_modified'         => $obj->get_modified(),
 			'post_modified_gmt'     => $obj->get_modified_gmt(),
 			'post_content_filtered' => $obj->get_content_filtered(),
-			'post_parent'           => $obj->get_parent(),
+			'post_parent'           => $parent,
 			'guid'                  => $obj->get_guid(),
 			'menu_order'            => $obj->get_menu_order(),
 			'post_type'             => $obj->get_type(),

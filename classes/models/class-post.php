@@ -22,7 +22,6 @@ class Post extends Model {
 	private $pinged;
 	private $content_filtered;
 	private $parent;
-	private $parent_guid;
 	private $guid;
 	private $menu_order;
 	private $type;
@@ -266,31 +265,17 @@ class Post extends Model {
 	}
 
 	/**
-	 * @param int $post_parent
+	 * @param Post $post
 	 */
-	public function set_parent( $post_parent ) {
-		$this->parent = $post_parent;
+	public function set_parent( Post $post ) {
+		$this->parent = $post;
 	}
 
 	/**
-	 * @return int
+	 * @return Post
 	 */
 	public function get_parent() {
 		return $this->parent;
-	}
-
-	/**
-	 * @param string $post_parent_guid
-	 */
-	public function set_parent_guid( $post_parent_guid ) {
-		$this->parent_guid = $post_parent_guid;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function get_parent_guid() {
-		return $this->parent_guid;
 	}
 
 	/**

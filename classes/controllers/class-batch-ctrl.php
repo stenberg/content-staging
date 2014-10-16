@@ -370,9 +370,11 @@ class Batch_Ctrl {
 			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
 				$importer->add_message(
 					sprintf(
-						'Post with ID %d has a parent post that does not exist on production and is not part of this batch. Include post with ID %d in this batch to resolve this issue.',
-						$post->get_id(),
-						$post->get_parent()
+						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
+						$batch->get_backend() . 'post.php?post=' . $post->get_id() . '&action=edit',
+						$post->get_title(),
+						$batch->get_backend() . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
+						$post->get_parent()->get_title()
 					),
 					'error'
 				);
@@ -719,18 +721,18 @@ class Batch_Ctrl {
 	private function parent_post_exists( $post, $posts ) {
 
 		// Check if the post has a parent post.
-		if ( $post->get_parent() <= 0 ) {
+		if ( $post->get_parent() === null ) {
 			return true;
 		}
 
 		// Check if parent post exist on production server.
-		if ( $this->post_dao->get_by_guid( $post->get_parent_guid() ) ) {
+		if ( $this->post_dao->get_by_guid( $post->get_parent()->get_guid() ) ) {
 			return true;
 		}
 
 		// Parent post is not on production, look in this batch for parent post.
 		foreach ( $posts as $item ) {
-			if ( $item->get_id() == $post->get_parent() ) {
+			if ( $item->get_id() == $post->get_parent()->get_id() ) {
 				return true;
 			}
 		}
