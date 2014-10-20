@@ -326,10 +326,15 @@ class Batch_Ctrl {
 			}
 		}
 
+		// Add batch data to database if pre-flight was successful.
+		if ( $is_success ) {
+			$batch->set_content( base64_encode( serialize( $batch ) ) );
+			$this->batch_dao->update_batch( $batch );
+		}
+
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'      => $batch,
-			'batch_data' => base64_encode( serialize( $batch ) ),
 			'messages'   => $response,
 			'is_success' => $is_success,
 		);
@@ -433,7 +438,7 @@ class Batch_Ctrl {
 		$batch = $this->batch_mgr->get_batch();
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
-		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
+//		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
 		$this->batch_dao->insert( $batch );
 
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', array( $post_id ) );
@@ -460,16 +465,17 @@ class Batch_Ctrl {
 
 		// Check that the current request carries a valid nonce.
 		check_admin_referer( 'sme-deploy-batch', 'sme_deploy_batch_nonce' );
-
-		// Determine plugin path and plugin URL of this plugin.
-		$plugin_path = dirname( __FILE__ );
-		$plugin_url  = plugins_url( basename( $plugin_path ), $plugin_path );
+		$batch = null;
 
 		/*
 		 * Batch data is sent through a form on the pre-flight page and picked up
 		 * here. Decode data.
 		 */
-		$batch = unserialize( base64_decode( $_POST['batch_data'] ) );
+		if ( ! isset( $_GET['id'] ) || ! ( $batch = $this->batch_dao->find( $_GET['id'] ) ) ) {
+			wp_die( __( 'No batch found.', 'sme-content-staging' ) );
+		}
+
+		$batch = unserialize( base64_decode( $batch->get_content() ) );
 
 		/*
 		 * Give third-party developers the option to import images before batch
