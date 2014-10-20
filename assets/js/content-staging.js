@@ -47,6 +47,7 @@ jQuery( document ).ready(function($) {
 		editBatch: function() {
 			var self       = this;
 			var batchId    = $('#sme-batch-id').html();
+			var titleObj   = $('input[name="batch_title"]');
 			var posts      = $('.sme-select-post');
 			var postIdsObj = $('input[name="post_ids"]');
 			var postIds    = [];
@@ -66,10 +67,15 @@ jQuery( document ).ready(function($) {
 				 * cookie.
 				 */
 				if (batch[0] !== batchId) {
-					document.cookie = 'wp-sme-bpl=';
+					document.cookie = 'wp-sme-bpl=::';
 				} else {
 					// Add posts to array.
 					postIds = batch[1].split(',');
+
+					// Set batch title.
+					if (batch[2] !== 'undefined') {
+						titleObj.val(batch[2]);
+					}
 				}
 			}
 
@@ -93,6 +99,11 @@ jQuery( document ).ready(function($) {
 				}
 			});
 
+			// User has changed batch title.
+			titleObj.change(function() {
+				self.updateBatchTitle(batchId, postIds, titleObj.val());
+			});
+
 			// User has selected/unselected a post.
 			posts.click(function() {
 				var postObj = $(this);
@@ -101,7 +112,7 @@ jQuery( document ).ready(function($) {
 				self.selectPost(postIds, parseInt(postObj.val()), postObj.prop('checked'));
 
 				// Update selected posts.
-				self.updateSelectedPosts(batchId, postIds, postIdsObj);
+				self.updateSelectedPosts(batchId, postIds, postIdsObj, titleObj.val());
 			});
 
 			// User has selected/unselected all posts.
@@ -113,7 +124,7 @@ jQuery( document ).ready(function($) {
 				});
 
 				// Update selected posts.
-				self.updateSelectedPosts(batchId, postIds, postIdsObj);
+				self.updateSelectedPosts(batchId, postIds, postIdsObj, titleObj.val());
 			});
 		},
 
@@ -146,15 +157,20 @@ jQuery( document ).ready(function($) {
 		 * @param {int} batchId
 		 * @param {Array} postIds
 		 * @param {Object} postIdsObj
+		 * @param {string} batchTitle
 		 */
-		updateSelectedPosts: function(batchId, postIds, postIdsObj) {
+		updateSelectedPosts: function(batchId, postIds, postIdsObj, batchTitle) {
 			var str = postIds.join();
 
 			// Add post IDs to HTML form.
 			postIdsObj.val(str);
 
 			// Add post IDs to cookie.
-			document.cookie = 'wp-sme-bpl=' + batchId + ':' + str;
+			document.cookie = 'wp-sme-bpl=' + batchId + ':' + str + ':' + batchTitle;
+		},
+
+		updateBatchTitle: function(batchId, postIds, batchTitle) {
+			document.cookie = 'wp-sme-bpl=' + batchId + ':' + postIds.join() + ':' + batchTitle;
 		},
 
 		/**
