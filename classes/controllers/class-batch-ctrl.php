@@ -386,19 +386,6 @@ class Batch_Ctrl {
 			}
 		}
 
-		foreach ( $batch->get_attachments() as $attachment ) {
-			foreach ( $attachment['items'] as $item ) {
-				$url = $attachment['url'] . '/' . $item;
-				// Check if attachment exists on content stage.
-				if ( ! $this->attachment_exists( $url ) ) {
-					$importer->add_message(
-						'Attachment <a href="' . $url . '" target="_blank">' . $url . '</a> is missing on content stage and will not be deployed to production.',
-						'warning'
-					);
-				}
-			}
-		}
-
 		// Pre-flight custom data.
 		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
 			do_action( 'sme_verify_' . $addon, $data, $importer );
@@ -746,23 +733,4 @@ class Batch_Ctrl {
 		return false;
 	}
 
-	/**
-	 * Check if an attachment exists on remote server.
-	 *
-	 * @param string $attachment
-	 * @return bool
-	 */
-	private function attachment_exists( $attachment ) {
-		$ch = curl_init( $attachment );
-		curl_setopt( $ch, CURLOPT_NOBODY, true );
-		curl_exec( $ch );
-		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close($ch);
-
-		if ( $code == 200 ) {
-			return true;
-		}
-
-		return false;
-	}
 }
