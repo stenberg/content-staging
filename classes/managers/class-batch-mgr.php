@@ -65,8 +65,8 @@ class Batch_Mgr {
 			return new Batch();
 		}
 
-		// Get default batch data from database (ID, modification date, etc.).
 		$this->batch = $this->batch_dao->find( $id );
+		$this->batch->set_post_rel_keys( apply_filters( 'sme_post_relationship_keys', array() ) );
 
 		// Populate batch with data (posts, terms, etc.).
 		if ( ! $lazy ) {
@@ -103,20 +103,21 @@ class Batch_Mgr {
 	 */
 	private function add_post( Post $post ) {
 
-		$postmeta = $this->postmeta_dao->get_postmetas_by_post_id( $post->get_id() );
-
 		if ( $post->get_type() === 'attachment' ) {
 			$this->add_attachment( $post->get_id() );
 		}
 
-		// Populate Post object with Post_Taxonomy relationship objects.
 		$this->post_taxonomy_dao->get_post_taxonomy_relationships( $post );
+		$post->set_meta( $this->postmeta_dao->get_postmetas_by_post_id( $post->get_id() ) );
 
-		// Add post to batch.
+		/*
+		 * Make it possible for third-party developers to modify post before it
+		 * is added to batch.
+		 */
+		do_action( 'sme_prepare_post', $post, $this->batch );
 		$this->batch->add_post( $post );
 
-		foreach ( $postmeta as $item ) {
-			$post->add_meta( $item );
+		foreach ( $post->get_meta() as $item ) {
 			$this->add_related_posts( $item );
 		}
 	}
@@ -161,20 +162,8 @@ class Batch_Mgr {
 	}
 
 	private function add_related_posts( $postmeta ) {
-
-		/*
-		 * Get postmeta keys who's records contains relations between posts.
-		 * @todo apply_filters will be called every time a post is being added to
-		 * the batch to maximize extensibility of this plugin. For increased
-		 * performance apply_filters could be called e.g. when post IDs are
-		 * registered with the batch. That way we would only use apply_filters
-		 * once.
-		 */
-		$meta_keys = apply_filters( 'sme_post_relationship_keys', array() );
-
-		foreach ( $meta_keys as $key ) {
+		foreach ( $this->batch->get_post_rel_keys() as $key ) {
 			if ( $postmeta['meta_key'] === $key ) {
-
 				// Get post thumbnail.
 				$post = $this->post_dao->find( $postmeta['meta_value'] );
 

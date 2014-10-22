@@ -83,9 +83,6 @@ class Batch_Background_Importer extends Batch_Importer {
 		// Get the batch.
 		$batch = $this->job->get_batch();
 
-		// Get postmeta keys who's records contains relations between posts.
-		$this->postmeta_keys = apply_filters( 'sme_post_relationship_keys', array() );
-
 		// Import attachments.
 		$this->import_attachments();
 

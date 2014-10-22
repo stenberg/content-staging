@@ -28,13 +28,6 @@ abstract class Batch_Importer {
 	protected $job;
 
 	/**
-	 * Array of postmeta keys that contain relationships between posts.
-	 *
-	 * @var array
-	 */
-	protected $postmeta_keys;
-
-	/**
 	 * Array storing the relation between a post and its parent post.
 	 *
 	 * Key = Post ID.
@@ -123,7 +116,6 @@ abstract class Batch_Importer {
 		$this->taxonomy_dao          = $taxonomy_dao;
 		$this->term_dao              = $term_dao;
 		$this->user_dao              = $user_dao;
-		$this->postmeta_keys         = array();
 		$this->parent_post_relations = array();
 		$this->post_relations        = array();
 		$this->posts_to_publish      = array();
@@ -292,7 +284,7 @@ abstract class Batch_Importer {
 		$meta = $post->get_meta();
 
 		for ( $i = 0; $i < count($meta); $i++ ) {
-			if ( in_array( $meta[$i]['meta_key'], $this->postmeta_keys ) ) {
+			if ( in_array( $meta[$i]['meta_key'], $this->job->get_batch()->get_post_rel_keys() ) ) {
 
 				/*
 				 * The meta value must be an integer pointing at the ID of the post

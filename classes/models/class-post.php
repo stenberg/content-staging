@@ -351,7 +351,14 @@ class Post extends Model {
 	/**
 	 * @param array $meta
 	 */
-	public function add_meta( $meta ) {
+	public function set_meta( array $meta ) {
+		$this->meta = $meta;
+	}
+
+	/**
+	 * @param array $meta
+	 */
+	public function add_meta( array $meta ) {
 		$this->meta[] = $meta;
 	}
 

@@ -91,6 +91,14 @@ class Batch extends Model {
 	private $users;
 
 	/**
+	 * Meta keys containing a relationship between two posts. The meta keys
+	 * refers to the 'meta_key' column in the 'postmeta' database table.
+	 *
+	 * @var array
+	 */
+	private $post_rel_keys;
+
+	/**
 	 * Custom data added by third-party developer.
 	 *
 	 * @var array
@@ -104,11 +112,12 @@ class Batch extends Model {
 	 */
 	public function __construct( $id = null ) {
 		parent::__construct( (int) $id );
-		$this->meta_data   = array();
-		$this->posts       = array();
-		$this->attachments = array();
-		$this->users       = array();
-		$this->custom_data = array();
+		$this->meta_data     = array();
+		$this->posts         = array();
+		$this->attachments   = array();
+		$this->users         = array();
+		$this->post_rel_keys = array();
+		$this->custom_data   = array();
 	}
 
 	/**
@@ -303,6 +312,20 @@ class Batch extends Model {
 	 */
 	public function get_users() {
 		return $this->users;
+	}
+
+	public function set_post_rel_keys( array $keys ) {
+		$this->post_rel_keys = $keys;
+	}
+
+	public function add_post_rel_key( $key ) {
+		if ( ! in_array( $key, $this->post_rel_keys ) ) {
+			$this->post_rel_keys[] = $key;
+		}
+	}
+
+	public function get_post_rel_keys() {
+		return $this->post_rel_keys;
 	}
 
 	/**

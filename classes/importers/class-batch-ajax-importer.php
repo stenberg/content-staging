@@ -44,8 +44,6 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		}
 
 		$this->job->set_status( 1 );
-		$batch = $this->job->get_batch();
-		$this->postmeta_keys = apply_filters( 'sme_post_relationship_keys', array() );
 		$next = array(
 			'method' => 'import_attachment',
 			'params' => array(),
