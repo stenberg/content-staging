@@ -309,20 +309,12 @@ class Batch_Ctrl {
 		// Let third-party developers add custom data to batch.
 		do_action( 'sme_prepare_custom_data', $batch );
 
-		/*
-		 * Sanity checks to ensure batch is alright before we send it production
-		 * for final verification.
-		 */
-		$messages = $this->prepare_checks( $batch );
+		$request = array(
+			'batch'  => $batch,
+		);
 
-		if ( ! $this->has_error_message( $messages ) ) {
-			$request = array(
-				'batch'  => $batch,
-			);
-
-			$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
-			$messages = array_merge( $messages, $this->xmlrpc_client->get_response_data() );
-		}
+		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
+		$messages = $this->xmlrpc_client->get_response_data();
 
 		// Add batch data to database if pre-flight was successful.
 		if ( ! $this->has_error_message( $messages ) ) {
