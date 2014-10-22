@@ -309,25 +309,23 @@ class Batch_Ctrl {
 		// Let third-party developers add custom data to batch.
 		do_action( 'sme_prepare_custom_data', $batch );
 
-		$request = array(
-			'batch'  => $batch,
-		);
+		/*
+		 * Sanity checks to ensure batch is alright before we send it production
+		 * for final verification.
+		 */
+		$messages = $this->prepare_checks( $batch );
 
-		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
-		$response = $this->xmlrpc_client->get_response_data();
+		if ( ! $this->has_error_message( $messages ) ) {
+			$request = array(
+				'batch'  => $batch,
+			);
 
-		// Pre-flight status.
-		$is_success = true;
-
-		// Check if pre-flight messages contains any errors.
-		foreach ( $response as $message ) {
-			if ( $message['level'] == 'error' ) {
-				$is_success = false;
-			}
+			$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
+			$messages = array_merge( $messages, $this->xmlrpc_client->get_response_data() );
 		}
 
 		// Add batch data to database if pre-flight was successful.
-		if ( $is_success ) {
+		if ( ! $this->has_error_message( $messages ) ) {
 			$batch->set_content( base64_encode( serialize( $batch ) ) );
 			$this->batch_dao->update_batch( $batch );
 		}
@@ -335,8 +333,8 @@ class Batch_Ctrl {
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'      => $batch,
-			'messages'   => $response,
-			'is_success' => $is_success,
+			'messages'   => $messages,
+			'is_success' => ! $this->has_error_message( $messages ),
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -674,6 +672,47 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Checks running on content stage before a batch is sent to production
+	 * for verification.
+	 *
+	 * @param Batch $batch
+	 * @return array
+	 */
+	private function prepare_checks( Batch $batch ) {
+		$messages = array();
+
+		foreach ( $batch->get_attachments() as $attachment ) {
+			foreach ( $attachment['items'] as $item ) {
+				$url = $attachment['url'] . '/' . $item;
+				// Check if attachment exists on content stage.
+				if ( ! $this->attachment_exists( $url ) ) {
+					$messages[] = array(
+						'level'   => 'warning',
+						'message' => 'Attachment <a href="' . $url . '" target="_blank">' . $url . '</a> is missing on content stage and will not be deployed to production.',
+					);
+				}
+			}
+		}
+
+		return $messages;
+	}
+
+	/**
+	 * Check if array of messages contains any error messages.
+	 *
+	 * @param array $messages
+	 * @return bool
+	 */
+	private function has_error_message( array $messages ) {
+		foreach ( $messages as $message ) {
+			if ( $message['level'] == 'error' ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Runs on production when an import status request has been received.
 	 *
 	 * @param array $result
@@ -728,6 +767,26 @@ class Batch_Ctrl {
 			if ( $item->get_id() == $post->get_parent()->get_id() ) {
 				return true;
 			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if an attachment exists.
+	 *
+	 * @param string $attachment
+	 * @return bool
+	 */
+	private function attachment_exists( $attachment ) {
+		$ch = curl_init( $attachment );
+		curl_setopt( $ch, CURLOPT_NOBODY, true );
+		curl_exec( $ch );
+		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
+		curl_close($ch);
+
+		if ( $code == 200 ) {
+			return true;
 		}
 
 		return false;
