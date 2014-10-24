@@ -86,6 +86,13 @@ class Batch_DAO extends DAO {
 		$batch->set_modified( current_time( 'mysql' ) );
 		$batch->set_modified_gmt( current_time( 'mysql', 1 ) );
 
+		/*
+		 * Important! Failing to reset content will result in the content field
+		 * growing larger and larger until DB cannot handle it anymore.
+		 */
+		$batch->set_content( '' );
+		$batch->set_content( base64_encode( serialize( $batch ) ) );
+
 		$data         = $this->create_array( $batch );
 		$where        = array( 'ID' => $batch->get_id() );
 		$format       = $this->format();

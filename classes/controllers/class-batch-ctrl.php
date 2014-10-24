@@ -1,7 +1,6 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
-use Me\Stenberg\Content\Staging\Background_Process;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
@@ -318,7 +317,6 @@ class Batch_Ctrl {
 
 		// Add batch data to database if pre-flight was successful.
 		if ( ! $this->has_error_message( $messages ) ) {
-			$batch->set_content( base64_encode( serialize( $batch ) ) );
 			$this->batch_dao->update_batch( $batch );
 		}
 
@@ -415,7 +413,6 @@ class Batch_Ctrl {
 		$batch = $this->batch_mgr->get_batch();
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
-//		$batch->set_content( serialize( array( $_GET['post_id'] ) ) );
 		$this->batch_dao->insert( $batch );
 
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', array( $post_id ) );
