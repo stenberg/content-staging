@@ -50,11 +50,7 @@ class Post_Table extends WP_List_Table {
 	public function column_default( Post $post, $column_name ) {
 		switch( $column_name ) {
 			case 'post_title':
-				$value = sprintf(
-					'<strong><span class="row-title"><a href="%s" target="_blank">%s</a></span></strong>',
-					get_edit_post_link( $post->get_id() ),
-					$post->get_title()
-				);
+				$value = $this->column_title( $post );
 				break;
 			case 'post_modified':
 				$value = call_user_func( array( $post, 'get_modified' ) );
@@ -64,6 +60,29 @@ class Post_Table extends WP_List_Table {
 		}
 
 		return apply_filters( 'sme_edit_batch_column_value', $value, $column_name, $post );
+	}
+
+	public function column_title( Post $post ) {
+		$parents = '';
+
+		if ( $post->get_parent() !== null ) {
+			$parents = $this->get_parent_title( $post->get_parent(), $parents );
+		}
+
+		return sprintf(
+			'%s<strong><span class="row-title"><a href="%s" target="_blank">%s</a></span></strong>',
+			$parents,
+			get_edit_post_link( $post->get_id() ),
+			$post->get_title()
+		);
+	}
+
+	public function get_parent_title( Post $post, $content = '' ) {
+		$content = $post->get_title() . ' | ' . $content;
+		if ( $post->get_parent() !== null ) {
+			$content = $this->get_parent_title( $post->get_parent(), $content );
+		}
+		return $content;
 	}
 
 	/**
