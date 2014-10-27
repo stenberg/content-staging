@@ -72,8 +72,15 @@ class Taxonomy_DAO extends DAO {
 		$where        = array( 'term_taxonomy_id' => $taxonomy->get_id() );
 		$format       = $this->format();
 		$where_format = array( '%d' );
-		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+		$this->update( $data, $where, $format, $where_format );
 		$this->update_term_hierarchy( $taxonomy );
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function get_table() {
+		return $this->table;
 	}
 
 	/**

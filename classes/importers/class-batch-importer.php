@@ -467,7 +467,6 @@ abstract class Batch_Importer {
 		foreach ( $this->parent_post_relations as $post_id => $parent_guid ) {
 			$parent = $this->post_dao->get_by_guid( $parent_guid );
 			$this->post_dao->update(
-				'posts',
 				array( 'post_parent' => $parent->get_id() ),
 				array( 'ID' => $post_id ),
 				array( '%d' ),
@@ -487,7 +486,6 @@ abstract class Batch_Importer {
 	protected function publish_posts() {
 		foreach ( $this->posts_to_publish as $post_id ) {
 			$this->post_dao->update(
-				'posts',
 				array( 'post_status' => 'publish' ),
 				array( 'ID' => $post_id ),
 				array( '%s' ),

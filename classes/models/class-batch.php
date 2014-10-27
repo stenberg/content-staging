@@ -65,6 +65,11 @@ class Batch extends Model {
 	private $modified_gmt;
 
 	/**
+	 * @var string
+	 */
+	private $status;
+
+	/**
 	 * @var string Content staging environment backend URL.
 	 */
 	private $backend;
@@ -216,6 +221,20 @@ class Batch extends Model {
 	 */
 	public function get_modified_gmt() {
 		return $this->modified_gmt;
+	}
+
+	/**
+	 * @param string $status
+	 */
+	public function set_status( $status ) {
+		$this->status = $status;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_status() {
+		return $this->status;
 	}
 
 	/**

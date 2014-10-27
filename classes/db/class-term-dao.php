@@ -66,7 +66,14 @@ class Term_DAO extends DAO {
 		$where        = array( 'term_id' => $term->get_id() );
 		$format       = $this->format();
 		$where_format = array( '%d' );
-		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+		$this->update( $data, $where, $format, $where_format );
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function get_table() {
+		return $this->table;
 	}
 
 	/**

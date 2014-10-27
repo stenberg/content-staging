@@ -445,7 +445,9 @@ class Batch_Ctrl {
 		 * Batch data is sent through a form on the pre-flight page and picked up
 		 * here. Decode data.
 		 */
-		if ( ! isset( $_GET['id'] ) || ! ( $batch = $this->batch_dao->find( $_GET['id'] ) ) ) {
+		if ( ! isset( $_GET['id'] )
+			 || ! ( $batch = $this->batch_dao->find( $_GET['id'] ) )
+			 || $batch->get_status() != 'publish' ) {
 			wp_die( __( 'No batch found.', 'sme-content-staging' ) );
 		}
 

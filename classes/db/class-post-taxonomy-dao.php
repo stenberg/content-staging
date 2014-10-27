@@ -71,7 +71,14 @@ class Post_Taxonomy_DAO extends DAO {
 		);
 		$format       = $this->format();
 		$where_format = array( '%d', '%d' );
-		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+		$this->update( $data, $where, $format, $where_format );
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function get_table() {
+		return $this->table;
 	}
 
 	/**

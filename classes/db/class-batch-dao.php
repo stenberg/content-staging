@@ -98,7 +98,7 @@ class Batch_DAO extends DAO {
 		$format       = $this->format();
 		$where_format = array( '%d' );
 
-		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+		$this->update( $data, $where, $format, $where_format );
 	}
 
 	/**
@@ -114,8 +114,7 @@ class Batch_DAO extends DAO {
 	 * @param Batch $batch
 	 */
 	public function delete_batch( Batch $batch ) {
-		$this->wpdb->update(
-			$this->table,
+		$this->update(
 			array(
 				'post_content' => '',
 				'post_status'  => 'draft',
@@ -126,6 +125,13 @@ class Batch_DAO extends DAO {
 			array( '%s', '%s' ),
 			array( '%d' )
 		);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function get_table() {
+		return $this->table;
 	}
 
 	/**
@@ -187,8 +193,7 @@ class Batch_DAO extends DAO {
 		$guid = get_permalink( $obj->get_id() );
 
 		// Update batch with GUID and post name.
-		$this->wpdb->update(
-			$this->table,
+		$this->update(
 			array(
 				'post_name' => $name,
 				'guid'      => $guid,
@@ -214,6 +219,7 @@ class Batch_DAO extends DAO {
 		$obj->set_date_gmt( $raw['post_date_gmt'] );
 		$obj->set_modified( $raw['post_modified'] );
 		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
+		$obj->set_status( $raw['post_status'] );
 		$obj->set_backend( admin_url() );
 		return $obj;
 	}
@@ -225,7 +231,7 @@ class Batch_DAO extends DAO {
 			'post_date_gmt'     => $obj->get_date_gmt(),
 			'post_content'      => $obj->get_content(),
 			'post_title'        => $obj->get_title(),
-			'post_status'       => 'publish',
+			'post_status'       => $obj->get_status(),
 			'comment_status'    => 'closed',
 			'ping_status'       => 'closed',
 			'post_name'         => '',

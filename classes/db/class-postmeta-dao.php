@@ -5,8 +5,11 @@ use Me\Stenberg\Content\Staging\Models\Model;
 
 class Postmeta_DAO extends DAO {
 
+	private $table;
+
 	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
+		$this->table = $wpdb->postmeta;
 	}
 
 	/**
@@ -145,6 +148,13 @@ class Postmeta_DAO extends DAO {
 		foreach( $update as $record ) {
 			$this->update_postmeta( $record );
 		}
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function get_table() {
+		return $this->table;
 	}
 
 	protected function target_class() {}

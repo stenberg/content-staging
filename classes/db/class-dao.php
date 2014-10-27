@@ -88,14 +88,17 @@ abstract class DAO {
 	/**
 	 * Update data.
 	 *
-	 * @param string $table
 	 * @param array $data
 	 * @param array $where
 	 * @param array $format
 	 * @param array $where_format
 	 */
-	public function update( $table, $data, $where, $format = null, $where_format = null ) {
-		$this->wpdb->update( $this->wpdb->$table, $data, $where, $format, $where_format );
+	public function update( $data, $where, $format = null, $where_format = null ) {
+		$this->wpdb->update( $this->get_table(), $data, $where, $format, $where_format );
+	}
+
+	public function delete( $where, $format ) {
+		$this->wpdb->delete( $this->get_table(), $where, $format );
 	}
 
 	/**
@@ -127,6 +130,7 @@ abstract class DAO {
 		return update_post_meta( $post_id, $meta_key, $meta_value, $prev_value );
 	}
 
+	protected abstract function get_table();
 	protected abstract function target_class();
 	protected abstract function unique_key( array $raw );
 	protected abstract function select_stmt();

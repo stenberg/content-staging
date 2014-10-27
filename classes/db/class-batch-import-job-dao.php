@@ -26,7 +26,7 @@ class Batch_Import_Job_DAO extends DAO {
 		$format       = $this->format();
 		$where_format = array( '%d' );
 
-		$this->wpdb->update( $this->table, $data, $where, $format, $where_format );
+		$this->update( $data, $where, $format, $where_format );
 
 		$this->update_post_meta( $job->get_id(), 'sme_import_messages', $job->get_messages() );
 		$this->update_post_meta( $job->get_id(), 'sme_import_status', $job->get_status() );
@@ -46,8 +46,7 @@ class Batch_Import_Job_DAO extends DAO {
 	 * @param Batch_Import_Job $job
 	 */
 	public function delete_job( Batch_Import_Job $job ) {
-		$this->wpdb->update(
-			$this->table,
+		$this->update(
 			array(
 				'post_content' => '',
 				'post_status'  => 'draft',
@@ -58,6 +57,13 @@ class Batch_Import_Job_DAO extends DAO {
 			array( '%s', '%s' ),
 			array( '%d' )
 		);
+	}
+
+	/**
+	 * @return string
+	 */
+	protected function get_table() {
+		return $this->table;
 	}
 
 	/**

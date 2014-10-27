@@ -62,7 +62,9 @@ class Batch_Mgr {
 
 		// This is a new batch, no need to populate the batch with any content.
 		if ( $id === null ) {
-			return new Batch();
+			$batch = new Batch();
+			$batch->set_status( 'publish' );
+			return $batch;
 		}
 
 		$this->batch = $this->batch_dao->find( $id );
