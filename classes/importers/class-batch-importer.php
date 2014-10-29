@@ -238,6 +238,12 @@ abstract class Batch_Importer {
 		// Store relation between post ID on content stage and ID on production.
 		$this->post_relations[$stage_post_id] = $post->get_id();
 
+		// Get rid of old taxonomy relationships this post might have.
+		$this->post_taxonomy_dao->delete(
+			array( 'object_id' => $post->get_id() ),
+			array( '%d' )
+		);
+
 		// Import post/taxonomy relationships.
 		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
 			$this->import_post_taxonomy_relationship( $post_taxonomy );
