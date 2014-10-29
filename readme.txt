@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
 Tested up to: 4.0
-Stable tag: 1.1.1
+Stable tag: 1.2.0
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Content Staging makes it easy to work with content in a private environment befo
 With Content Staging you can prepare content in your staging environment, hidden away from the eye of the public. When
 your content is ready to be released you simply push it to your live site.
 
-Content Staging was built to support enterprise web sites where content editors need to push large amounts of posts per
+Content Staging was built to support professional web sites where content editors need to push large amounts of posts per
 batch.
 
 You organize your posts into different batches. You can have as many or as few batches as you want and you are in full
@@ -41,8 +41,6 @@ Add the following to your wp-config.php file on your staging environment:
 Add the following to your wp-config.php file on your production environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', 'YOUR_GENERATED_KEY' );
-    define( 'CONTENT_STAGING_ENDPOINT', 'https://_YOUR_STAGING_SITE_.com' );
-    define( 'CONTENT_STAGING_TRANSFER_TIMEOUT', 60 );
 
 Activate the plugin through the 'Plugins' menu in WordPress on both your staging site and your live site.
 
@@ -65,7 +63,7 @@ third-party developers.
 
 == Changelog ==
 
-= Next =
+= 1.2.0 =
 * Sync term hierarchy.
 * Selected posts always placed on top of the 'Edit Batch' list.
 * A Batch title is now auto-generated if no title has been set by user.
@@ -74,6 +72,8 @@ third-party developers.
 * Improved error reporting.
 * Link to post in Edit Batch view.
 * New hooks.
+* Improved batch summary after deploy.
+* Sync category removed from post.
 
 = 1.1.1 =
 * Fix creating image directories on production.
