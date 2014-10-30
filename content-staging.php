@@ -56,6 +56,7 @@ require_once( 'classes/models/class-term.php' );
 require_once( 'classes/models/class-user.php' );
 require_once( 'classes/models/class-post-taxonomy.php' );
 require_once( 'classes/view/class-batch-table.php' );
+require_once( 'classes/view/class-batch-history-table.php' );
 require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
 require_once( 'classes/class-api.php' );
@@ -131,7 +132,7 @@ class Content_Staging {
 
 		// Controllers.
 		$batch_ctrl         = new Batch_Ctrl( $template, $client, $importer_factory );
-		$batch_history_ctrl = new Batch_History_Ctrl();
+		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 
 		// APIs.
 		$sme_content_staging_api = new API();

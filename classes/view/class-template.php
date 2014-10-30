@@ -14,7 +14,7 @@ class Template {
 	 *
 	 * @param string $template Name of the template file without the .php extension.
 	 * @param array $data Array where each key corresponds to what variable name you want you
-	 *                    want to use in your template to accesss the data.
+	 *                    want to use in your template to access the data.
 	 */
 	public function render( $template, $data = array() ) {
 		extract( $data );

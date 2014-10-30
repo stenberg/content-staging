@@ -4,7 +4,7 @@ namespace Me\Stenberg\Content\Staging\View;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use WP_List_Table;
 
-class Batch_Table extends WP_List_Table {
+class Batch_History_Table extends WP_List_Table {
 
 	private $actions;
 
@@ -46,23 +46,22 @@ class Batch_Table extends WP_List_Table {
 	 * @return string HTML to be rendered inside column.
 	 */
 	public function column_post_title( Batch $item ){
-
-		$edit_link   = admin_url( 'admin.php?page=sme-edit-batch&id=' . $item->get_id() );
-		$delete_link = admin_url( 'admin.php?page=sme-delete-batch&id=' . $item->get_id() );
-
-		// Build row actions
-		$actions = array(
-			'edit'   => '<a href="' . $edit_link . '">Edit</a>',
-			'delete' => '<a href="' . $delete_link . '">Delete</a>',
-		);
-
-		// Return the title contents.
 		return sprintf(
-			'<strong><a class="row-title" href="%s">%s</a></strong>%s',
-			$edit_link,
-			$item->get_title(),
-			$this->row_actions( $actions )
+			'<strong>%s</strong>',
+			$item->get_title()
 		);
+	}
+
+	public function column_sme_batch_history( Batch $item ) {
+		$str = '';
+
+		if ( count( $item->get_posts() ) > 0 ) {
+			foreach ( $item->get_posts() as $post ) {
+				$str .= '<p>' . $post->get_title() . '</p>';
+			}
+		}
+
+		return $str;
 	}
 
 	/**
@@ -77,9 +76,10 @@ class Batch_Table extends WP_List_Table {
 	 */
 	public function get_columns() {
 		return array(
-			'post_title'    => 'Batch Title',
-			'post_modified' => 'Modified',
-			'post_author'   => 'Created By',
+			'post_title'        => 'Batch Title',
+			'post_modified'     => 'Modified',
+			'post_author'       => 'Created By',
+			'sme_batch_history' => 'Posts',
 		);
 	}
 

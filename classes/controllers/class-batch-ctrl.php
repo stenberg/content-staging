@@ -60,13 +60,13 @@ class Batch_Ctrl {
 			$paged = $_GET['paged'];
 		}
 
-		$total_batches = $this->batch_dao->get_published_content_batches_count();
-		$batches       = $this->batch_dao->get_published_content_batches( $order_by, $order, $per_page, $paged );
+		$total_batches = $this->batch_dao->count( 'publish' );
+		$batches       = $this->batch_dao->get_batches( 'publish', $order_by, $order, $per_page, $paged );
 
 		// Prepare table of batches.
 		$table        = new Batch_Table();
 		$table->items = $batches;
-
+		$table->set_bulk_actions( array( 'delete' => 'Delete' ) );
 		$table->set_pagination_args(
 			array(
 				'total_items' => $total_batches,

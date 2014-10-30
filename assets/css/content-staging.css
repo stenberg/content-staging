@@ -44,3 +44,7 @@ div.sme-cs-success {
 	height: 16px;
 	margin-right: 5px;
 }
+
+.column-sme_batch_history {
+	width: 30%;
+}

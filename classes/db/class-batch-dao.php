@@ -19,14 +19,17 @@ class Batch_DAO extends DAO {
 	/**
 	 * Get published content batches.
 	 *
+	 * @param string $status
 	 * @param string $order_by
 	 * @param string $order
 	 * @param int $per_page
 	 * @param int $paged
 	 * @return array
 	 */
-	public function get_published_content_batches( $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
+	public function get_batches( $status = null, $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
 		$batches = array();
+		$values  = array();
+		$where   = '';
 
 		// Only allow to order the query result by the following fields.
 		$allowed_order_by_values = array( 'post_title', 'post_modified', 'post_author' );
@@ -41,8 +44,12 @@ class Batch_DAO extends DAO {
 			$order = 'desc';
 		}
 
-		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE post_type = "sme_content_batch" AND post_status = "publish"';
-		$values = array();
+		if ( $status ) {
+			$where    = ' AND post_status = %s';
+			$values[] = $status;
+		}
+
+		$stmt = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE post_type = "sme_content_batch"' . $where;
 
 		if ( ! empty( $order_by ) && ! empty( $order ) ) {
 			$stmt .= ' ORDER BY ' . $order_by . ' ' . $order;
@@ -74,10 +81,15 @@ class Batch_DAO extends DAO {
 	/**
 	 * Get number of published content batches that exists.
 	 *
+	 * @param string $status
 	 * @return int
 	 */
-	public function get_published_content_batches_count() {
-		return $this->wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE post_type = "sme_content_batch" AND post_status = "publish"' );
+	public function count( $status = null ) {
+		$where = '';
+		if ( $status ) {
+			$where = sprintf( ' AND post_status = "%s"', $status );
+		}
+		return $this->wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE post_type = "sme_content_batch"' . $where );
 	}
 
 	/**
