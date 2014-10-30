@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
 Tested up to: 4.0
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -62,6 +62,12 @@ third-party developers.
 4. Deploy your batch from staging environment to your live site.
 
 == Changelog ==
+
+= 1.2.1 =
+* History view over previously deployed batches.
+* Possible to keep batches that have already been synced.
+* New hook, sme_imported, triggered when import on production is completed.
+* New hook, sme_deployed, triggered when deploy from stage is completed.
 
 = 1.2.0 =
 * Sync term hierarchy.
