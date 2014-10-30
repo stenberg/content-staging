@@ -280,15 +280,19 @@ class Batch_Ctrl {
 	 * trouble when user later on deploys the batch.
 	 *
 	 * Display any pre-flight messages that is returned by production.
+	 *
+	 * @param Batch $batch
 	 */
-	public function prepare() {
+	public function prepare( $batch = null ) {
 
 		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) ) {
+		if ( ! isset( $_GET['id'] ) && ! $batch ) {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
-		$batch = $this->batch_mgr->get_batch( $_GET['id'] );
+		if ( ! $batch ) {
+			$batch = $this->batch_mgr->get_batch( $_GET['id'] );
+		}
 
 		// Let third-party developers filter batch data.
 		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );

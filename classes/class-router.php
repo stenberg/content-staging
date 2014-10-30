@@ -38,12 +38,12 @@ class Router {
 		$this->batch_ctrl->confirm_delete_batch();
 	}
 
-	public function batch_prepare() {
-		$this->batch_ctrl->prepare();
+	public function batch_prepare( $batch = null ) {
+		$this->batch_ctrl->prepare( $batch );
 	}
 
 	public function batch_verify( array $args ) {
-		$this->batch_ctrl->verify( $args );
+		return $this->batch_ctrl->verify( $args );
 	}
 
 	public function batch_deploy() {
@@ -55,7 +55,7 @@ class Router {
 	}
 
 	public function batch_import( array $args ) {
-		$this->batch_ctrl->import( $args );
+		return $this->batch_ctrl->import( $args );
 	}
 
 	public function ajax_batch_add_post() {
