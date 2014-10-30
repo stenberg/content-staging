@@ -60,8 +60,9 @@ class Batch_Ctrl {
 			$paged = $_GET['paged'];
 		}
 
-		$total_batches = $this->batch_dao->count( 'publish' );
-		$batches       = $this->batch_dao->get_batches( 'publish', $order_by, $order, $per_page, $paged );
+		$status  = apply_filters( 'sme_batch_list_statuses', array( 'publish' ) );
+		$count   = $this->batch_dao->count( $status );
+		$batches = $this->batch_dao->get_batches( $status, $order_by, $order, $per_page, $paged );
 
 		// Prepare table of batches.
 		$table        = new Batch_Table();
@@ -69,7 +70,7 @@ class Batch_Ctrl {
 		$table->set_bulk_actions( array( 'delete' => 'Delete' ) );
 		$table->set_pagination_args(
 			array(
-				'total_items' => $total_batches,
+				'total_items' => $count,
 				'per_page'    => $per_page,
 			)
 		);
@@ -641,6 +642,7 @@ class Batch_Ctrl {
 			$this->batch_dao->insert( $batch );
 		} else {
 			// Update existing batch.
+			$batch->set_status( 'publish' );
 			$this->batch_dao->update_batch( $batch );
 		}
 

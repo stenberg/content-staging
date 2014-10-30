@@ -37,8 +37,9 @@ class Batch_History_Ctrl {
 			$paged = $_GET['paged'];
 		}
 
-		$count   = $this->helper->get_dao( 'Batch' )->count( 'draft' );
-		$batches = $this->helper->get_dao( 'Batch' )->get_batches( 'draft', $order_by, $order, $per_page, $paged );
+		$status  = array( 'draft' );
+		$count   = $this->helper->get_dao( 'Batch' )->count( $status );
+		$batches = $this->helper->get_dao( 'Batch' )->get_batches( $status, $order_by, $order, $per_page, $paged );
 
 		foreach ( $batches as $batch ) {
 			// Get IDs of posts user selected to include in this batch.

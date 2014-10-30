@@ -19,14 +19,14 @@ class Batch_DAO extends DAO {
 	/**
 	 * Get published content batches.
 	 *
-	 * @param string $status
+	 * @param array $statuses
 	 * @param string $order_by
 	 * @param string $order
 	 * @param int $per_page
 	 * @param int $paged
 	 * @return array
 	 */
-	public function get_batches( $status = null, $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
+	public function get_batches( $statuses = array(), $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
 		$batches = array();
 		$values  = array();
 		$where   = '';
@@ -44,10 +44,7 @@ class Batch_DAO extends DAO {
 			$order = 'desc';
 		}
 
-		if ( $status ) {
-			$where    = ' AND post_status = %s';
-			$values[] = $status;
-		}
+		$where = $this->where_statuses( $where, $statuses, $values );
 
 		$stmt = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE post_type = "sme_content_batch"' . $where;
 
@@ -81,15 +78,17 @@ class Batch_DAO extends DAO {
 	/**
 	 * Get number of published content batches that exists.
 	 *
-	 * @param string $status
+	 * @param array $statuses
 	 * @return int
 	 */
-	public function count( $status = null ) {
-		$where = '';
-		if ( $status ) {
-			$where = sprintf( ' AND post_status = "%s"', $status );
-		}
-		return $this->wpdb->get_var( 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE post_type = "sme_content_batch"' . $where );
+	public function count( $statuses = array() ) {
+		$values = array( 'sme_content_batch' );
+		$where  = $this->where_statuses( '', $statuses, $values );
+		$query  = $this->wpdb->prepare(
+			'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE post_type = %s' . $where,
+			$values
+		);
+		return $this->wpdb->get_var( $query );
 	}
 
 	/**
@@ -290,6 +289,27 @@ class Batch_DAO extends DAO {
 	 */
 	private function post_author_sort( Batch $a, Batch $b ) {
 		return $a->get_creator()->get_display_name() == $b->get_creator()->get_display_name() ? 0 : ( $a->get_creator()->get_display_name() > $b->get_creator()->get_display_name() ) ? 1 : -1;
+	}
+
+	/**
+	 * Generate where part of SQL query for selecting batches with a
+	 * post_status included in the $statuses array.
+	 *
+	 * @param string $where
+	 * @param array $statuses
+	 * @param array $values
+	 * @return string
+	 */
+	private function where_statuses( $where = '', array $statuses, array &$values ) {
+		if ( ! empty( $statuses ) ) {
+			for ( $i = 0; $i < count( $statuses ); $i++ ) {
+				$where .= ( $i == 0 ) ? ' AND (' : ' OR ';
+				$where .= 'post_status = %s';
+				$values[] = $statuses[$i];
+			}
+			$where .= ')';
+		}
+		return $where;
 	}
 
 }
