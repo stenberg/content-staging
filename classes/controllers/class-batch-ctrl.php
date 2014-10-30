@@ -24,10 +24,9 @@ class Batch_Ctrl {
 	private $batch_dao;
 	private $post_dao;
 
-	public function __construct( Template $template, Batch_Mgr $batch_mgr, Client $xmlrpc_client,
-								 Batch_Importer_Factory $importer_factory ) {
+	public function __construct( Template $template, Client $xmlrpc_client, Batch_Importer_Factory $importer_factory ) {
 		$this->template             = $template;
-		$this->batch_mgr            = $batch_mgr;
+		$this->batch_mgr            = new Batch_Mgr();
 		$this->xmlrpc_client        = $xmlrpc_client;
 		$this->importer_factory     = $importer_factory;
 		$this->batch_import_job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
@@ -281,24 +280,15 @@ class Batch_Ctrl {
 	 * trouble when user later on deploys the batch.
 	 *
 	 * Display any pre-flight messages that is returned by production.
-	 *
-	 * @todo The complete batch is prepared to be sent through a form to the
-	 * 'Deploy Batch' page. This could potentially result in problems with
-	 * the PHP 'post_max_size'. In this case a better option might be to e.g.
-	 * store data in database and send something else with the form.
-	 *
-	 * @param Batch $batch
 	 */
-	public function prepare( $batch = null ) {
+	public function prepare() {
 
 		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) && ! $batch ) {
+		if ( ! isset( $_GET['id'] ) ) {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
-		if ( ! $batch ) {
-			$batch = $this->batch_mgr->get_batch( $_GET['id'] );
-		}
+		$batch = $this->batch_mgr->get_batch( $_GET['id'] );
 
 		// Let third-party developers filter batch data.
 		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );

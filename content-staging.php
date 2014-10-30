@@ -31,6 +31,7 @@ require_once( ABSPATH . WPINC . '/class-IXR.php' );
 require_once( ABSPATH . WPINC . '/class-wp-http-ixr-client.php' );
 require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
+require_once( 'classes/controllers/class-batch-history-ctrl.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
 require_once( 'classes/db/class-batch-import-job-dao.php' );
@@ -60,6 +61,7 @@ require_once( 'classes/xmlrpc/class-client.php' );
 require_once( 'classes/class-api.php' );
 require_once( 'classes/class-background-process.php' );
 require_once( 'classes/class-object-watcher.php' );
+require_once( 'classes/class-router.php' );
 require_once( 'classes/class-setup.php' );
 require_once( 'classes/view/class-template.php' );
 require_once( 'functions/helpers.php' );
@@ -68,20 +70,12 @@ require_once( 'functions/helpers.php' );
  * Import classes.
  */
 use Me\Stenberg\Content\Staging\API;
-use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
-use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
-use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
-use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
+use Me\Stenberg\Content\Staging\Router;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
-use Me\Stenberg\Content\Staging\DB\Batch_DAO;
-use Me\Stenberg\Content\Staging\DB\Post_DAO;
-use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
-use Me\Stenberg\Content\Staging\DB\Term_DAO;
-use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
-use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
@@ -127,23 +121,26 @@ class Content_Staging {
 		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
 
 		// XML-RPC client.
-		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
+		$client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
 
 		// Managers / Factories.
-		$batch_mgr        = new Batch_Mgr();
 		$importer_factory = new Batch_Importer_Factory();
 
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
 		// Controllers.
-		$batch_ctrl = new Batch_Ctrl( $template, $batch_mgr, $xmlrpc_client, $importer_factory );
+		$batch_ctrl         = new Batch_Ctrl( $template, $client, $importer_factory );
+		$batch_history_ctrl = new Batch_History_Ctrl();
 
 		// APIs.
 		$sme_content_staging_api = new API();
 
+		// Direct requests to the correct entry point.
+		$router = new Router( $batch_ctrl, $batch_history_ctrl );
+
 		// Plugin setup.
-		$setup = new Setup( $batch_ctrl, $xmlrpc_client, $plugin_url );
+		$setup = new Setup( $router, $client, $plugin_url );
 
 		// Actions.
 		add_action( 'init', array( $setup, 'register_post_types' ) );
@@ -151,11 +148,11 @@ class Content_Staging {
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
 		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );
-		add_action( 'admin_post_sme-save-batch', array( $batch_ctrl, 'save_batch' ) );
-		add_action( 'admin_post_sme-quick-deploy-batch', array( $batch_ctrl, 'quick_deploy' ) );
-		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );
-		add_action( 'wp_ajax_sme_include_post', array( $batch_ctrl, 'include_post' ) );
-		add_action( 'wp_ajax_sme_import_request', array( $batch_ctrl, 'import_request' ) );
+		add_action( 'admin_post_sme-save-batch', array( $router, 'batch_save' ) );
+		add_action( 'admin_post_sme-quick-deploy-batch', array( $router, 'batch_deploy_quick' ) );
+		add_action( 'admin_post_sme-delete-batch', array( $router, 'batch_delete' ) );
+		add_action( 'wp_ajax_sme_include_post', array( $router, 'ajax_batch_add_post' ) );
+		add_action( 'wp_ajax_sme_import_request', array( $router, 'ajax_batch_import' ) );
 
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );

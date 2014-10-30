@@ -6,7 +6,8 @@ use Exception;
 class Helper_Factory {
 
 	private $wpdb;
-	private $mappers = array();
+	private $db          = array();
+	private $controllers = array();
 	private static $instance;
 
 	private function __construct( $wpdb ) {
@@ -22,15 +23,25 @@ class Helper_Factory {
 	}
 
 	public function get_dao( $key ) {
-		$mapper = 'Me\Stenberg\Content\Staging\DB\\' . $key . '_DAO';
-		if ( isset( $this->mappers[$mapper] ) ) {
-			return $this->mappers[$mapper];
+		return $this->get( 'DB', $key . '_DAO' );
+	}
+
+	private function get( $type, $key ) {
+		$class = 'Me\Stenberg\Content\Staging\\' . $type . '\\' . $key;
+		$array = strtolower( $type );
+		if ( isset( $this->$array[$class] ) ) {
+			return $this->$array[$class];
 		}
-		if ( ! class_exists( $mapper ) ) {
-			throw new Exception( 'Class ' . $mapper . ' not found' );
+		if ( ! class_exists( $class ) ) {
+			throw new Exception( 'Class ' . $class . ' not found' );
 		}
-		$this->mappers[$mapper] = new $mapper( $this->wpdb );
-		return $this->mappers[$mapper];
+		if ( $array == 'db' ) {
+			$instance = new $class( $this->wpdb );
+		} else {
+			$instance = new $class();
+		}
+		$this->$array[$class] = $instance;
+		return $this->$array[$class];
 	}
 
 }
