@@ -513,5 +513,7 @@ abstract class Batch_Importer {
 			$output = '<ul>' . $output . '</ul>';
 			$this->job->add_message( '<h3>Posts deployed to the live site:</h3>' . $output );
 		}
+
+		do_action( 'sme_imported', $this->job );
 	}
 }

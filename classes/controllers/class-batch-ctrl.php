@@ -553,6 +553,10 @@ class Batch_Ctrl {
 		$this->xmlrpc_client->query( 'smeContentStaging.import', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
+		if ( isset( $response['status'] ) && $response['status'] > 1 ) {
+			do_action( 'sme_deployed' );
+		}
+
 		header( 'Content-Type: application/json' );
 		echo json_encode( $response );
 
