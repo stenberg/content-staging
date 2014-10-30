@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
@@ -12,11 +13,11 @@ class Post_Taxonomy_DAO extends DAO {
 	private $post_dao;
 	private $taxonomy_dao;
 
-	public function __construct( $wpdb, Post_DAO $post_dao, Taxonomy_DAO $taxonomy_dao ) {
+	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
 		$this->table        = $wpdb->term_relationships;
-		$this->post_dao     = $post_dao;
-		$this->taxonomy_dao = $taxonomy_dao;
+		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Taxonomy' );
 	}
 
 	/**

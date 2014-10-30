@@ -8,6 +8,7 @@ use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
@@ -96,26 +97,17 @@ abstract class Batch_Importer {
 	 *
 	 * @param string $type
 	 * @param Batch_Import_Job $job
-	 * @param Batch_Import_Job_DAO $import_job_dao
-	 * @param Post_DAO $post_dao
-	 * @param Post_Taxonomy_DAO $post_taxonomy_dao
-	 * @param Postmeta_DAO $postmeta_dao
-	 * @param Taxonomy_DAO $taxonomy_dao
-	 * @param Term_DAO $term_dao
-	 * @param User_DAO $user_dao
 	 */
-	protected function __construct( $type, Batch_Import_Job $job, Batch_Import_Job_DAO $import_job_dao, Post_DAO $post_dao,
-									Post_Taxonomy_DAO $post_taxonomy_dao, Postmeta_DAO $postmeta_dao,
-									Taxonomy_DAO $taxonomy_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
+	protected function __construct( $type, Batch_Import_Job $job ) {
 		$this->type                  = $type;
 		$this->job                   = $job;
-		$this->import_job_dao        = $import_job_dao;
-		$this->post_dao              = $post_dao;
-		$this->post_taxonomy_dao     = $post_taxonomy_dao;
-		$this->postmeta_dao          = $postmeta_dao;
-		$this->taxonomy_dao          = $taxonomy_dao;
-		$this->term_dao              = $term_dao;
-		$this->user_dao              = $user_dao;
+		$this->import_job_dao        = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
+		$this->post_dao              = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->post_taxonomy_dao     = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
+		$this->postmeta_dao          = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
+		$this->taxonomy_dao          = Helper_Factory::get_instance()->get_dao( 'Taxonomy' );
+		$this->term_dao              = Helper_Factory::get_instance()->get_dao( 'Term' );
+		$this->user_dao              = Helper_Factory::get_instance()->get_dao( 'User' );
 		$this->parent_post_relations = array();
 		$this->post_relations        = array();
 		$this->posts_to_publish      = array();

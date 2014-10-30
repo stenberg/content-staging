@@ -2,35 +2,35 @@
 namespace Me\Stenberg\Content\Staging;
 
 use Exception;
-use Me\Stenberg\Content\Staging\DB\DAO;
 
 class Helper_Factory {
 
-	private $dao = array();
+	private $wpdb;
+	private $mappers = array();
 	private static $instance;
 
-	private function __construct() {
-		// Nothing here.
+	private function __construct( $wpdb ) {
+		$this->wpdb = $wpdb;
 	}
 
 	public static function get_instance() {
 		if ( empty( self::$instance ) ) {
-			self::$instance = new Helper_Factory();
+			global $wpdb;
+			self::$instance = new Helper_Factory( $wpdb );
 		}
 		return self::$instance;
 	}
 
-	public function add_dao( DAO $dao ) {
-		$key = get_class( $dao );
-		$this->dao[$key] = $dao;
-	}
-
 	public function get_dao( $key ) {
-		$key = 'Me\Stenberg\Content\Staging\DB\\' . $key . '_DAO';
-		if ( ! isset( $this->dao[$key] ) ) {
-			throw new Exception( 'Class not found: ' . $key );
+		$mapper = 'Me\Stenberg\Content\Staging\DB\\' . $key . '_DAO';
+		if ( isset( $this->mappers[$mapper] ) ) {
+			return $this->mappers[$mapper];
 		}
-		return $this->dao[$key];
+		if ( ! class_exists( $mapper ) ) {
+			throw new Exception( 'Class ' . $mapper . ' not found' );
+		}
+		$this->mappers[$mapper] = new $mapper( $this->wpdb );
+		return $this->mappers[$mapper];
 	}
 
 }

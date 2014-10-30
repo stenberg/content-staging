@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\Controllers;
 
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
@@ -24,15 +25,14 @@ class Batch_Ctrl {
 	private $post_dao;
 
 	public function __construct( Template $template, Batch_Mgr $batch_mgr, Client $xmlrpc_client,
-								 Batch_Importer_Factory $importer_factory, Batch_Import_Job_DAO $batch_import_job_dao,
-								 Batch_DAO $batch_dao, Post_DAO $post_dao ) {
+								 Batch_Importer_Factory $importer_factory ) {
 		$this->template             = $template;
 		$this->batch_mgr            = $batch_mgr;
 		$this->xmlrpc_client        = $xmlrpc_client;
 		$this->importer_factory     = $importer_factory;
-		$this->batch_import_job_dao = $batch_import_job_dao;
-		$this->batch_dao            = $batch_dao;
-		$this->post_dao             = $post_dao;
+		$this->batch_import_job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
+		$this->batch_dao            = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->post_dao             = Helper_Factory::get_instance()->get_dao( 'Post' );
 	}
 
 	/**

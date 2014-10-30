@@ -106,7 +106,6 @@ class Content_Staging {
 	 */
 	public static function init() {
 
-		global $wpdb;
 		global $sme_content_staging_api;
 
 		// Determine plugin URL and plugin path of this plugin.
@@ -127,44 +126,21 @@ class Content_Staging {
 		// Set endpoint.
 		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
 
-		// Data access objects.
-		$job_dao           = new Batch_Import_Job_DAO( $wpdb );
-		$post_dao          = new Post_DAO( $wpdb );
-		$postmeta_dao      = new Postmeta_DAO( $wpdb );
-		$term_dao          = new Term_DAO( $wpdb );
-		$taxonomy_dao      = new Taxonomy_DAO( $wpdb, $term_dao );
-		$post_taxonomy_dao = new Post_Taxonomy_DAO( $wpdb, $post_dao, $taxonomy_dao );
-		$user_dao          = new User_DAO( $wpdb );
-		$batch_dao         = new Batch_DAO( $wpdb, $user_dao );
-
-		$helper = Helper_Factory::get_instance();
-		$helper->add_dao( $job_dao );
-		$helper->add_dao( $post_dao );
-		$helper->add_dao( $postmeta_dao );
-		$helper->add_dao( $term_dao );
-		$helper->add_dao( $taxonomy_dao );
-		$helper->add_dao( $user_dao );
-		$helper->add_dao( $batch_dao );
-
 		// XML-RPC client.
 		$xmlrpc_client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
 
-		// Managers.
-		$batch_mgr        = new Batch_Mgr( $batch_dao, $post_dao, $post_taxonomy_dao, $postmeta_dao, $user_dao );
-		$importer_factory = new Batch_Importer_Factory(
-			$job_dao, $post_dao, $post_taxonomy_dao, $postmeta_dao, $taxonomy_dao, $term_dao, $user_dao
-		);
+		// Managers / Factories.
+		$batch_mgr        = new Batch_Mgr();
+		$importer_factory = new Batch_Importer_Factory();
 
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
 		// Controllers.
-		$batch_ctrl = new Batch_Ctrl(
-			$template, $batch_mgr, $xmlrpc_client, $importer_factory, $job_dao, $batch_dao, $post_dao
-		);
+		$batch_ctrl = new Batch_Ctrl( $template, $batch_mgr, $xmlrpc_client, $importer_factory );
 
 		// APIs.
-		$sme_content_staging_api = new API( $post_dao, $postmeta_dao );
+		$sme_content_staging_api = new API();
 
 		// Plugin setup.
 		$setup = new Setup( $batch_ctrl, $xmlrpc_client, $plugin_url );

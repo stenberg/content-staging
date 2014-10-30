@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
 
@@ -9,10 +10,10 @@ class Taxonomy_DAO extends DAO {
 	private $table;
 	private $term_dao;
 
-	public function __construct( $wpdb, Term_DAO $term_dao ) {
+	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
 		$this->table    = $wpdb->term_taxonomy;
-		$this->term_dao = $term_dao;
+		$this->term_dao = Helper_Factory::get_instance()->get_dao( 'Term' );
 	}
 
 	/**

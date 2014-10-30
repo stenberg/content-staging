@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Model;
 
@@ -9,10 +10,10 @@ class Batch_DAO extends DAO {
 	private $table;
 	private $user_dao;
 
-	public function __construct( $wpdb, User_DAO $user_dao ) {
+	public function __construct( $wpdb ) {
 		parent::__constuct( $wpdb );
 		$this->table    = $wpdb->posts;
-		$this->user_dao = $user_dao;
+		$this->user_dao = Helper_Factory::get_instance()->get_dao( 'User' );
 	}
 
 	/**

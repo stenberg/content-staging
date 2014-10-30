@@ -7,6 +7,7 @@ use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
 
@@ -33,13 +34,12 @@ class Batch_Mgr {
 	private $postmeta_dao;
 	private $user_dao;
 
-	public function __construct( Batch_DAO $batch_dao, Post_DAO $post_dao, Post_Taxonomy_DAO $post_taxonomy_dao,
-								 Postmeta_DAO $postmeta_dao, User_DAO $user_dao ) {
-		$this->batch_dao         = $batch_dao;
-		$this->post_dao          = $post_dao;
-		$this->post_taxonomy_dao = $post_taxonomy_dao;
-		$this->postmeta_dao      = $postmeta_dao;
-		$this->user_dao          = $user_dao;
+	public function __construct() {
+		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
+		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
+		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
 	}
 
 	/**

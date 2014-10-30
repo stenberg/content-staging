@@ -9,39 +9,18 @@ use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
 class Batch_Importer_Factory {
 
 	private $job_dao;
-	private $post_dao;
-	private $post_taxonomy_dao;
-	private $postmeta_dao;
-	private $taxonomy_dao;
-	private $term_dao;
-	private $user_dao;
 
 	/**
 	 * Constructor.
-	 *
-	 * @param Batch_Import_Job_DAO $job_dao
-	 * @param Post_DAO $post_dao
-	 * @param Post_Taxonomy_DAO $post_taxonomy_dao
-	 * @param Postmeta_DAO $postmeta_dao
-	 * @param Taxonomy_DAO $taxonomy_dao
-	 * @param Term_DAO $term_dao
-	 * @param User_DAO $user_dao
 	 */
-	public function __construct( Batch_Import_Job_DAO $job_dao, Post_DAO $post_dao,
-								 Post_Taxonomy_DAO $post_taxonomy_dao, Postmeta_DAO $postmeta_dao,
-								 Taxonomy_DAO $taxonomy_dao, Term_DAO $term_dao, User_DAO $user_dao ) {
-		$this->job_dao           = $job_dao;
-		$this->post_dao          = $post_dao;
-		$this->post_taxonomy_dao = $post_taxonomy_dao;
-		$this->postmeta_dao      = $postmeta_dao;
-		$this->taxonomy_dao      = $taxonomy_dao;
-		$this->term_dao          = $term_dao;
-		$this->user_dao          = $user_dao;
+	public function __construct() {
+		$this->job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
 	}
 
 	/**
@@ -53,17 +32,11 @@ class Batch_Importer_Factory {
 		}
 
 		if ( $type == 'background' ) {
-			return new Batch_Background_Importer(
-				$job, $this->job_dao, $this->post_dao, $this->post_taxonomy_dao, $this->postmeta_dao,
-				$this->taxonomy_dao, $this->term_dao, $this->user_dao
-			);
+			return new Batch_Background_Importer( $job );
 		}
 
 		// Default to using the AJAX importer.
-		return new Batch_AJAX_Importer(
-			$job, $this->job_dao, $this->post_dao, $this->post_taxonomy_dao, $this->postmeta_dao,
-			$this->taxonomy_dao, $this->term_dao, $this->user_dao
-		);
+		return new Batch_AJAX_Importer( $job );
 	}
 
 	/**
@@ -111,10 +84,7 @@ class Batch_Importer_Factory {
 		$job->generate_key();
 		$this->job_dao->update_job( $job );
 
-		$importer = new Batch_Background_Importer(
-			$job, $this->job_dao, $this->post_dao, $this->post_taxonomy_dao, $this->postmeta_dao,
-			$this->taxonomy_dao, $this->term_dao, $this->user_dao
-		);
+		$importer = new Batch_Background_Importer( $job );
 
 		$importer->import();
 	}
