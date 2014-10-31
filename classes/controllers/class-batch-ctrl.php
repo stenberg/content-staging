@@ -300,8 +300,11 @@ class Batch_Ctrl {
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
-		// Let third-party developers add custom data to batch.
-		do_action( 'sme_prepare_custom_data', $batch );
+		/*
+		 * Let third party developers perform actions before pre-flight. This is
+		 * most often when users would add custom data.
+		 */
+		do_action( 'sme_prepare', $batch );
 
 		$request = array(
 			'batch'  => $batch,
@@ -314,6 +317,12 @@ class Batch_Ctrl {
 		if ( ! $this->has_error_message( $messages ) ) {
 			$this->batch_dao->update_batch( $batch );
 		}
+
+		/*
+		 * Let third party developers perform actions after pre-flight has
+		 * completed.
+		 */
+		do_action( 'sme_prepared', $batch );
 
 		// Prepare data we want to pass to view.
 		$data = array(
@@ -353,6 +362,12 @@ class Batch_Ctrl {
 		$importer = new Batch_Import_Job();
 		$importer->set_batch( $batch );
 
+		/*
+		 * Let third party developers perform actions before any pre-flight
+		 * checks are done.
+		 */
+		do_action( 'sme_verify', $importer );
+
 		foreach ( $batch->get_posts() as $post ) {
 			// Check if parent post exist on production or in batch.
 			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
@@ -387,6 +402,12 @@ class Batch_Ctrl {
 		if ( $is_success ) {
 			$importer->add_message( 'Pre-flight successful!', 'success' );
 		}
+
+		/*
+		 * Let third party developers perform actions before pre-flight data is
+		 * returned from production to content stage.
+		 */
+		do_action( 'sme_verified', $importer );
 
 		// Prepare and return the XML-RPC response data.
 		return $this->xmlrpc_client->prepare_response( $importer->get_messages() );

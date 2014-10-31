@@ -42,6 +42,10 @@ Add the following to your wp-config.php file on your production environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', 'YOUR_GENERATED_KEY' );
 
+*Important!* Make sure to add these configuration values *before* any *require* statements, e.g. before:
+
+    require_once( ABSPATH . 'wp-settings.php' );
+
 Activate the plugin through the 'Plugins' menu in WordPress on both your staging site and your live site.
 
 *Notice:* Its important that the /xmlrpc.php file is accessible on both environment (usually placed in root directory of

@@ -32,8 +32,10 @@ Add the following to your config file (e.g. wp-config.php) on your *Content Stag
 Add the following to your config file (e.g. wp-config.php) on your *Production* environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', '_SAME_RANDOM_KEY_ON_BOTH_ENVIRONMENTS_' );
-	define( 'CONTENT_STAGING_ENDPOINT', 'https://www.YOUR-CONTENT-STAGING-SITE.com' );
-	define( 'CONTENT_STAGING_TRANSFER_TIMEOUT', 60 );
+
+*Important!* Make sure to add these configuration values *before* any *require* statements, e.g. before:
+
+    require_once( ABSPATH . 'wp-settings.php' );
 
 Deploy Process
 --------------
@@ -89,8 +91,22 @@ Filter array of attachments. Runs on *production* just before attachments is imp
 
 ### Action Hooks
 
-**sme\_prepare\_custom\_data** <br/>
-Add custom data to a batch. Runs on *content stage* just before data is sent to production during pre-flight.
+The list of action hooks should reflect the actual execution order.
+
+**sme\_prepare** <br/>
+Triggered on *content stage* just before data is sent to production for pre-flight. This is most likely the hook you want to use when adding custom data to the batch.
+
+**sme\_verify** <br/>
+Triggered on *production* before any pre-flight checks are done.
+
+**sme\_verify\_\[ADDON\_NAME\]** <br/>
+Triggered on *production*. Use this hook to access and verify your own add-on data during pre-flight. Replace \[ADDON\_NAME\] with the name of your add-on.
+
+**sme\_verified** <br/>
+Triggered on *production* after pre-flight has completed.
+
+**sme\_prepared** <br/>
+Triggered on *content stage* after pre-flight has completed.
 
 **sme\_deploy\_custom\_attachment\_importer** <br/>
 Inject your custom attachment importer. Runs on *content stage* just before attachments is deployed to production. To avoid images being imported by both your custom importer and the default importer you should use this hook in conjunction with the *sme\_deploy\_attachments* filter hook (filter out all images).
@@ -100,6 +116,12 @@ Inject your custom attachment importer. Runs on *production* just before attachm
 
 **sme\_import\_\[ADDON\_NAME\]** <br/>
 Import custom add-on data. Replace \[ADDON\_NAME\] with the name of your add-on. Runs on *production* during batch import.
+
+**sme\_imported** <br/>
+Triggered on *production* after import has completed.
+
+**sme\_deployed** <br/>
+Triggered on *content stage* after deploy has completed.
 
 Creating Add-ons
 ----------------
@@ -121,7 +143,7 @@ Extending the WordPress **Content Staging** plugin is pretty straightforward, he
 	}
 
 	// Register your add-on.
-	add_action( 'sme_prepare_custom_data', 'my_addon' );
+	add_action( 'sme_prepare', 'my_addon' );
 
 	/**
 	 * Import custom data on production when batch is deployed.
