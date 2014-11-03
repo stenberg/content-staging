@@ -310,7 +310,9 @@ class Batch_Ctrl {
 		do_action( 'sme_prepare', $job );
 
 		// Send batch to production for verification.
-		$this->send_verification_request( $job );
+		if ( $job->get_status() !== 2 ) {
+			$this->send_verification_request( $job );
+		}
 
 		/*
 		 * Let third party developers perform actions after pre-flight has
@@ -318,11 +320,17 @@ class Batch_Ctrl {
 		 */
 		do_action( 'sme_prepared', $job->get_batch() );
 
+		// Add batch data to database if pre-flight was successful.
+		if ( $job->get_status() !== 2 ) {
+			$this->batch_dao->update_batch( $job->get_batch() );
+			$job->add_message( 'Pre-flight successful!', 'success' );
+		}
+
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'      => $job->get_batch(),
 			'messages'   => $job->get_messages(),
-			'is_success' => ( $job->get_status() !== 2 ) ? true : false,
+			'is_success' => ( $job->get_status() !== 2 ),
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -672,7 +680,7 @@ class Batch_Ctrl {
 	 */
 	private function send_verification_request( Batch_Import_Job $job ) {
 		$request = array(
-			'batch'  => $job->get_batch(),
+			'batch' => $job->get_batch(),
 		);
 
 		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
@@ -683,12 +691,6 @@ class Batch_Ctrl {
 				$job->set_status( 2 );
 			}
 			$job->add_message( $message['message'], $message['level'] );
-		}
-
-		// Add batch data to database if pre-flight was successful.
-		if ( $job->get_status() !== 2 ) {
-			$this->batch_dao->update_batch( $job->get_batch() );
-			$job->add_message( 'Pre-flight successful!', 'success' );
 		}
 	}
 

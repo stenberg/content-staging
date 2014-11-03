@@ -185,7 +185,8 @@ abstract class DAO {
 			return null;
 		}
 
-		return str_replace( $info['scheme'] . '://' . $info['host'], '', $guid );
+		$path = str_replace( $info['scheme'] . '://' . $info['host'], '', $guid );
+		return '(https?:\\/\\/)(.[^/]*)' . preg_quote( $path, '/' );
 	}
 
 	/**
