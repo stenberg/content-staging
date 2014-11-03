@@ -177,8 +177,7 @@ abstract class DAO {
 	 * @param string $guid
 	 * @return string
 	 */
-	protected function normalize_guid( $guid ) {
-
+	protected function guid_regex( $guid ) {
 		$info = parse_url( $guid );
 
 		if ( ! isset( $info['scheme'] ) || ! isset( $info['host'] ) ) {
