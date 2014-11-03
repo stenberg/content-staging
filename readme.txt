@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
 Tested up to: 4.0
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -66,6 +66,10 @@ third-party developers.
 4. Deploy your batch from staging environment to your live site.
 
 == Changelog ==
+
+= 1.2.2 =
+* Improved post comparison between content stage and production (better understanding of new vs. updated posts).
+* Possible to set pre-flight messages before batch is sent to production for verification (using sme_prepare action hook).
 
 = 1.2.1 =
 * History view over previously deployed batches.
