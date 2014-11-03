@@ -28,8 +28,6 @@ class Post_DAO extends DAO {
 			$guid
 		);
 
-		error_log($query);
-
 		$result = $this->wpdb->get_row( $query, ARRAY_A );
 
 		if ( isset( $result['ID'] ) ) {
@@ -54,8 +52,6 @@ class Post_DAO extends DAO {
 			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid REGEXP %s',
 			$guid
 		);
-
-		error_log($query);
 
 		$post->set_id( $this->wpdb->get_var( $query ) );
 	}
