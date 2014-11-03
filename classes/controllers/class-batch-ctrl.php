@@ -310,7 +310,7 @@ class Batch_Ctrl {
 		do_action( 'sme_prepare', $job );
 
 		// Send batch to production for verification.
-		$messages = $this->send_verification_request( $job );
+		$this->send_verification_request( $job );
 
 		/*
 		 * Let third party developers perform actions after pre-flight has
@@ -321,8 +321,8 @@ class Batch_Ctrl {
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'      => $job->get_batch(),
-			'messages'   => $messages,
-			'is_success' => ! $this->has_error_message( $messages ),
+			'messages'   => $job->get_messages(),
+			'is_success' => ( $job->get_status() !== 2 ) ? true : false,
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -353,19 +353,19 @@ class Batch_Ctrl {
 		$batch = $result['batch'];
 
 		// Create importer.
-		$importer = new Batch_Import_Job();
-		$importer->set_batch( $batch );
+		$job = new Batch_Import_Job();
+		$job->set_batch( $batch );
 
 		/*
 		 * Let third party developers perform actions before any pre-flight
 		 * checks are done.
 		 */
-		do_action( 'sme_verify', $importer );
+		do_action( 'sme_verify', $job );
 
 		foreach ( $batch->get_posts() as $post ) {
 			// Check if parent post exist on production or in batch.
 			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-				$importer->add_message(
+				$job->add_message(
 					sprintf(
 						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
 						$batch->get_backend() . 'post.php?post=' . $post->get_id() . '&action=edit',
@@ -379,32 +379,18 @@ class Batch_Ctrl {
 		}
 
 		// Pre-flight custom data.
-		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
-			do_action( 'sme_verify_' . $addon, $data, $importer );
-		}
-
-		// Check if pre-flight was successful.
-		$is_success = true;
-
-		foreach ( $importer->get_messages() as $message ) {
-			if ( $message['level'] == 'error' ) {
-				$is_success = false;
-				break;
-			}
-		}
-
-		if ( $is_success ) {
-			$importer->add_message( 'Pre-flight successful!', 'success' );
+		foreach ( $job->get_batch()->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_verify_' . $addon, $data, $job );
 		}
 
 		/*
 		 * Let third party developers perform actions before pre-flight data is
 		 * returned from production to content stage.
 		 */
-		do_action( 'sme_verified', $importer );
+		do_action( 'sme_verified', $job );
 
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $importer->get_messages() );
+		return $this->xmlrpc_client->prepare_response( $job->get_messages() );
 	}
 
 	/**
@@ -683,7 +669,6 @@ class Batch_Ctrl {
 	 * the user is returned to content stage.
 	 *
 	 * @param Batch_Import_Job $job
-	 * @return array
 	 */
 	private function send_verification_request( Batch_Import_Job $job ) {
 		$request = array(
@@ -693,12 +678,18 @@ class Batch_Ctrl {
 		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
 		$messages = $this->xmlrpc_client->get_response_data();
 
-		// Add batch data to database if pre-flight was successful.
-		if ( ! $this->has_error_message( $messages ) ) {
-			$this->batch_dao->update_batch( $job->get_batch() );
+		foreach ( $messages as $message ) {
+			if ( $message['level'] == 'error' ) {
+				$job->set_status( 2 );
+			}
+			$job->add_message( $message['message'], $message['level'] );
 		}
 
-		return $messages;
+		// Add batch data to database if pre-flight was successful.
+		if ( $job->get_status() !== 2 ) {
+			$this->batch_dao->update_batch( $job->get_batch() );
+			$job->add_message( 'Pre-flight successful!', 'success' );
+		}
 	}
 
 	/**
@@ -725,21 +716,6 @@ class Batch_Ctrl {
 		}
 
 		return $messages;
-	}
-
-	/**
-	 * Check if array of messages contains any error messages.
-	 *
-	 * @param array $messages
-	 * @return bool
-	 */
-	private function has_error_message( array $messages ) {
-		foreach ( $messages as $message ) {
-			if ( $message['level'] == 'error' ) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	/**
