@@ -300,33 +300,27 @@ class Batch_Ctrl {
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
+		$job = new Batch_Import_Job();
+		$job->set_batch( $batch );
+
 		/*
 		 * Let third party developers perform actions before pre-flight. This is
 		 * most often when users would add custom data.
 		 */
-		do_action( 'sme_prepare', $batch );
+		do_action( 'sme_prepare', $job );
 
-		$request = array(
-			'batch'  => $batch,
-		);
-
-		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
-		$messages = $this->xmlrpc_client->get_response_data();
-
-		// Add batch data to database if pre-flight was successful.
-		if ( ! $this->has_error_message( $messages ) ) {
-			$this->batch_dao->update_batch( $batch );
-		}
+		// Send batch to production for verification.
+		$messages = $this->send_verification_request( $job );
 
 		/*
 		 * Let third party developers perform actions after pre-flight has
 		 * completed.
 		 */
-		do_action( 'sme_prepared', $batch );
+		do_action( 'sme_prepared', $job->get_batch() );
 
 		// Prepare data we want to pass to view.
 		$data = array(
-			'batch'      => $batch,
+			'batch'      => $job->get_batch(),
 			'messages'   => $messages,
 			'is_success' => ! $this->has_error_message( $messages ),
 		);
@@ -681,6 +675,30 @@ class Batch_Ctrl {
 
 		// Update batch meta with IDs of posts user selected to include in batch.
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
+	}
+
+	/**
+	 * Send a batch to production for verification. Batch is checked for
+	 * potential issues on production and messages that can be displayed to
+	 * the user is returned to content stage.
+	 *
+	 * @param Batch_Import_Job $job
+	 * @return array
+	 */
+	private function send_verification_request( Batch_Import_Job $job ) {
+		$request = array(
+			'batch'  => $job->get_batch(),
+		);
+
+		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
+		$messages = $this->xmlrpc_client->get_response_data();
+
+		// Add batch data to database if pre-flight was successful.
+		if ( ! $this->has_error_message( $messages ) ) {
+			$this->batch_dao->update_batch( $job->get_batch() );
+		}
+
+		return $messages;
 	}
 
 	/**
