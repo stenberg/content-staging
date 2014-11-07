@@ -156,8 +156,10 @@ class Batch_Mgr {
 		$attachment['url']     = str_replace( $upload_dir['subdir'], $attachment['subdir'], $upload_dir['url'] );
 		$attachment['items'][] = $attachment_info['basename'];
 
-		foreach ( $attachment_meta['sizes'] as $item ) {
-			$attachment['items'][] = $item['file'];
+		if ( isset( $attachment_meta['sizes'] ) ) {
+			foreach ( $attachment_meta['sizes'] as $item ) {
+				$attachment['items'][] = $item['file'];
+			}
 		}
 
 		$this->batch->add_attachment( $attachment );
