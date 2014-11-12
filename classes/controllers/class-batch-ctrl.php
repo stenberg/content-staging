@@ -20,10 +20,29 @@ class Batch_Ctrl {
 	private $batch_mgr;
 	private $xmlrpc_client;
 	private $importer_factory;
+
+	/**
+	 * @var Batch_Import_Job
+	 */
 	private $batch_import_job_dao;
+
+	/**
+	 * @var Batch_DAO
+	 */
 	private $batch_dao;
+
+	/**
+	 * @var Post_DAO
+	 */
 	private $post_dao;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param Template $template
+	 * @param Client $xmlrpc_client
+	 * @param Batch_Importer_Factory $importer_factory
+	 */
 	public function __construct( Template $template, Client $xmlrpc_client, Batch_Importer_Factory $importer_factory ) {
 		$this->template             = $template;
 		$this->batch_mgr            = new Batch_Mgr();
@@ -144,9 +163,11 @@ class Batch_Ctrl {
 			$selected_posts = $this->post_dao->find_by_ids( $use_post_ids );
 		}
 
+		$status  = apply_filters( 'sme_post_list_statuses', array( 'publish' ) );
+
 		// Get posts user can select to include in the batch.
-		$posts       = $this->post_dao->get_published_posts( $order_by, $order, $per_page, $paged, $post_ids );
-		$total_posts = $this->post_dao->get_published_posts_count();
+		$posts       = $this->post_dao->get_posts( $status, $order_by, $order, $per_page, $paged, $post_ids );
+		$total_posts = $this->post_dao->get_posts_count( $status );
 		$posts       = array_merge( $selected_posts, $posts );
 
 		// Create and prepare table of posts.

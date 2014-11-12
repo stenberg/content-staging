@@ -60,6 +60,7 @@ class Post_DAO extends DAO {
 	/**
 	 * Get published posts.
 	 *
+	 * @param array $statuses
 	 * @param string $order_by
 	 * @param string $order
 	 * @param int $per_page
@@ -67,11 +68,12 @@ class Post_DAO extends DAO {
 	 * @param array $selected
 	 * @return array
 	 */
-	public function get_published_posts( $order_by = null, $order = 'asc', $per_page = 5,
-										 $paged = 1, $selected = array() ) {
+	public function get_posts( $statuses = array(), $order_by = null, $order = 'asc', $per_page = 5,
+							   $paged = 1, $selected = array() ) {
 		$posts           = array();
 		$nbr_of_selected = count( $selected );
 		$limit           = $per_page;
+		$values          = array();
 
 		if ( ( $offset = ( ( $paged - 1 ) * $per_page ) - $nbr_of_selected ) < 0 ) {
 			$offset = 0;
@@ -90,9 +92,10 @@ class Post_DAO extends DAO {
 			$order = 'desc';
 		}
 
-		$where  = 'post_type != "sme_content_batch" AND post_status = "publish"';
+		$where  = 'post_type != "sme_content_batch"';
+		$where  = $this->where_statuses( $where, $statuses, $values );
 		$where  = apply_filters( 'sme_query_posts_where', $where );
-		$values = apply_filters( 'sme_values_posts_where', array() );
+		$values = apply_filters( 'sme_values_posts_where', $values );
 		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
 
 		if ( ( $nbr_of_selected = count( $selected ) ) > 0 ) {
@@ -123,45 +126,22 @@ class Post_DAO extends DAO {
 	}
 
 	/**
-	 * Get number of published posts that exists.
+	 * Get number of published content batches that exists.
 	 *
+	 * @param array $statuses
 	 * @return int
 	 */
-	public function get_published_posts_count() {
-		$where  = 'post_type != "sme_content_batch" AND post_status = "publish"';
+	public function get_posts_count( $statuses = array() ) {
+		$values = array();
+		$where  = 'post_type != "sme_content_batch"';
+		$where  = $this->where_statuses( $where, $statuses, $values );
 		$where  = apply_filters( 'sme_query_posts_where', $where );
-		$values = apply_filters( 'sme_values_posts_where', array() );
+		$values = apply_filters( 'sme_values_posts_where', $values );
 		$query  = 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
 		if ( ! empty( $values ) ) {
 			$query  = $this->wpdb->prepare( $query, $values );
 		}
 		return $this->wpdb->get_var( $query );
-	}
-
-	/**
-	 * Get published posts that is newer then provided date.
-	 *
-	 * @param string $date
-	 * @return array
-	 */
-	public function get_published_posts_newer_then_modification_date( $date ) {
-
-		$posts = array();
-
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->posts . ' ' .
-			'WHERE post_status = "publish" AND post_type != "sme_content_batch" AND post_modified > %s ' .
-			'ORDER BY post_type ASC',
-			$date
-		);
-
-		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
-			if ( isset( $post['ID'] ) ) {
-				$posts[] = $this->create_object( $post );
-			}
-		}
-
-		return $posts;
 	}
 
 	/**
