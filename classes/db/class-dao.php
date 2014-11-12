@@ -189,6 +189,27 @@ abstract class DAO {
 	}
 
 	/**
+	 * Generate where part of SQL query for selecting batches with a
+	 * post_status included in the $statuses array.
+	 *
+	 * @param string $where
+	 * @param array $statuses
+	 * @param array $values
+	 * @return string
+	 */
+	protected function where_statuses( $where = '', array $statuses, array &$values ) {
+		if ( ! empty( $statuses ) ) {
+			for ( $i = 0; $i < count( $statuses ); $i++ ) {
+				$where .= ( $i == 0 ) ? ' AND (' : ' OR ';
+				$where .= 'post_status = %s';
+				$values[] = $statuses[$i];
+			}
+			$where .= ')';
+		}
+		return $where;
+	}
+
+	/**
 	 * Get object that has been instantiated and added to the object watcher.
 	 * Return null if object is not found in watcher.
 	 *

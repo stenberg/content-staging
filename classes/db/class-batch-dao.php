@@ -291,25 +291,4 @@ class Batch_DAO extends DAO {
 		return $a->get_creator()->get_display_name() == $b->get_creator()->get_display_name() ? 0 : ( $a->get_creator()->get_display_name() > $b->get_creator()->get_display_name() ) ? 1 : -1;
 	}
 
-	/**
-	 * Generate where part of SQL query for selecting batches with a
-	 * post_status included in the $statuses array.
-	 *
-	 * @param string $where
-	 * @param array $statuses
-	 * @param array $values
-	 * @return string
-	 */
-	private function where_statuses( $where = '', array $statuses, array &$values ) {
-		if ( ! empty( $statuses ) ) {
-			for ( $i = 0; $i < count( $statuses ); $i++ ) {
-				$where .= ( $i == 0 ) ? ' AND (' : ' OR ';
-				$where .= 'post_status = %s';
-				$values[] = $statuses[$i];
-			}
-			$where .= ')';
-		}
-		return $where;
-	}
-
 }
