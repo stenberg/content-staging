@@ -44,16 +44,17 @@ class Post_DAO extends DAO {
 	 *
 	 * Useful for comparing a post sent from content staging to production.
 	 *
-	 * @param Post $post
+	 * @param string $guid
+	 * @return int
 	 */
-	public function get_id_by_guid( Post $post ) {
-		$guid = $this->guid_regex( $post->get_guid() );
+	public function get_id_by_guid( $guid ) {
+		$guid = $this->guid_regex( $guid );
 		$query = $this->wpdb->prepare(
 			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid REGEXP %s',
 			$guid
 		);
 
-		$post->set_id( $this->wpdb->get_var( $query ) );
+		return $this->wpdb->get_var( $query );
 	}
 
 	/**

@@ -51,6 +51,7 @@ require_once( 'classes/models/class-model.php' );
 require_once( 'classes/models/class-batch.php' );
 require_once( 'classes/models/class-batch-import-job.php' );
 require_once( 'classes/models/class-post.php' );
+require_once( 'classes/models/class-post-env-diff.php' );
 require_once( 'classes/models/class-taxonomy.php' );
 require_once( 'classes/models/class-term.php' );
 require_once( 'classes/models/class-user.php' );
