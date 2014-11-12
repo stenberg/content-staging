@@ -144,32 +144,6 @@ class Post_DAO extends DAO {
 	}
 
 	/**
-	 * Get published posts that is newer then provided date.
-	 *
-	 * @param string $date
-	 * @return array
-	 */
-	public function get_published_posts_newer_then_modification_date( $date ) {
-
-		$posts = array();
-
-		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->posts . ' ' .
-			'WHERE post_status = "publish" AND post_type != "sme_content_batch" AND post_modified > %s ' .
-			'ORDER BY post_type ASC',
-			$date
-		);
-
-		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $post ) {
-			if ( isset( $post['ID'] ) ) {
-				$posts[] = $this->create_object( $post );
-			}
-		}
-
-		return $posts;
-	}
-
-	/**
 	 * @param Post $post
 	 */
 	public function update_post( Post $post ) {
