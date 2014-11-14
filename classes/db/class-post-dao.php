@@ -1,8 +1,10 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
+use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 
 class Post_DAO extends DAO {
 
@@ -235,6 +237,35 @@ class Post_DAO extends DAO {
 			array( '%s', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
+	}
+
+	/**
+	 * Get post environment diff object for a batch import job.
+	 *
+	 * @param Batch_Import_Job $job
+	 * @return array
+	 */
+	public function get_post_env_diffs( Batch_Import_Job $job ) {
+		$diffs   = get_post_meta( $job->get_id(), 'sme_post_env_diff', true );
+		$objects = array();
+
+		if ( empty( $diffs ) ) {
+			return $objects;
+		}
+
+		foreach ( $diffs as $diff ) {
+			$post = $this->find( $diff['prod_id'] );
+			$obj  = new Post_Env_Diff( $post );
+			$obj->set_stage_id( $diff['stage_id'] );
+			$obj->set_stage_status( $diff['stage_status'] );
+			if ( isset( $diff['revision_id'] ) ) {
+				$revision = $this->find( $diff['revision_id'] );
+				$obj->set_revision( $revision );
+			}
+			$objects[$diff['stage_id']] = $obj;
+		}
+
+		return $objects;
 	}
 
 	/**

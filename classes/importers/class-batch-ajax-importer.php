@@ -2,6 +2,7 @@
 namespace Me\Stenberg\Content\Staging\Importers;
 
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
+use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 
 class Batch_AJAX_Importer extends Batch_Importer {
 
@@ -31,10 +32,10 @@ class Batch_AJAX_Importer extends Batch_Importer {
 			'index'  => -1,
 		);
 
-		if ( $val = get_post_meta( $this->job->get_id(), 'sme_post_env_diff', true ) ) {
-			$this->post_env_diff = $val;
-		}
+		// Get diffs from database.
+		$this->post_env_diff = $this->post_dao->get_post_env_diffs( $this->job );
 
+		// Get next thing to import from database.
 		if ( $val = get_post_meta( $this->job->get_id(), 'sme_import_next', true ) ) {
 			$next = $val;
 		} else {
@@ -45,10 +46,15 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		// Import.
 		call_user_func( array( $this, $next['method'] ), $next['params'] );
 
-		// Get next thing to import.
-		$next = $this->get_next( $next );
+		// Store diffs between stage and production post in database.
+		$diffs = array();
+		foreach ( $this->post_env_diff as $diff ) {
+			$diffs[] = $diff->to_array();
+		}
+		update_post_meta( $this->job->get_id(), 'sme_post_env_diff', $diffs );
 
-		update_post_meta( $this->job->get_id(), 'sme_sme_post_env_diff', $this->post_env_diff );
+		// Get next thing to import and store it in database.
+		$next = $this->get_next( $next );
 		update_post_meta( $this->job->get_id(), 'sme_import_next', $next );
 
 		if ( empty( $next ) ) {

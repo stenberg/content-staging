@@ -45,32 +45,32 @@ abstract class Batch_Importer {
 	/**
 	 * @var Post_DAO
 	 */
-	private $post_dao;
+	protected $post_dao;
 
 	/**
 	 * @var Post_Taxonomy_DAO
 	 */
-	private $post_taxonomy_dao;
+	protected $post_taxonomy_dao;
 
 	/**
 	 * @var Postmeta_DAO
 	 */
-	private $postmeta_dao;
+	protected $postmeta_dao;
 
 	/**
 	 * @var Taxonomy_DAO
 	 */
-	private $taxonomy_dao;
+	protected $taxonomy_dao;
 
 	/**
 	 * @var Term_DAO
 	 */
-	private $term_dao;
+	protected $term_dao;
 
 	/**
 	 * @var User_DAO
 	 */
-	private $user_dao;
+	protected $user_dao;
 
 	/**
 	 * Constructor.

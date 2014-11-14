@@ -92,4 +92,22 @@ class Post_Env_Diff extends Model {
 		return $this->stage_status;
 	}
 
+	/**
+	 * Get array representation of this object.
+	 *
+	 * @return array
+	 */
+	public function to_array() {
+		$array = array(
+			'prod_id'      => $this->get_post()->get_id(),
+			'stage_id'     => $this->get_stage_id(),
+			'stage_status' => $this->get_stage_status(),
+		);
+
+		if ( $this->get_revision() !== null ) {
+			$array['revision_id'] = $this->get_revision()->get_id();
+		}
+
+		return $array;
+	}
 }
