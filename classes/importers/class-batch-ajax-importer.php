@@ -1,13 +1,6 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
-use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
-use Me\Stenberg\Content\Staging\DB\Post_DAO;
-use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
-use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
-use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
-use Me\Stenberg\Content\Staging\DB\Term_DAO;
-use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
 class Batch_AJAX_Importer extends Batch_Importer {
@@ -38,16 +31,8 @@ class Batch_AJAX_Importer extends Batch_Importer {
 			'index'  => -1,
 		);
 
-		if ( $val = get_post_meta( $this->job->get_id(), 'sme_parent_post_relations', true ) ) {
-			$this->parent_post_relations = $val;
-		}
-
-		if ( $val = get_post_meta( $this->job->get_id(), 'sme_post_relations', true ) ) {
-			$this->post_relations = $val;
-		}
-
-		if ( $val = get_post_meta( $this->job->get_id(), 'sme_posts_to_publish', true ) ) {
-			$this->posts_to_publish = $val;
+		if ( $val = get_post_meta( $this->job->get_id(), 'sme_post_env_diff', true ) ) {
+			$this->post_env_diff = $val;
 		}
 
 		if ( $val = get_post_meta( $this->job->get_id(), 'sme_import_next', true ) ) {
@@ -63,9 +48,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		// Get next thing to import.
 		$next = $this->get_next( $next );
 
-		update_post_meta( $this->job->get_id(), 'sme_parent_post_relations', $this->parent_post_relations );
-		update_post_meta( $this->job->get_id(), 'sme_post_relations', $this->post_relations );
-		update_post_meta( $this->job->get_id(), 'sme_posts_to_publish', $this->posts_to_publish );
+		update_post_meta( $this->job->get_id(), 'sme_sme_post_env_diff', $this->post_env_diff );
 		update_post_meta( $this->job->get_id(), 'sme_import_next', $next );
 
 		if ( empty( $next ) ) {

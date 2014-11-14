@@ -38,35 +38,6 @@ abstract class Batch_Importer {
 	protected $post_env_diff;
 
 	/**
-	 * Array storing the relation between a post and its parent post.
-	 *
-	 * Key = Post ID.
-	 * Value = Post GUID.
-	 *
-	 * @var array
-	 */
-	protected $parent_post_relations;
-
-	/**
-	 * Array to keep track on the relation between a posts ID on
-	 * content stage and its ID on production:
-	 *
-	 * Key = Content stage post ID.
-	 * Value = Production post ID.
-	 *
-	 * @var array
-	 */
-	protected $post_relations;
-
-	/**
-	 * Array where we store all posts that should be published when data has
-	 * been synced from content stage to production.
-	 *
-	 * @var array
-	 */
-	protected $posts_to_publish;
-
-	/**
 	 * @var Batch_Import_Job_DAO
 	 */
 	protected $import_job_dao;
@@ -118,9 +89,6 @@ abstract class Batch_Importer {
 		$this->term_dao              = Helper_Factory::get_instance()->get_dao( 'Term' );
 		$this->user_dao              = Helper_Factory::get_instance()->get_dao( 'User' );
 		$this->post_env_diff         = array();
-		$this->parent_post_relations = array();
-		$this->post_relations        = array();
-		$this->posts_to_publish      = array();
 	}
 
 	/**
@@ -201,14 +169,20 @@ abstract class Batch_Importer {
 
 		/*
 		 * Check if post already exist on production, if it does then add the old
-		 * production post ID to the diff.
+		 * production post ID to the diff and update the GUID to indicate that
+		 * this post will now be a revision.
 		 */
 		if ( ( $prod_revision = $this->post_dao->get_by_guid( $post->get_guid() ) ) !== null ) {
 			$post_diff->set_revision( $prod_revision );
+			$this->post_dao->update_guid( $prod_revision->get_id(), $prod_revision->get_guid() . '-rev' );
 		}
 
 		// Insert post.
 		$this->post_dao->insert( $post );
+
+		/*
+		 * If a old revision of this post exist the
+		 */
 
 		// Add post diff to array of post diffs.
 		$this->post_env_diff[$post_diff->get_stage_id()] = $post_diff;

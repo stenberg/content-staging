@@ -203,6 +203,21 @@ class Post_DAO extends DAO {
 	}
 
 	/**
+	 * Change only the GUID of a post.
+	 *
+	 * @param $post_id
+	 * @param $new_guid
+	 */
+	public function update_guid( $post_id, $new_guid ) {
+		$this->update(
+			array( 'guid' => $new_guid ),
+			array( 'ID' => $post_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
 	 * Make a post a revision of another post.
 	 *
 	 * @param Post $revision Post to change to revision.
@@ -214,11 +229,10 @@ class Post_DAO extends DAO {
 				'post_status' => 'inherit',
 				'post_parent' => $parent->get_id(),
 				'post_name'   => $parent->get_id() . '-revision-v1',
-				'guid'        => $parent->get_guid() . '-rev',
 				'post_type'   => 'revision'
 			),
 			array( 'ID' => $revision->get_id() ),
-			array( '%s', '%d', '%s', '%s', '%s' ),
+			array( '%s', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
 	}
