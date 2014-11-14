@@ -22,6 +22,8 @@
 		<?php echo $filters; ?>
 		<?php $table->display(); ?>
 
+		<?php do_action( 'sme_view_edit_batch_pre_buttons', $batch ); ?>
+
 		<?php submit_button( 'Save Batch', 'primary', 'submit', false ); ?>
 		<?php submit_button( 'Pre-Flight Batch', 'secondary', 'submit', false ); ?>
 		<input type="button" name="button" id="button" class="button" onclick="location.href='<?php echo admin_url( 'admin.php?page=sme-list-batches' ); ?>'" value="Cancel">
