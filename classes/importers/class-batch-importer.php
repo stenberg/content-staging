@@ -205,8 +205,6 @@ abstract class Batch_Importer {
 		 */
 		if ( ( $prod_revision = $this->post_dao->get_by_guid( $post->get_guid() ) ) !== null ) {
 			$post_diff->set_revision( $prod_revision );
-			error_log( $prod_revision->get_guid() );
-			error_log( 'Old: ' . $prod_revision->get_id() );
 		}
 
 		// Insert post.
