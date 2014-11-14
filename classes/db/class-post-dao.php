@@ -214,7 +214,7 @@ class Post_DAO extends DAO {
 				'post_status' => 'inherit',
 				'post_parent' => $parent->get_id(),
 				'post_name'   => $parent->get_id() . '-revision-v1',
-				'guid'        => $parent->get_guid() . '-revision-v1/',
+				'guid'        => $parent->get_guid() . '-rev',
 				'post_type'   => 'revision'
 			),
 			array( 'ID' => $revision->get_id() ),
