@@ -199,16 +199,18 @@ abstract class Batch_Importer {
 		$post_diff->set_stage_id( $post->get_id() );
 		$post_diff->set_stage_status( $post->get_post_status() );
 
-		// Do not publish post immediately.
-		if ( $post->get_post_status() == 'publish' ) {
-			$post->set_post_status( 'draft' );
+		/*
+		 * Check if post already exist on production, if it does then add the old
+		 * production post ID to the diff.
+		 */
+		if ( ( $prod_revision = $this->post_dao->get_by_guid( $post->get_guid() ) ) !== null ) {
+			$post_diff->set_revision( $prod_revision );
+			error_log( $prod_revision->get_guid() );
+			error_log( 'Old: ' . $prod_revision->get_id() );
 		}
 
-		// This post does not exist on production, create it.
+		// Insert post.
 		$this->post_dao->insert( $post );
-
-		// Store new post ID in the post diff.
-		$post_diff->set_prod_id( $post->get_id() );
 
 		// Add post diff to array of post diffs.
 		$this->post_env_diff[$post_diff->get_stage_id()] = $post_diff;
@@ -267,16 +269,23 @@ abstract class Batch_Importer {
 				 * relationship to.
 				 */
 				if ( isset( $this->post_env_diff[$meta[$i]['meta_value']] ) ) {
-					$meta[$i]['meta_value'] = $this->post_env_diff[$meta[$i]['meta_value']]->get_prod_id();
+					$meta[$i]['meta_value'] = $this->post_env_diff[$meta[$i]['meta_value']]->get_post()->get_id();
 				} else {
-					error_log( 'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: ' . $this->post_env_diff[$meta[$i]['post_id']]->get_prod_id() . ', meta_key: ' . $meta[$i]['meta_key'] . ', meta_value: ' . $meta[$i]['meta_value'] . ') where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.' );
+					error_log(
+						sprintf(
+							'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: %d, meta_key: %s, meta_value: %s) where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.',
+							$this->post_env_diff[$meta[$i]['post_id']]->get_post()->get_id(),
+							$meta[$i]['meta_key'],
+							$meta[$i]['meta_value']
+						)
+					);
 				}
 			}
 
-			$meta[$i]['post_id'] = $this->post_env_diff[$meta[$i]['post_id']]->get_prod_id();
+			$meta[$i]['post_id'] = $this->post_env_diff[$meta[$i]['post_id']]->get_post()->get_id();
 		}
 
-		$this->postmeta_dao->update_postmeta_by_post( $post->get_id(), $meta );
+		$this->postmeta_dao->insert_post_meta( $meta );
 	}
 
 	/**
@@ -357,27 +366,11 @@ abstract class Batch_Importer {
 	 * @param Post_Taxonomy $post_taxonomy
 	 */
 	protected function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
-
 		// Import taxonomy.
 		$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
 
-		/*
-		 * Check if a relationship between a post and a taxonomy exists on
-		 * production.
-		 */
-		$has_relationship = $this->post_taxonomy_dao->has_post_taxonomy_relationship( $post_taxonomy );
-
-		// Check if this is a new term-taxonomy.
-		if ( ! $has_relationship ) {
-			/*
-			 * This post/taxonomy relationship does not exist on production,
-			 * create it.
-			 */
-			$this->post_taxonomy_dao->insert( $post_taxonomy );
-		} else {
-			// This post/taxonomy relationship exists on production, update it.
-			$this->post_taxonomy_dao->update_post_taxonomy( $post_taxonomy );
-		}
+		// Import relationship between post and taxonomy.
+		$this->post_taxonomy_dao->insert( $post_taxonomy );
 	}
 
 	/**
@@ -472,28 +465,22 @@ abstract class Batch_Importer {
 	 * 'draft'. Post status is now changed back to 'publish'.
 	 */
 	protected function publish_posts() {
-		foreach ( $this->posts_to_publish as $post_id ) {
+		foreach ( $this->post_env_diff as $diff ) {
 
 			/*
-			 * If an old version of this post already exist on production, then get
-			 * the post ID of that post.
+			 * Publish the new post if post status from staging environment is set to
+			 * "publish".
 			 */
-			$old_prod_id = $this->post_dao->get_id_by_guid( $post->get_guid() );
-
-			$this->post_dao->update(
-				array( 'post_status' => 'publish' ),
-				array( 'ID' => $post_id ),
-				array( '%s' ),
-				array( '%d' )
-			);
+			if ( $diff->get_stage_status() == 'publish' ) {
+				$this->post_dao->update_post_status( $diff->get_post(), 'publish' );
+			}
 
 			/*
-			 * If an old version of this post already exist on production we need to
-			 * change the status of that post from published to being a revision of
-			 * the updated post.
+			 * Turn the old version of the post into a revision (if an old version
+			 * exists).
 			 */
-			if ( $old_prod_id ) {
-				// Todo
+			if ( $diff->get_revision() !== null ) {
+				$this->post_dao->make_revision( $diff->get_revision(), $diff->get_post() );
 			}
 		}
 	}

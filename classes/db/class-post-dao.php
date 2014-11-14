@@ -156,6 +156,74 @@ class Post_DAO extends DAO {
 	}
 
 	/**
+	 * Change post status for multiple posts.
+	 *
+	 * @param array $post_ids
+	 * @param string $status
+	 */
+	public function update_post_statuses( $post_ids = array(), $status = 'publish' ) {
+		if ( empty( $post_ids ) ) {
+			return;
+		}
+
+		// Comma separated string with IDs of all posts to change statuses for.
+		$ids = '';
+
+		// Populate $ids string with post IDs.
+		for ( $i = 0; $i < count( $post_ids ); $i++ ) {
+			if ( $i !== 0 ) {
+				$ids .= ',';
+			}
+			$ids .= $post_ids[$i];
+		}
+
+		if ( $ids ) {
+			$this->wpdb->query(
+				$this->wpdb->prepare(
+					'UPDATE ' . $this->table . ' SET post_status = %s WHERE ID in (' . $ids . ')',
+					$status
+				)
+			);
+		}
+	}
+
+	/**
+	 * Change only the post status of a post.
+	 *
+	 * @param Post $post
+	 * @param string $status
+	 */
+	public function update_post_status( Post $post, $status = 'publish' ) {
+		$this->update(
+			array( 'post_status' => $status ),
+			array( 'ID' => $post->get_id() ),
+			array( '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
+	 * Make a post a revision of another post.
+	 *
+	 * @param Post $revision Post to change to revision.
+	 * @param Post $parent Parent post of the revision.
+	 */
+	public function make_revision( Post $revision, Post $parent ) {
+		$this->update(
+			array(
+				'post_status' => 'inherit',
+				'post_parent' => $parent->get_id(),
+				'post_name'   => $parent->get_id() . '-revision-v1',
+				'guid'        => $parent->get_guid() . '-revision-v1/',
+				'post_type'   => 'revision'
+			),
+			array( 'ID' => $revision->get_id() ),
+			array( '%s', '%d', '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+	}
+
+	/**
 	 * @return string
 	 */
 	protected function get_table() {

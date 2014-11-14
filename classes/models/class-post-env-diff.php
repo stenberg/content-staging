@@ -11,11 +11,33 @@ namespace Me\Stenberg\Content\Staging\Models;
  */
 class Post_Env_Diff extends Model {
 
+	/**
+	 * @var Post The post received from content staging. Will be manipulated in client
+	 *           code, differences we need to keep track on should be assigned to
+	 *           specific properties of this class.
+	 */
 	private $post;
+
+	/**
+	 * @var Post If the post already exist on production, then store the current
+	 *           revision of the post in this property. Will not be set if the post is
+	 *           new to production.
+	 */
+	private $revision;
+
+	/**
+	 * @var int Post ID on staging environment.
+	 */
 	private $stage_id;
-	private $prod_id;
+
+	/**
+	 * @var string Post status on staging environment.
+	 */
 	private $stage_status;
 
+	/**
+	 * @param Post $post
+	 */
 	public function __construct( Post $post ) {
 		parent::__construct();
 		$this->post = $post;
@@ -26,6 +48,20 @@ class Post_Env_Diff extends Model {
 	 */
 	public function get_post() {
 		return $this->post;
+	}
+
+	/**
+	 * @param Post $post
+	 */
+	public function set_revision( Post $post ) {
+		$this->revision = $post;
+	}
+
+	/**
+	 * @return Post
+	 */
+	public function get_revision() {
+		return $this->revision;
 	}
 
 	/**
@@ -40,20 +76,6 @@ class Post_Env_Diff extends Model {
 	 */
 	public function get_stage_id() {
 		return $this->stage_id;
-	}
-
-	/**
-	 * @param int $id
-	 */
-	public function set_prod_id( $id ) {
-		$this->prod_id = (int) $id;
-	}
-
-	/**
-	 * @return int
-	 */
-	public function get_prod_id() {
-		return $this->prod_id;
 	}
 
 	/**
