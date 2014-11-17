@@ -97,8 +97,6 @@ class Batch_Importer_Factory {
 
 		$class = null;
 
-		return 'Me\Stenberg\Content\Staging\Importers\Batch_AJAX_Importer';
-
 		/*
 		 * Make it possible for third-party developer to set decide what importer
 		 * to use or to set their own importer.
