@@ -492,6 +492,7 @@ class Batch_Ctrl {
 			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
 		);
 
+		// Start building request to send to production.
 		$request = array(
 			'batch'  => $batch,
 		);
@@ -521,8 +522,7 @@ class Batch_Ctrl {
 	 */
 	public function import( array $args ) {
 
-		$job           = null;
-		$importer_type = null;
+		$job = null;
 		$this->xmlrpc_client->handle_request( $args );
 		$result = $this->xmlrpc_client->get_request_data();
 
@@ -536,11 +536,7 @@ class Batch_Ctrl {
 
 		if ( $job->get_status() !== 2 ) {
 
-			if ( isset( $result['importer'] ) ) {
-				$importer_type = $result['importer'];
-			}
-
-			$importer = $this->importer_factory->get_importer( $job, $importer_type );
+			$importer = $this->importer_factory->get_importer( $job );
 
 			if ( $job->get_status() === 0 ) {
 				$job->add_message(
