@@ -58,12 +58,16 @@ class Router {
 		return $this->batch_ctrl->import( $args );
 	}
 
+	public function batch_import_status( array $args ) {
+		return $this->batch_ctrl->import_status( $args );
+	}
+
 	public function ajax_batch_add_post() {
 		$this->batch_ctrl->include_post();
 	}
 
 	public function ajax_batch_import() {
-		$this->batch_ctrl->import_request();
+		$this->batch_ctrl->import_status_request();
 	}
 
 }

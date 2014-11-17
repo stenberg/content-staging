@@ -19,7 +19,7 @@ class Batch_Background_Importer extends Batch_Importer {
 	 * @param Batch_Import_Job $job
 	 */
 	public function __construct( Batch_Import_Job $job ) {
-		parent::__construct( 'background', $job );
+		parent::__construct( $job );
 	}
 
 	/**
@@ -61,6 +61,13 @@ class Batch_Background_Importer extends Batch_Importer {
 		}
 
 		$this->import_job_dao->update_job( $this->job );
+	}
+
+	/**
+	 * Retrieve import status.
+	 */
+	public function status() {
+		// Nothing here atm.
 	}
 
 	/**

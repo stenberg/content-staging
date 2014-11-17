@@ -20,11 +20,6 @@ use Me\Stenberg\Content\Staging\Models\User;
 abstract class Batch_Importer {
 
 	/**
-	 * @var string
-	 */
-	protected $type;
-
-	/**
 	 * @var Batch_Import_Job
 	 */
 	protected $job;
@@ -75,11 +70,9 @@ abstract class Batch_Importer {
 	/**
 	 * Constructor.
 	 *
-	 * @param string $type
 	 * @param Batch_Import_Job $job
 	 */
-	protected function __construct( $type, Batch_Import_Job $job ) {
-		$this->type                  = $type;
+	protected function __construct( Batch_Import_Job $job ) {
 		$this->job                   = $job;
 		$this->import_job_dao        = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
 		$this->post_dao              = Helper_Factory::get_instance()->get_dao( 'Post' );
@@ -92,16 +85,14 @@ abstract class Batch_Importer {
 	}
 
 	/**
-	 * Trigger importer.
+	 * Start importer.
 	 */
 	abstract function run();
 
 	/**
-	 * @return string
+	 * Get import status.
 	 */
-	public function get_type() {
-		return $this->type;
-	}
+	abstract function status();
 
 	/**
 	 * @param Batch_Import_Job $job

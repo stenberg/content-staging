@@ -25,7 +25,7 @@ class Setup {
 		 * wp_enqueue_script() function, which safely handles any script
 		 * dependencies.
 		 */
-		wp_register_script( 'content-staging', $this->plugin_url . '/assets/js/content-staging.js', array( 'jquery' ), '1.1.3', false );
+		wp_register_script( 'content-staging', $this->plugin_url . '/assets/js/content-staging.js', array( 'jquery' ), '1.2.0', false );
 
 		// Register CSS stylesheet files for later use with wp_enqueue_style().
 		wp_register_style( 'content-staging', $this->plugin_url . '/assets/css/content-staging.css', array(), '1.0.3' );
@@ -124,6 +124,7 @@ class Setup {
 
 		$methods['smeContentStaging.verify'] = array( $this->router, 'batch_verify' );
 		$methods['smeContentStaging.import'] = array( $this->router, 'batch_import' );
+		$methods['smeContentStaging.importStatus'] = array( $this->router, 'batch_import_status' );
 
 		return $methods;
 	}

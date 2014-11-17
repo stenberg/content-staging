@@ -2,7 +2,6 @@
 namespace Me\Stenberg\Content\Staging\Importers;
 
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
-use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 
 class Batch_AJAX_Importer extends Batch_Importer {
 
@@ -12,7 +11,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	 * @param Batch_Import_Job $job
 	 */
 	public function __construct( Batch_Import_Job $job ) {
-		parent::__construct( 'ajax', $job );
+		parent::__construct( $job );
 	}
 
 	/**
@@ -20,28 +19,34 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	 */
 	public function run() {
 
+		// Import is running.
+		$this->job->set_status( 1 );
+
+		// Get first thing to import.
+		$first = $this->get_next();
+
+		// Store the first thing to import in database.
+		update_post_meta( $this->job->get_id(), 'sme_import_next', $first );
+
+		// Update job.
+		$this->import_job_dao->update_job( $this->job );
+	}
+
+	/**
+	 * Import next item.
+	 */
+	public function status() {
+
 		// Make sure AJAX import has not already finished.
 		if ( $this->job->get_status() > 1 ) {
 			return;
 		}
 
-		$this->job->set_status( 1 );
-		$next = array(
-			'method' => 'import_attachment',
-			'params' => array(),
-			'index'  => -1,
-		);
-
 		// Get diffs from database.
 		$this->post_env_diff = $this->post_dao->get_post_env_diffs( $this->job );
 
 		// Get next thing to import from database.
-		if ( $val = get_post_meta( $this->job->get_id(), 'sme_import_next', true ) ) {
-			$next = $val;
-		} else {
-			// This is the first thing we are going to import.
-			$next = $this->get_next( $next );
-		}
+		$next = get_post_meta( $this->job->get_id(), 'sme_import_next', true );
 
 		// Import.
 		call_user_func( array( $this, $next['method'] ), $next['params'] );
@@ -80,7 +85,16 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	 * @param array $current
 	 * @return array
 	 */
-	private function get_next( array $current ) {
+	private function get_next( $current = array() ) {
+
+		// Check if this is the first thing we are going to import.
+		if ( empty( $current ) ) {
+			$current = array(
+				'method' => 'import_attachment',
+				'params' => array(),
+				'index'  => -1,
+			);
+		}
 
 		// Attachments.
 		if ( $current['method'] == 'import_attachment' ) {

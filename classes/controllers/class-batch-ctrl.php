@@ -515,42 +515,22 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Runs on production when a deploy request has been received.
+	 * Runs on production when an import request is received.
 	 *
 	 * @param array $args
 	 * @return string
 	 */
 	public function import( array $args ) {
-
-		$job = null;
 		$this->xmlrpc_client->handle_request( $args );
-		$result = $this->xmlrpc_client->get_request_data();
 
-		if ( isset( $result['job_id'] ) ) {
-			$job = $this->batch_import_job_dao->find( intval( $result['job_id'] ) );
-		}
+		$result   = $this->xmlrpc_client->get_request_data();
+		$job      = $this->create_import_job( $result );
+		$importer = $this->importer_factory->get_importer( $job );
 
-		if ( ! $job ) {
-			$job = $this->create_import_job( $result );
-		}
+		$job->add_message( 'Starting batch import...', 'info' );
+		$this->batch_import_job_dao->update_job( $job );
 
-		if ( $job->get_status() !== 2 ) {
-
-			$importer = $this->importer_factory->get_importer( $job );
-
-			if ( $job->get_status() === 0 ) {
-				$job->add_message(
-					sprintf(
-						'Starting batch import...<span id="sme-batch-importer-type" class="hidden">%s</span>',
-						$importer->get_type()
-					),
-					'info'
-				);
-				$this->batch_import_job_dao->update_job( $job );
-			}
-
-			$importer->run();
-		}
+		$importer->run();
 
 		$response = array(
 			'status'   => $job->get_status(),
@@ -569,14 +549,13 @@ class Batch_Ctrl {
 	 *
 	 * Runs on staging environment.
 	 */
-	public function import_request() {
+	public function import_status_request() {
 
 		$request = array(
-			'job_id'   => intval( $_POST['job_id'] ),
-			'importer' => $_POST['importer'],
+			'job_id' => intval( $_POST['job_id'] ),
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.import', $request );
+		$this->xmlrpc_client->query( 'smeContentStaging.importStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		if ( isset( $response['status'] ) && $response['status'] > 1 ) {
@@ -587,6 +566,32 @@ class Batch_Ctrl {
 		echo json_encode( $response );
 
 		die(); // Required to return a proper result.
+	}
+
+	/**
+	 * Runs on production when a import status request is received.
+	 *
+	 * @param array $args
+	 * @return string
+	 */
+	public function import_status( array $args ) {
+		$this->xmlrpc_client->handle_request( $args );
+
+		$result = $this->xmlrpc_client->get_request_data();
+		$job    = $this->batch_import_job_dao->find( intval( $result['job_id'] ) );
+
+		if ( $job->get_status() !== 2 ) {
+			$importer = $this->importer_factory->get_importer( $job );
+			$importer->status();
+		}
+
+		$response = array(
+			'status'   => $job->get_status(),
+			'messages' => $job->get_messages(),
+		);
+
+		// Prepare and return the XML-RPC response data.
+		return $this->xmlrpc_client->prepare_response( $response );
 	}
 
 	/**

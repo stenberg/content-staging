@@ -97,26 +97,33 @@ class Batch_Importer_Factory {
 
 		$class = null;
 
-		// Use AJAX importer on Windows environments.
-		if ( substr( php_uname(), 0, 7 ) == 'Windows' ) {
-			$class = 'Me\Stenberg\Content\Staging\Importers\Batch_AJAX_Importer';
-		}
-
-		if ( ! $class ) {
-
-			// Path to PHP executable.
-			$path = $this->get_executable_path();
-
-			// Test if the executable can be used.
-			if ( $this->is_executable( $path ) === true ) {
-				$class = 'Me\Stenberg\Content\Staging\Importers\Batch_Background_Importer';
-			}
-		}
+		return 'Me\Stenberg\Content\Staging\Importers\Batch_AJAX_Importer';
 
 		/*
-		 * Make it possible for third-party developer to set their own importer
-		 * before returning the importer class to use.
+		 * Make it possible for third-party developer to set decide what importer
+		 * to use or to set their own importer.
 		 */
+		if ( ( $class = apply_filters( 'sme_importer', $class ) ) !== null ) {
+			return $class;
+		}
+
+		// Set default importer class.
+		$class = 'Me\Stenberg\Content\Staging\Importers\Batch_AJAX_Importer';
+
+		// Use AJAX importer on Windows environments.
+		if ( substr( php_uname(), 0, 7 ) == 'Windows' ) {
+			return $class;
+		}
+
+		// Path to PHP executable.
+		$path = $this->get_executable_path();
+
+		// Test if the executable can be used.
+		if ( $this->is_executable( $path ) === true ) {
+			return 'Me\Stenberg\Content\Staging\Importers\Batch_Background_Importer';
+		}
+
+		// Use default importer class.
 		return apply_filters( 'sme_importer', $class );
 	}
 

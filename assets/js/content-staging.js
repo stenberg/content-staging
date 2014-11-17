@@ -179,15 +179,14 @@ jQuery( document ).ready(function($) {
 		deployBatch: function() {
 
 			var data = {
-				action: 'sme_import_request',
-				job_id: $('#sme-batch-import-job-id').html(),
-				importer: $('#sme-batch-importer-type').html()
+				action: 'sme_import_status_request',
+				job_id: $('#sme-batch-import-job-id').html()
 			};
 
 			var printed = $('.sme-deploy-messages .sme-cs-message').length;
 
 			// Check if a batch importer ID has been found.
-			if (data.job_id && data.importer) {
+			if (data.job_id) {
 				this.deployStatus(data, printed);
 			}
 		},
@@ -220,27 +219,9 @@ jQuery( document ).ready(function($) {
 
 				// If import is not completed, select import method.
 				if (response.status < 2) {
-					switch (data.importer) {
-						case 'ajax':
-							self.ajaxImport(data, printed);
-							break;
-						case 'background':
-							self.backgroundImport(data, printed);
-							break;
-					}
+					self.deployStatus(data, printed);
 				}
 			});
-		},
-
-		ajaxImport: function(data, printed) {
-			this.deployStatus(data, printed);
-		},
-
-		backgroundImport: function(data, printed) {
-			var self = this;
-			setTimeout(function() {
-				self.deployStatus(data, printed);
-			}, 3000);
 		},
 
 		/**
