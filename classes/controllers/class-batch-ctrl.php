@@ -232,6 +232,12 @@ class Batch_Ctrl {
 			$updated = '&updated';
 		}
 
+		/*
+		 * Make it possible for third-party developers to modify do something
+		 * with the newly saved batch before user is redirected.
+		 */
+		do_action( 'sme_saved_batch', $batch );
+
 		// Default redirect URL on successful batch update.
 		$redirect_url = admin_url( 'admin.php?page=sme-edit-batch&id=' . $batch->get_id() . $updated );
 
