@@ -246,8 +246,9 @@ class Post_DAO extends DAO {
 	 * @return array
 	 */
 	public function get_post_env_diffs( Batch_Import_Job $job ) {
-		$diffs   = get_post_meta( $job->get_id(), 'sme_post_env_diff', true );
+
 		$objects = array();
+		$diffs   = get_post_meta( $job->get_id(), 'sme_post_env_diff' );
 
 		if ( empty( $diffs ) ) {
 			return $objects;

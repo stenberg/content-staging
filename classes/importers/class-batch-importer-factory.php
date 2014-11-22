@@ -72,8 +72,8 @@ class Batch_Importer_Factory {
 
 		// Validate key.
 		if ( $import_key !== $job->get_key() ) {
+			do_action( 'sme_unauthorized_batch_import', $job );
 			error_log( 'Unauthorized batch import attempt terminated.' );
-			$job->add_message( __( 'Something went wrong', 'sme-content-staging' ), 'error' );
 			$job->set_status( 2 );
 			$this->job_dao->update_job( $job );
 			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );

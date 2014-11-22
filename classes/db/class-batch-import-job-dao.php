@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\DB;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Model;
+use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 
 class Batch_Import_Job_DAO extends DAO {
 
@@ -28,7 +29,6 @@ class Batch_Import_Job_DAO extends DAO {
 
 		$this->update( $data, $where, $format, $where_format );
 
-		$this->update_post_meta( $job->get_id(), 'sme_import_messages', $job->get_messages() );
 		$this->update_post_meta( $job->get_id(), 'sme_import_status', $job->get_status() );
 		$this->update_post_meta( $job->get_id(), 'sme_import_key', $job->get_key() );
 	}
@@ -181,14 +181,16 @@ class Batch_Import_Job_DAO extends DAO {
 	 * @param Batch_Import_Job $job
 	 */
 	private function get_job_meta( Batch_Import_Job $job ) {
+
 		$query = $this->wpdb->prepare(
 			'SELECT * FROM ' . $this->wpdb->postmeta . ' WHERE post_id = %d',
 			$job->get_id()
 		);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $record ) {
-			if ( $record['meta_key'] == 'sme_import_messages' ) {
-				$job->set_messages( unserialize( $record['meta_value'] ) );
+			if ( $record['meta_key'] == 'sme_import_message' ) {
+				$value = unserialize( $record['meta_value'] );
+				$job->add_message( $value['message'], $value['level'] );
 			}
 
 			if ( $record['meta_key'] == 'sme_import_status' ) {

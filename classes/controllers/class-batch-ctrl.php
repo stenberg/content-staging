@@ -345,12 +345,11 @@ class Batch_Ctrl {
 		 * Let third party developers perform actions after pre-flight has
 		 * completed.
 		 */
-		do_action( 'sme_prepared', $job->get_batch() );
+		do_action( 'sme_prepared', $job );
 
 		// Add batch data to database if pre-flight was successful.
 		if ( $job->get_status() !== 2 ) {
 			$this->batch_dao->update_batch( $job->get_batch() );
-			$job->add_message( 'Pre-flight successful!', 'success' );
 		}
 
 		// Prepare data we want to pass to view.
@@ -400,16 +399,7 @@ class Batch_Ctrl {
 		foreach ( $batch->get_posts() as $post ) {
 			// Check if parent post exist on production or in batch.
 			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-				$job->add_message(
-					sprintf(
-						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
-						$batch->get_backend() . 'post.php?post=' . $post->get_id() . '&action=edit',
-						$post->get_title(),
-						$batch->get_backend() . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
-						$post->get_parent()->get_title()
-					),
-					'error'
-				);
+				do_action( 'sme_verify_batch_parent_post_missing', $post, $job );
 			}
 		}
 
@@ -511,7 +501,7 @@ class Batch_Ctrl {
 		 * delete it (not actually deleting the batch, just setting it to draft
 		 * to make it invisible to users).
 		 */
-		$this->batch_dao->delete_batch( $batch );
+//		$this->batch_dao->delete_batch( $batch );
 
 		$data = array(
 			'messages' => $response['messages'],
@@ -533,7 +523,8 @@ class Batch_Ctrl {
 		$job      = $this->create_import_job( $result );
 		$importer = $this->importer_factory->get_importer( $job );
 
-		$job->add_message( 'Starting batch import...', 'info' );
+		do_action( 'sme_import', $job );
+
 		$this->batch_import_job_dao->update_job( $job );
 
 		$importer->run();
@@ -760,20 +751,14 @@ class Batch_Ctrl {
 
 		// Check if a batch has been provided.
 		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			$job->add_message( 'Failed creating import job.', 'error' );
+			do_action( 'sme_batch_import_job_creation_failure', $job );
 			$job->set_status( 2 );
 			return $job;
 		}
 
 		$job->set_batch( $result['batch'] );
 		$this->batch_import_job_dao->insert( $job );
-		$job->add_message(
-			sprintf(
-				'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
-				$job->get_id()
-			),
-			'info'
-		);
+		do_action( 'sme_batch_import_job_created', $job );
 		return $job;
 	}
 

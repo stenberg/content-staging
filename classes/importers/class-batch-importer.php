@@ -20,17 +20,17 @@ use Me\Stenberg\Content\Staging\Models\User;
 abstract class Batch_Importer {
 
 	/**
-	 * @var Batch_Import_Job
-	 */
-	protected $job;
-
-	/**
 	 * Array storing the relationship between a post from the staging
 	 * environment and the same post on the production environment.
 	 *
 	 * @var array
 	 */
-	protected $post_env_diff;
+	public $post_env_diff;
+
+	/**
+	 * @var Batch_Import_Job
+	 */
+	protected $job;
 
 	/**
 	 * @var Batch_Import_Job_DAO
@@ -73,15 +73,17 @@ abstract class Batch_Importer {
 	 * @param Batch_Import_Job $job
 	 */
 	protected function __construct( Batch_Import_Job $job ) {
-		$this->job                   = $job;
-		$this->import_job_dao        = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
-		$this->post_dao              = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->post_taxonomy_dao     = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
-		$this->postmeta_dao          = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
-		$this->taxonomy_dao          = Helper_Factory::get_instance()->get_dao( 'Taxonomy' );
-		$this->term_dao              = Helper_Factory::get_instance()->get_dao( 'Term' );
-		$this->user_dao              = Helper_Factory::get_instance()->get_dao( 'User' );
-		$this->post_env_diff         = array();
+		$this->job               = $job;
+		$this->import_job_dao    = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
+		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
+		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
+		$this->taxonomy_dao      = Helper_Factory::get_instance()->get_dao( 'Taxonomy' );
+		$this->term_dao          = Helper_Factory::get_instance()->get_dao( 'Term' );
+		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
+
+		// Get diffs from database.
+		$this->post_env_diff = $this->post_dao->get_post_env_diffs( $this->job );
 	}
 
 	/**
@@ -113,7 +115,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param array $users
 	 */
-	protected function import_users( $users ) {
+	public function import_users( $users ) {
 		foreach ( $users as $user ) {
 			$this->import_user( $user );
 		}
@@ -130,7 +132,8 @@ abstract class Batch_Importer {
 	 *
 	 * @see http://codex.wordpress.org/Function_Reference/get_user_by
 	 */
-	protected function import_user( User $user ) {
+	public function import_user( User $user ) {
+
 		// See if user exists in database.
 		$existing = $this->user_dao->get_user_by_user_login( $user->get_login() );
 
@@ -144,11 +147,22 @@ abstract class Batch_Importer {
 	}
 
 	/**
+	 * Import posts.
+	 *
+	 * @param array $posts
+	 */
+	public function import_posts( array $posts ) {
+		foreach ( $posts as $post ) {
+			$this->import_post( $post );
+		}
+	}
+
+	/**
 	 * Import post.
 	 *
 	 * @param Post $post
 	 */
-	protected function import_post( Post $post ) {
+	public function import_post( Post $post ) {
 
 		/*
 		 * Create object that can keep track of differences between stage and
@@ -171,26 +185,18 @@ abstract class Batch_Importer {
 		// Insert post.
 		$this->post_dao->insert( $post );
 
-		/*
-		 * If a old revision of this post exist the
-		 */
-
 		// Add post diff to array of post diffs.
-		$this->post_env_diff[$post_diff->get_stage_id()] = $post_diff;
+		$this->add_post_diff( $post_diff );
 
 		// Import post/taxonomy relationships.
 		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
 			$this->import_post_taxonomy_relationship( $post_taxonomy );
 		}
 
-		$this->job->add_message(
-			sprintf(
-				'Post <strong>%s</strong> has been successfully imported.',
-				$post->get_title()
-			),
-			'success'
-		);
+		// Notify listeners that post has been imported.
+		do_action( 'sme_post_imported', $post, $this->job );
 
+		// Update import job.
 		$this->import_job_dao->update_job( $this->job );
 	}
 
@@ -199,9 +205,9 @@ abstract class Batch_Importer {
 	 *
 	 * @param array $posts
 	 */
-	protected function import_all_postmeta( array $posts) {
+	public function import_posts_meta( array $posts) {
 		foreach ( $posts as $post ) {
-			$this->import_postmeta( $post );
+			$this->import_post_meta( $post );
 		}
 	}
 
@@ -219,7 +225,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param Post $post
 	 */
-	protected function import_postmeta( Post $post ) {
+	public function import_post_meta( Post $post ) {
 
 		$meta = $post->get_meta();
 
@@ -254,7 +260,7 @@ abstract class Batch_Importer {
 	/**
 	 * Import attachments.
 	 */
-	protected function import_attachments() {
+	public function import_attachments() {
 
 		/*
 		 * Make it possible for third-party developers to inject their custom
@@ -281,35 +287,16 @@ abstract class Batch_Importer {
 	 * @param array $attachment
 	 * @return bool
 	 */
-	protected function import_attachment( array $attachment ) {
+	public function import_attachment( array $attachment ) {
 		$upload_dir = wp_upload_dir();
 		$filepath   = $upload_dir['basedir'] . $attachment['subdir'] . '/';
 
 		if ( ! is_dir( $filepath ) && ! wp_mkdir_p( $filepath ) ) {
 			/*
 			 * Directory to place image in does not exist and we were not able to
-			 * create it. Create and set an error message.
+			 * create it.
 			 */
-
-			$failed_attachment = '';
-
-			if ( isset( $attachment['items'][0] ) ) {
-				$failed_attachment = sprintf(
-					' Attachment %s and generated sizes could not be deployed to production. This is most likely a file permission error, make sure your web server can write to the image upload directory.',
-					$attachment['items'][0]
-				);
-			}
-
-			// Add error message.
-			$this->job->add_message(
-				sprintf(
-					'Failed creating directory %s.%s',
-					$filepath,
-					$failed_attachment
-				),
-				'warning'
-			);
-
+			do_action( 'import_attachment_failure', $attachment, $filepath, $this->job );
 			return false;
 		}
 
@@ -328,7 +315,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param Post_Taxonomy $post_taxonomy
 	 */
-	protected function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
+	public function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
 		// Import taxonomy.
 		$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
 
@@ -341,7 +328,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param Taxonomy $taxonomy
 	 */
-	protected function import_taxonomy( Taxonomy $taxonomy ) {
+	public function import_taxonomy( Taxonomy $taxonomy ) {
 
 		$this->import_term( $taxonomy->get_term() );
 
@@ -367,7 +354,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param Term $term
 	 */
-	protected function import_term( Term $term ) {
+	public function import_term( Term $term ) {
 		// Term ID on production environment.
 		$this->term_dao->get_term_id_by_slug( $term );
 
@@ -385,7 +372,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param Batch_Import_Job $importer
 	 */
-	protected function import_custom_data( Batch_Import_Job $importer ) {
+	public function import_custom_data( Batch_Import_Job $importer ) {
 		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
 			do_action( 'sme_import_' . $addon, $data, $importer );
 		}
@@ -394,7 +381,7 @@ abstract class Batch_Importer {
 	/**
 	 * Update the relationship between posts and their parent posts.
 	 */
-	protected function update_parent_post_relations() {
+	public function update_parent_post_relations() {
 		foreach ( $this->post_env_diff as $diff ) {
 			$this->update_parent_post_relation( $diff->get_post() );
 		}
@@ -405,7 +392,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param Post $post
 	 */
-	protected function update_parent_post_relation( Post $post ) {
+	public function update_parent_post_relation( Post $post ) {
 		if ( $post->get_parent() === null ) {
 			return;
 		}
@@ -427,7 +414,7 @@ abstract class Batch_Importer {
 	 * has been synced from content stage, post status has been changed to
 	 * 'draft'. Post status is now changed back to 'publish'.
 	 */
-	protected function publish_posts() {
+	public function publish_posts() {
 		foreach ( $this->post_env_diff as $diff ) {
 
 			/*
@@ -448,28 +435,30 @@ abstract class Batch_Importer {
 		}
 	}
 
-	protected function tear_down() {
-		$links  = array();
-		$output = '';
-
-		foreach ( $this->job->get_batch()->get_posts() as $post ) {
-			$links[] = array(
-				'link' => get_permalink( $post->get_id() ),
-				'post' => $post,
-			);
-		}
-
-		$links = apply_filters( 'sme_imported_post_links', $links );
-
-		foreach ( $links as $link ) {
-			$output .= '<li><a href="' . $link['link'] . '" target="_blank">' . $link['post']->get_title() . '</a></li>';
-		}
-
-		if ( $output !== '' ) {
-			$output = '<ul>' . $output . '</ul>';
-			$this->job->add_message( '<h3>Posts deployed to the live site:</h3>' . $output );
-		}
+	public function tear_down() {
 
 		do_action( 'sme_imported', $this->job );
+
+		// Import finished, update import status.
+		$this->job->set_status( 3 );
+		$this->import_job_dao->update_job( $this->job );
+	}
+
+	/**
+	 * Add diff between stage post and production post.
+	 *
+	 * @param Post_Env_Diff $diff
+	 */
+	private function add_post_diff( Post_Env_Diff $diff ) {
+
+		// Store diff if it does not already exist.
+		if ( ! isset( $this->post_env_diff[$diff->get_stage_id()] ) ) {
+
+			// Store diff in database.
+			add_post_meta( $this->job->get_id(), 'sme_post_env_diff', $diff->to_array() );
+
+			// Store diff in property.
+			$this->post_env_diff[$diff->get_stage_id()] = $diff;
+		}
 	}
 }
