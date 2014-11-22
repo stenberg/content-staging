@@ -164,6 +164,9 @@ abstract class Batch_Importer {
 	 */
 	public function import_post( Post $post ) {
 
+		// Notify listeners that post is about to be imported.
+		do_action( 'sme_post_import', $post );
+
 		/*
 		 * Create object that can keep track of differences between stage and
 		 * production post.
@@ -180,6 +183,11 @@ abstract class Batch_Importer {
 		if ( ( $prod_revision = $this->post_dao->get_by_guid( $post->get_guid() ) ) !== null ) {
 			$post_diff->set_revision( $prod_revision );
 			$this->post_dao->update_guid( $prod_revision->get_id(), $prod_revision->get_guid() . '-rev' );
+		}
+
+		// Turn published posts into drafts for now.
+		if ( $post->get_post_status() == 'publish' ) {
+			$post->set_post_status( 'draft' );
 		}
 
 		// Insert post.
