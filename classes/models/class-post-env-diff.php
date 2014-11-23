@@ -12,23 +12,21 @@ namespace Me\Stenberg\Content\Staging\Models;
 class Post_Env_Diff extends Model {
 
 	/**
-	 * @var Post The post received from content staging. Will be manipulated in client
-	 *           code, differences we need to keep track on should be assigned to
-	 *           specific properties of this class.
-	 */
-	private $post;
-
-	/**
-	 * @var Post If the post already exist on production, then store the current
-	 *           revision of the post in this property. Will not be set if the post is
-	 *           new to production.
-	 */
-	private $revision;
-
-	/**
 	 * @var int Post ID on staging environment.
 	 */
 	private $stage_id;
+
+	/**
+	 * @var int The ID assigned to the post on production environment.
+	 */
+	private $prod_id;
+
+	/**
+	 * @var int If the post already exist on production, then store the
+	 * current revision ID of the post in this property. Will not be set if
+	 * the post is new to production.
+	 */
+	private $revision_id;
 
 	/**
 	 * @var string Post status on staging environment.
@@ -36,39 +34,23 @@ class Post_Env_Diff extends Model {
 	private $stage_status;
 
 	/**
-	 * @param Post $post
+	 * @var string GUID of parent post.
 	 */
-	public function __construct( Post $post ) {
+	private $parent_guid;
+
+	/**
+	 * @param int $stage_id
+	 */
+	public function __construct( $stage_id ) {
 		parent::__construct();
-		$this->post = $post;
-	}
-
-	/**
-	 * @return Post
-	 */
-	public function get_post() {
-		return $this->post;
-	}
-
-	/**
-	 * @param Post $post
-	 */
-	public function set_revision( Post $post ) {
-		$this->revision = $post;
-	}
-
-	/**
-	 * @return Post
-	 */
-	public function get_revision() {
-		return $this->revision;
+		$this->stage_id = $stage_id;
 	}
 
 	/**
 	 * @param int $id
 	 */
 	public function set_stage_id( $id ) {
-		$this->stage_id = (int) $id;
+		$this->stage_id = $id;
 	}
 
 	/**
@@ -76,6 +58,34 @@ class Post_Env_Diff extends Model {
 	 */
 	public function get_stage_id() {
 		return $this->stage_id;
+	}
+
+	/**
+	 * @param int $id
+	 */
+	public function set_prod_id( $id ) {
+		$this->prod_id = $id;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function get_prod_id() {
+		return $this->prod_id;
+	}
+
+	/**
+	 * @param int $id
+	 */
+	public function set_revision_id( $id ) {
+		$this->revision_id = $id;
+	}
+
+	/**
+	 * @return int
+	 */
+	public function get_revision_id() {
+		return $this->revision_id;
 	}
 
 	/**
@@ -93,21 +103,31 @@ class Post_Env_Diff extends Model {
 	}
 
 	/**
+	 * @param string $guid
+	 */
+	public function set_parent_guid( $guid ) {
+		$this->parent_guid = $guid;
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_parent_guid() {
+		return $this->parent_guid;
+	}
+
+	/**
 	 * Get array representation of this object.
 	 *
 	 * @return array
 	 */
 	public function to_array() {
-		$array = array(
-			'prod_id'      => $this->get_post()->get_id(),
+		return array(
 			'stage_id'     => $this->get_stage_id(),
+			'prod_id'      => $this->get_prod_id(),
+			'revision_id'  => $this->get_revision_id(),
 			'stage_status' => $this->get_stage_status(),
+			'parent_guid'  => $this->get_parent_guid(),
 		);
-
-		if ( $this->get_revision() !== null ) {
-			$array['revision_id'] = $this->get_revision()->get_id();
-		}
-
-		return $array;
 	}
 }

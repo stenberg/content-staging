@@ -136,35 +136,30 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Post meta.
 		if ( $current['method'] == 'import_posts_meta' ) {
-			$current['method'] = 'update_parent_post_relations';
-			$current['params'] = array();
-			$current['index']  = -1;
+			return array(
+				'method' => 'update_parent_post_relations',
+				'params' => array(),
+				'index'  => -1,
+			);
 		}
 
 		// Parent post relationship.
 		if ( $current['method'] == 'update_parent_post_relations' ) {
-			$current['method'] = 'import_custom_data';
-			$current['params'] = array();
-			$current['index']  = -1;
+			return array(
+				'method' => 'import_custom_data',
+				'params' => array(),
+				'index'  => -1,
+			);
 		}
 
 		// Custom data.
 		if ( $current['method'] == 'import_custom_data' ) {
-			$custom = $this->job->get_batch()->get_custom_data();
-			if ( isset( $custom[$current['index'] + 1] ) ) {
-				return array(
-					'method' => $current['method'],
-					'params' => $custom[$current['index'] + 1],
-					'index'  => $current['index'] + 1,
-				);
-			} else {
-				// Method is custom data, but no custom data is left to import.
-				return array(
-					'method' => 'publish_posts',
-					'params' => array(),
-					'index'  => -1,
-				);
-			}
+			// Method is custom data, but no custom data is left to import.
+			return array(
+				'method' => 'publish_posts',
+				'params' => array(),
+				'index'  => -1,
+			);
 		}
 
 		// Finish and clean up.

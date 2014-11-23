@@ -25,7 +25,7 @@ abstract class Batch_Importer {
 	 *
 	 * @var array
 	 */
-	public $post_env_diff;
+	public $post_diffs;
 
 	/**
 	 * @var Batch_Import_Job
@@ -83,7 +83,7 @@ abstract class Batch_Importer {
 		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
 
 		// Get diffs from database.
-		$this->post_env_diff = $this->post_dao->get_post_env_diffs( $this->job );
+		$this->post_diffs = $this->post_dao->get_post_diffs( $this->job );
 	}
 
 	/**
@@ -171,9 +171,13 @@ abstract class Batch_Importer {
 		 * Create object that can keep track of differences between stage and
 		 * production post.
 		 */
-		$post_diff = new Post_Env_Diff( $post );
-		$post_diff->set_stage_id( $post->get_id() );
+		$post_diff = new Post_Env_Diff( $post->get_id() );
 		$post_diff->set_stage_status( $post->get_post_status() );
+
+		// Check if post has any parent.
+		if ( $post->get_parent() !== null ) {
+			$post_diff->set_parent_guid( $post->get_parent()->get_guid() );
+		}
 
 		/*
 		 * Check if post already exist on production, if it does then add the old
@@ -181,7 +185,7 @@ abstract class Batch_Importer {
 		 * this post will now be a revision.
 		 */
 		if ( ( $prod_revision = $this->post_dao->get_by_guid( $post->get_guid() ) ) !== null ) {
-			$post_diff->set_revision( $prod_revision );
+			$post_diff->set_revision_id( $prod_revision->get_id() );
 			$this->post_dao->update_guid( $prod_revision->get_id(), $prod_revision->get_guid() . '-rev' );
 		}
 
@@ -194,6 +198,7 @@ abstract class Batch_Importer {
 		$this->post_dao->insert( $post );
 
 		// Add post diff to array of post diffs.
+		$post_diff->set_prod_id( $post->get_id() );
 		$this->add_post_diff( $post_diff );
 
 		// Import post/taxonomy relationships.
@@ -245,13 +250,13 @@ abstract class Batch_Importer {
 				 * that the post whose post meta we are currently importing has a
 				 * relationship to.
 				 */
-				if ( isset( $this->post_env_diff[$meta[$i]['meta_value']] ) ) {
-					$meta[$i]['meta_value'] = $this->post_env_diff[$meta[$i]['meta_value']]->get_post()->get_id();
+				if ( isset( $this->post_diffs[$meta[$i]['meta_value']] ) ) {
+					$meta[$i]['meta_value'] = $this->post_diffs[$meta[$i]['meta_value']]->get_prod_id();
 				} else {
 					error_log(
 						sprintf(
 							'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: %d, meta_key: %s, meta_value: %s) where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.',
-							$this->post_env_diff[$meta[$i]['post_id']]->get_post()->get_id(),
+							$this->post_diffs[$meta[$i]['post_id']]->get_prod_id(),
 							$meta[$i]['meta_key'],
 							$meta[$i]['meta_value']
 						)
@@ -259,7 +264,7 @@ abstract class Batch_Importer {
 				}
 			}
 
-			$meta[$i]['post_id'] = $this->post_env_diff[$meta[$i]['post_id']]->get_post()->get_id();
+			$meta[$i]['post_id'] = $this->post_diffs[$meta[$i]['post_id']]->get_prod_id();
 		}
 
 		$this->postmeta_dao->insert_post_meta( $meta );
@@ -377,12 +382,10 @@ abstract class Batch_Importer {
 
 	/**
 	 * Import data added by a third-party.
-	 *
-	 * @param Batch_Import_Job $importer
 	 */
-	public function import_custom_data( Batch_Import_Job $importer ) {
-		foreach ( $importer->get_batch()->get_custom_data() as $addon => $data ) {
-			do_action( 'sme_import_' . $addon, $data, $importer );
+	public function import_custom_data() {
+		foreach ( $this->job->get_batch()->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_import_' . $addon, $data, $this->job );
 		}
 	}
 
@@ -390,56 +393,64 @@ abstract class Batch_Importer {
 	 * Update the relationship between posts and their parent posts.
 	 */
 	public function update_parent_post_relations() {
-		foreach ( $this->post_env_diff as $diff ) {
-			$this->update_parent_post_relation( $diff->get_post() );
+		foreach ( $this->post_diffs as $diff ) {
+			$this->update_parent_post_relation( $diff );
 		}
 	}
 
 	/**
 	 * Update the relationship between a post and its parent post.
 	 *
-	 * @param Post $post
+	 * @param Post_Env_Diff $diff
 	 */
-	public function update_parent_post_relation( Post $post ) {
-		if ( $post->get_parent() === null ) {
+	public function update_parent_post_relation( Post_Env_Diff $diff ) {
+		if ( ! $diff->get_parent_guid() ) {
 			return;
 		}
 
-		$parent = $this->post_dao->get_by_guid( $post->get_parent()->get_guid() );
+		$parent = $this->post_dao->get_by_guid( $diff->get_parent_guid() );
 		$this->post_dao->update(
 			array( 'post_parent' => $parent->get_id() ),
-			array( 'ID' => $post->get_id() ),
+			array( 'ID' => $diff->get_prod_id() ),
 			array( '%d' ),
 			array( '%d' )
 		);
 	}
 
 	/**
-	 * Publish all posts sent to production.
+	 * Publish multiple posts sent to production.
+	 */
+	public function publish_posts() {
+		foreach ( $this->post_diffs as $diff ) {
+			$this->publish_post( $diff );
+		}
+	}
+
+	/**
+	 * Publish a post sent to production.
 	 *
 	 * New posts that are sent to production will have a post status of
 	 * 'publish'. Since we don't want the post to go public until all data
 	 * has been synced from content stage, post status has been changed to
 	 * 'draft'. Post status is now changed back to 'publish'.
+	 *
+	 * @param Post_Env_Diff $diff
 	 */
-	public function publish_posts() {
-		foreach ( $this->post_env_diff as $diff ) {
+	public function publish_post( Post_Env_Diff $diff ) {
+		/*
+		 * Publish the new post if post status from staging environment is set to
+		 * "publish".
+		 */
+		if ( $diff->get_stage_status() == 'publish' ) {
+			$this->post_dao->update_post_status( $diff->get_prod_id(), 'publish' );
+		}
 
-			/*
-			 * Publish the new post if post status from staging environment is set to
-			 * "publish".
-			 */
-			if ( $diff->get_stage_status() == 'publish' ) {
-				$this->post_dao->update_post_status( $diff->get_post(), 'publish' );
-			}
-
-			/*
-			 * Turn the old version of the post into a revision (if an old version
-			 * exists).
-			 */
-			if ( $diff->get_revision() !== null ) {
-				$this->post_dao->make_revision( $diff->get_revision(), $diff->get_post() );
-			}
+		/*
+		 * Turn the old version of the post into a revision (if an old version
+		 * exists).
+		 */
+		if ( $diff->get_revision_id() ) {
+			$this->post_dao->make_revision( $diff->get_revision_id(), $diff->get_prod_id() );
 		}
 	}
 
@@ -460,13 +471,13 @@ abstract class Batch_Importer {
 	private function add_post_diff( Post_Env_Diff $diff ) {
 
 		// Store diff if it does not already exist.
-		if ( ! isset( $this->post_env_diff[$diff->get_stage_id()] ) ) {
+		if ( ! isset( $this->post_diffs[$diff->get_stage_id()] ) ) {
 
 			// Store diff in database.
-			add_post_meta( $this->job->get_id(), 'sme_post_env_diff', $diff->to_array() );
+			add_post_meta( $this->job->get_id(), 'sme_post_diff', $diff->to_array() );
 
 			// Store diff in property.
-			$this->post_env_diff[$diff->get_stage_id()] = $diff;
+			$this->post_diffs[$diff->get_stage_id()] = $diff;
 		}
 	}
 }

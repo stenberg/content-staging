@@ -192,13 +192,13 @@ class Post_DAO extends DAO {
 	/**
 	 * Change only the post status of a post.
 	 *
-	 * @param Post $post
+	 * @param int $id
 	 * @param string $status
 	 */
-	public function update_post_status( Post $post, $status = 'publish' ) {
+	public function update_post_status( $id, $status = 'publish' ) {
 		$this->update(
 			array( 'post_status' => $status ),
-			array( 'ID' => $post->get_id() ),
+			array( 'ID' => $id ),
 			array( '%s' ),
 			array( '%d' )
 		);
@@ -222,18 +222,18 @@ class Post_DAO extends DAO {
 	/**
 	 * Make a post a revision of another post.
 	 *
-	 * @param Post $revision Post to change to revision.
-	 * @param Post $parent Parent post of the revision.
+	 * @param int $revision_id Post to change to revision.
+	 * @param int $parent_id Parent post of the revision.
 	 */
-	public function make_revision( Post $revision, Post $parent ) {
+	public function make_revision( $revision_id, $parent_id ) {
 		$this->update(
 			array(
 				'post_status' => 'inherit',
-				'post_parent' => $parent->get_id(),
-				'post_name'   => $parent->get_id() . '-revision-v1',
+				'post_parent' => $parent_id,
+				'post_name'   => $parent_id . '-revision-v1',
 				'post_type'   => 'revision'
 			),
-			array( 'ID' => $revision->get_id() ),
+			array( 'ID' => $revision_id ),
 			array( '%s', '%d', '%s', '%s' ),
 			array( '%d' )
 		);
@@ -245,24 +245,21 @@ class Post_DAO extends DAO {
 	 * @param Batch_Import_Job $job
 	 * @return array
 	 */
-	public function get_post_env_diffs( Batch_Import_Job $job ) {
+	public function get_post_diffs( Batch_Import_Job $job ) {
 
 		$objects = array();
-		$diffs   = get_post_meta( $job->get_id(), 'sme_post_env_diff' );
+		$diffs   = get_post_meta( $job->get_id(), 'sme_post_diff' );
 
 		if ( empty( $diffs ) ) {
 			return $objects;
 		}
 
 		foreach ( $diffs as $diff ) {
-			$post = $this->find( $diff['prod_id'] );
-			$obj  = new Post_Env_Diff( $post );
-			$obj->set_stage_id( $diff['stage_id'] );
+			$obj = new Post_Env_Diff( $diff['stage_id'] );
+			$obj->set_revision_id( $diff['revision_id'] );
+			$obj->set_prod_id( $diff['prod_id'] );
 			$obj->set_stage_status( $diff['stage_status'] );
-			if ( isset( $diff['revision_id'] ) ) {
-				$revision = $this->find( $diff['revision_id'] );
-				$obj->set_revision( $revision );
-			}
+			$obj->set_parent_guid( $diff['parent_guid'] );
 			$objects[$diff['stage_id']] = $obj;
 		}
 
