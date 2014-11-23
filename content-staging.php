@@ -45,6 +45,7 @@ require_once( 'classes/importers/class-batch-importer.php' );
 require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
+require_once( 'classes/listeners/class-benchmark.php' );
 require_once( 'classes/listeners/class-import-message-listener.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/managers/class-helper-factory.php' );
@@ -144,7 +145,7 @@ class Content_Staging {
 		$router = new Router( $batch_ctrl, $batch_history_ctrl );
 
 		// Listeners.
-		$import_message_listener = new Import_Message_Listener();
+		$import_messages = new Import_Message_Listener();
 
 		// Plugin setup.
 		$setup = new Setup( $router, $client, $plugin_url );
