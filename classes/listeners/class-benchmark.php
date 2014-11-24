@@ -29,8 +29,8 @@ class Benchmark {
 			if ( ! isset( $hook['start_hook'] ) || ! isset( $hook['end_hook'] ) ) {
 				continue;
 			}
-			add_action( $hook['start_hook'], array( $this, 'time_start' ) );
-			add_action( $hook['end_hook'], array( $this, 'time_end' ) );
+			add_action( $hook['start_hook'], array( $this, 'time_start' ), -999 );
+			add_action( $hook['end_hook'], array( $this, 'time_end' ), 999 );
 			$this->hooks[] = $hook;
 		}
 	}
