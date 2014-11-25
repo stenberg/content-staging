@@ -3,18 +3,15 @@ namespace Me\Stenberg\Content\Staging\XMLRPC;
 
 use \WP_HTTP_IXR_Client;
 
-class Client {
+class Client extends WP_HTTP_IXR_Client {
 
-	private $server;
 	private $secret_key;
-	private $wp_http_ixr_client;
-	private $request;
-	private $response;
+	private $filtered_request;
+	private $filtered_response;
 
 	public function __construct( $server, $secret_key ) {
-		$this->server = $server;
+		parent::__construct( trailingslashit( $server ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
 		$this->secret_key = $secret_key;
-		$this->wp_http_ixr_client = new WP_HTTP_IXR_Client( trailingslashit( $server ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
 	}
 
 	/**
@@ -24,7 +21,7 @@ class Client {
 	 * @param array $data
 	 * @return array
 	 */
-	public function query( $method, $data = array() ) {
+	public function request( $method, $data = array() ) {
 		$data = $this->encode( serialize( $data ) );
 
 		$args = array(
@@ -43,14 +40,14 @@ class Client {
 		 * Perform the XML-RPC request. A HTTP status code is returned indicating
 		 * whether the request was successful (200) or not (any other code).
 		 */
-		$status = call_user_func_array( array( $this->wp_http_ixr_client, 'query' ), $args );
+		$status = call_user_func_array( array( $this, 'query' ), $args );
 
 		// Enable SSL verification.
 		$this->enable_ssl_verification();
 
 		if ( ! $status ) {
-			if ( strpos( $this->wp_http_ixr_client->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
-				$this->response = array(
+			if ( strpos( $this->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
+				$this->filtered_response = array(
 					array(
 						'level'   => 'error',
 						'message' => 'Content Staging plugin not activated on host <strong>' . $this->server . '</strong>',
@@ -59,8 +56,8 @@ class Client {
 				return;
 			}
 
-			if ( strpos( $this->wp_http_ixr_client->getErrorMessage(), 'Could not resolve host' ) !== false ) {
-				$this->response = array(
+			if ( strpos( $this->getErrorMessage(), 'Could not resolve host' ) !== false ) {
+				$this->filtered_response = array(
 					array(
 						'level'   => 'error',
 						'message' => 'Could not connect to host <strong>' . $this->server . '</strong>',
@@ -69,17 +66,17 @@ class Client {
 				return;
 			}
 
-			$this->response = array(
+			$this->filtered_response = array(
 				array(
 					'level'   => 'error',
-					'message' => $this->wp_http_ixr_client->getErrorMessage() . ' - on host: ' . $this->server . ' (error code ' . $this->wp_http_ixr_client->getErrorCode() . ')',
+					'message' => $this->getErrorMessage() . ' - on host: ' . $this->server . ' (error code ' . $this->getErrorCode() . ')',
 				)
 			);
 
 		} else {
 
 			// Get the XML-RPC response data.
-			$this->response = unserialize( $this->decode( $this->wp_http_ixr_client->getResponse() ) );
+			$this->filtered_response = unserialize( $this->decode( $this->getResponse() ) );
 		}
 	}
 
@@ -133,7 +130,7 @@ class Client {
 		}
 
 		// Get the request data.
-		$this->request = unserialize( $this->decode( $data ) );
+		$this->filtered_request = unserialize( $this->decode( $data ) );
 	}
 
 	/**
@@ -142,14 +139,14 @@ class Client {
 	 * @return mixed.
 	 */
 	public function get_request_data() {
-		return $this->request;
+		return $this->filtered_request;
 	}
 
 	/**
 	 * Return the response data.
 	 */
 	public function get_response_data() {
-		return $this->response;
+		return $this->filtered_response;
 	}
 
 	/**

@@ -493,7 +493,7 @@ class Batch_Ctrl {
 			'batch'  => $batch,
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.import', $request );
+		$this->xmlrpc_client->request( 'smeContentStaging.import', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		/*
@@ -552,7 +552,7 @@ class Batch_Ctrl {
 			'job_id' => intval( $_POST['job_id'] ),
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.importStatus', $request );
+		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		if ( isset( $response['status'] ) && $response['status'] > 1 ) {
@@ -702,7 +702,7 @@ class Batch_Ctrl {
 			'batch' => $job->get_batch(),
 		);
 
-		$this->xmlrpc_client->query( 'smeContentStaging.verify', $request );
+		$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
 		$messages = $this->xmlrpc_client->get_response_data();
 
 		foreach ( $messages as $message ) {
