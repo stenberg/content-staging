@@ -33,6 +33,9 @@ class Client {
 			$data
 		);
 
+		// Allow custom headers.
+		$this->headers = apply_filters( 'sme_client_headers', array() );
+
 		// Disable SSL verification (based on user settings).
 		$this->disable_ssl_verification();
 
