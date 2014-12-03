@@ -208,9 +208,6 @@ abstract class Batch_Importer {
 
 		// Notify listeners that post has been imported.
 		do_action( 'sme_post_imported', $post, $this->job );
-
-		// Update import job.
-		$this->import_job_dao->update_job( $this->job );
 	}
 
 	/**

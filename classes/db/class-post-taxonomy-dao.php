@@ -9,13 +9,11 @@ use Me\Stenberg\Content\Staging\Models\Taxonomy;
 
 class Post_Taxonomy_DAO extends DAO {
 
-	private $table;
 	private $post_dao;
 	private $taxonomy_dao;
 
 	public function __construct( $wpdb ) {
-		parent::__constuct( $wpdb );
-		$this->table        = $wpdb->term_relationships;
+		parent::__construct( $wpdb );
 		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Taxonomy' );
 	}
@@ -29,7 +27,7 @@ class Post_Taxonomy_DAO extends DAO {
 	 */
 	public function has_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
 		$query = $this->wpdb->prepare(
-			'SELECT COUNT(*) FROM ' . $this->table . ' WHERE object_id = %d AND term_taxonomy_id = %d',
+			'SELECT COUNT(*) FROM ' . $this->get_table() . ' WHERE object_id = %d AND term_taxonomy_id = %d',
 			$post_taxonomy->get_post()->get_id(),
 			$post_taxonomy->get_taxonomy()->get_id()
 		);
@@ -48,7 +46,7 @@ class Post_Taxonomy_DAO extends DAO {
 	 */
 	public function get_post_taxonomy_relationships( Post $post ) {
 		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->table . ' WHERE object_id = %d',
+			'SELECT * FROM ' . $this->get_table() . ' WHERE object_id = %d',
 			$post->get_id()
 		);
 
@@ -79,7 +77,7 @@ class Post_Taxonomy_DAO extends DAO {
 	 * @return string
 	 */
 	protected function get_table() {
-		return $this->table;
+		return $this->wpdb->term_relationships;
 	}
 
 	/**
@@ -118,7 +116,7 @@ class Post_Taxonomy_DAO extends DAO {
 	protected function do_insert( Model $obj ) {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
+		$this->wpdb->insert( $this->get_table(), $data, $format );
 	}
 
 	/**

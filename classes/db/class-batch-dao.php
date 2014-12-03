@@ -7,12 +7,10 @@ use Me\Stenberg\Content\Staging\Models\Model;
 
 class Batch_DAO extends DAO {
 
-	private $table;
 	private $user_dao;
 
 	public function __construct( $wpdb ) {
-		parent::__constuct( $wpdb );
-		$this->table    = $wpdb->posts;
+		parent::__construct( $wpdb );
 		$this->user_dao = Helper_Factory::get_instance()->get_dao( 'User' );
 	}
 
@@ -143,7 +141,7 @@ class Batch_DAO extends DAO {
 	 * @return string
 	 */
 	protected function get_table() {
-		return $this->table;
+		return $this->wpdb->posts;
 	}
 
 	/**
@@ -165,7 +163,7 @@ class Batch_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE ID = %d';
 	}
 
 	/**
@@ -174,7 +172,7 @@ class Batch_DAO extends DAO {
 	 */
 	protected function select_by_ids_stmt( array $ids ) {
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-		return 'SELECT * FROM ' . $this->table . ' WHERE ID in (' . $placeholders . ')';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE ID in (' . $placeholders . ')';
 	}
 
 	/**
@@ -191,7 +189,7 @@ class Batch_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 
-		$this->wpdb->insert( $this->table, $data, $format );
+		$this->wpdb->insert( $this->get_table(), $data, $format );
 		$obj->set_id( $this->wpdb->insert_id );
 
 		$name = wp_unique_post_slug(

@@ -6,11 +6,8 @@ use Me\Stenberg\Content\Staging\Models\User;
 
 class User_DAO extends DAO {
 
-	private $table;
-
 	public function __construct( $wpdb ) {
-		parent::__constuct( $wpdb );
-		$this->table = $wpdb->users;
+		parent::__construct( $wpdb );
 	}
 
 	/**
@@ -19,7 +16,7 @@ class User_DAO extends DAO {
 	 */
 	public function get_user_by_user_login( $user_login ) {
 		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->table . ' WHERE user_login = %s',
+			'SELECT * FROM ' . $this->get_table() . ' WHERE user_login = %s',
 			$user_login
 		);
 
@@ -159,7 +156,7 @@ class User_DAO extends DAO {
 	 * @return string
 	 */
 	protected function get_table() {
-		return $this->table;
+		return $this->wpdb->users;
 	}
 
 	/**
@@ -181,7 +178,7 @@ class User_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE ID = %d';
 	}
 
 	/**
@@ -190,7 +187,7 @@ class User_DAO extends DAO {
 	 */
 	protected function select_by_ids_stmt( array $ids ) {
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-		return 'SELECT * FROM ' . $this->table . ' WHERE ID in (' . $placeholders . ')';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE ID in (' . $placeholders . ')';
 	}
 
 	/**
@@ -200,7 +197,7 @@ class User_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 
-		$this->wpdb->insert( $this->table, $data, $format );
+		$this->wpdb->insert( $this->get_table(), $data, $format );
 		$obj->set_id( $this->wpdb->insert_id );
 		$this->insert_all_user_meta( $obj );
 	}

@@ -8,11 +8,8 @@ use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 
 class Post_DAO extends DAO {
 
-	private $table;
-
 	public function __construct( $wpdb ) {
-		parent::__constuct( $wpdb );
-		$this->table = $wpdb->posts;
+		parent::__construct( $wpdb );
 	}
 
 	/**
@@ -182,7 +179,7 @@ class Post_DAO extends DAO {
 		if ( $ids ) {
 			$this->wpdb->query(
 				$this->wpdb->prepare(
-					'UPDATE ' . $this->table . ' SET post_status = %s WHERE ID in (' . $ids . ')',
+					'UPDATE ' . $this->get_table() . ' SET post_status = %s WHERE ID in (' . $ids . ')',
 					$status
 				)
 			);
@@ -270,7 +267,7 @@ class Post_DAO extends DAO {
 	 * @return string
 	 */
 	protected function get_table() {
-		return $this->table;
+		return $this->wpdb->posts;
 	}
 
 	/**
@@ -292,7 +289,7 @@ class Post_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return 'SELECT * FROM ' . $this->table . ' WHERE ID = %d';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE ID = %d';
 	}
 
 	/**
@@ -301,7 +298,7 @@ class Post_DAO extends DAO {
 	 */
 	protected function select_by_ids_stmt( array $ids ) {
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-		return 'SELECT * FROM ' . $this->table . ' WHERE ID in (' . $placeholders . ')';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE ID in (' . $placeholders . ')';
 	}
 
 	/**
@@ -310,7 +307,7 @@ class Post_DAO extends DAO {
 	protected function do_insert( Model $obj ) {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
+		$this->wpdb->insert( $this->get_table(), $data, $format );
 		$obj->set_id( $this->wpdb->insert_id );
 	}
 

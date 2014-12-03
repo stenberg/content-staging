@@ -7,12 +7,10 @@ use Me\Stenberg\Content\Staging\Models\Taxonomy;
 
 class Taxonomy_DAO extends DAO {
 
-	private $table;
 	private $term_dao;
 
 	public function __construct( $wpdb ) {
-		parent::__constuct( $wpdb );
-		$this->table    = $wpdb->term_taxonomy;
+		parent::__construct( $wpdb );
 		$this->term_dao = Helper_Factory::get_instance()->get_dao( 'Term' );
 	}
 
@@ -25,7 +23,7 @@ class Taxonomy_DAO extends DAO {
 	 */
 	public function get_taxonomy_by_term_id_taxonomy( $term_id, $taxonomy ) {
 		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->table . ' WHERE term_id = %d AND taxonomy = %s',
+			'SELECT * FROM ' . $this->get_table() . ' WHERE term_id = %d AND taxonomy = %s',
 			$term_id,
 			$taxonomy
 		);
@@ -51,7 +49,7 @@ class Taxonomy_DAO extends DAO {
 	public function get_taxonomy_id_by_taxonomy( Taxonomy $taxonomy ) {
 
 		$query = $this->wpdb->prepare(
-			'SELECT term_taxonomy_id FROM ' . $this->table . ' WHERE term_id = %d AND taxonomy = %s',
+			'SELECT term_taxonomy_id FROM ' . $this->get_table() . ' WHERE term_id = %d AND taxonomy = %s',
 			$taxonomy->get_term()->get_id(),
 			$taxonomy->get_taxonomy()
 		);
@@ -81,7 +79,7 @@ class Taxonomy_DAO extends DAO {
 	 * @return string
 	 */
 	protected function get_table() {
-		return $this->table;
+		return $this->wpdb->term_taxonomy;
 	}
 
 	/**
@@ -103,7 +101,7 @@ class Taxonomy_DAO extends DAO {
 	 * @return string
 	 */
 	protected function select_stmt() {
-		return 'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id = %d';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE term_taxonomy_id = %d';
 	}
 
 	/**
@@ -112,7 +110,7 @@ class Taxonomy_DAO extends DAO {
 	 */
 	protected function select_by_ids_stmt( array $ids ) {
 		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
-		return 'SELECT * FROM ' . $this->table . ' WHERE term_taxonomy_id in (' . $placeholders . ')';
+		return 'SELECT * FROM ' . $this->get_table() . ' WHERE term_taxonomy_id in (' . $placeholders . ')';
 	}
 
 	/**
@@ -121,7 +119,7 @@ class Taxonomy_DAO extends DAO {
 	protected function do_insert( Model $obj ) {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
-		$this->wpdb->insert( $this->table, $data, $format );
+		$this->wpdb->insert( $this->get_table(), $data, $format );
 		$obj->set_id( $this->wpdb->insert_id );
 		$this->update_term_hierarchy( $obj );
 	}

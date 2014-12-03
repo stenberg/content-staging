@@ -6,11 +6,8 @@ use Me\Stenberg\Content\Staging\Models\Post;
 
 class Postmeta_DAO extends DAO {
 
-	private $table;
-
 	public function __construct( $wpdb ) {
-		parent::__constuct( $wpdb );
-		$this->table = $wpdb->postmeta;
+		parent::__construct( $wpdb );
 	}
 
 	/**
@@ -53,7 +50,7 @@ class Postmeta_DAO extends DAO {
 
 		$this->wpdb->query(
 			$this->wpdb->prepare(
-				'INSERT INTO ' . $this->table . ' (post_id, meta_key, meta_value) VALUES ' . $format,
+				'INSERT INTO ' . $this->get_table() . ' (post_id, meta_key, meta_value) VALUES ' . $format,
 				$values
 			)
 		);
@@ -104,7 +101,7 @@ class Postmeta_DAO extends DAO {
 	 * @return string
 	 */
 	protected function get_table() {
-		return $this->table;
+		return $this->wpdb->postmeta;
 	}
 
 	protected function target_class() {}

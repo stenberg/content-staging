@@ -8,7 +8,7 @@ abstract class DAO {
 
 	protected $wpdb;
 
-	protected function __constuct( $wpdb ) {
+	protected function __construct( $wpdb ) {
 		$this->wpdb = $wpdb;
 	}
 
