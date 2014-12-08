@@ -1,15 +1,25 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Listeners;
 
+use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Post;
 
 class Import_Message_Listener {
 
 	/**
+	 * @var Post_DAO
+	 */
+	private $post_dao;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
+
+		// Data access objects.
+		$this->post_dao = Helper_Factory::get_instance()->get_dao( 'Post' );
 
 		// Register listeners.
 		add_action( 'sme_verify_batch_parent_post_missing', array( $this, 'verify_batch_parent_post_missing' ), 10, 2 );
@@ -159,17 +169,20 @@ class Import_Message_Listener {
 		$links  = array();
 		$output = '';
 
-		foreach ( $job->get_batch()->get_posts() as $post ) {
+		// Get diffs from database.
+		$diffs = $this->post_dao->get_post_diffs( $job );
+
+		foreach ( $diffs as $post ) {
 			$links[] = array(
-				'link' => get_permalink( $post->get_id() ),
-				'post' => $post,
+				'link'  => get_permalink( $post->get_prod_id() ),
+				'title' => get_the_title( $post->get_prod_id() ),
 			);
 		}
 
 		$links = apply_filters( 'sme_imported_post_links', $links );
 
 		foreach ( $links as $link ) {
-			$output .= '<li><a href="' . $link['link'] . '" target="_blank">' . $link['post']->get_title() . '</a></li>';
+			$output .= '<li><a href="' . $link['link'] . '" target="_blank">' . $link['title'] . '</a></li>';
 		}
 
 		if ( $output !== '' ) {
