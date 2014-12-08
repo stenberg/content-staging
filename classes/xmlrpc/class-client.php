@@ -30,6 +30,9 @@ class Client extends WP_HTTP_IXR_Client {
 			$data
 		);
 
+		// Allow custom path to send XML-RPC request to.
+		$this->path = apply_filters( 'sme_xmlrpc_path', $this->path );
+
 		// Allow custom headers.
 		$this->headers = apply_filters( 'sme_client_headers', array() );
 
