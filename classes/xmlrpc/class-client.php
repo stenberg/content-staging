@@ -9,9 +9,13 @@ class Client extends WP_HTTP_IXR_Client {
 	private $filtered_request;
 	private $filtered_response;
 
-	public function __construct( $server, $secret_key ) {
-		parent::__construct( trailingslashit( $server ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
-		$this->secret_key = $secret_key;
+	public function __construct() {
+
+		// Set endpoint.
+		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
+
+		parent::__construct( trailingslashit( $endpoint ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
+		$this->secret_key = CONTENT_STAGING_SECRET_KEY;
 	}
 
 	/**

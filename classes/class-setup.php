@@ -6,13 +6,11 @@ use Me\Stenberg\Content\Staging\XMLRPC\Client;
 class Setup {
 
 	private $router;
-	private $xmlrpc_client;
 	private $plugin_url;
 
-	public function __construct( Router $router, Client $xmlrpc_client, $plugin_url ) {
-		$this->router        = $router;
-		$this->xmlrpc_client = $xmlrpc_client;
-		$this->plugin_url    = $plugin_url;
+	public function __construct( Router $router, $plugin_url ) {
+		$this->router     = $router;
+		$this->plugin_url = $plugin_url;
 	}
 
 	/**

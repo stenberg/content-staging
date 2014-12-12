@@ -1,8 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
+use Me\Stenberg\Content\Staging\API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
-use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
@@ -16,6 +16,7 @@ use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 class Batch_Ctrl {
 
+	private $api;
 	private $template;
 	private $batch_mgr;
 	private $xmlrpc_client;
@@ -39,15 +40,16 @@ class Batch_Ctrl {
 	/**
 	 * Constructor.
 	 *
+	 * @param API $api
 	 * @param Template $template
-	 * @param Client $xmlrpc_client
 	 * @param Batch_Importer_Factory $importer_factory
 	 */
-	public function __construct( Template $template, Client $xmlrpc_client, Batch_Importer_Factory $importer_factory ) {
+	public function __construct( API $api, Template $template, Batch_Importer_Factory $importer_factory ) {
+		$this->api                  = $api;
 		$this->template             = $template;
 		$this->batch_mgr            = new Batch_Mgr();
-		$this->xmlrpc_client        = $xmlrpc_client;
 		$this->importer_factory     = $importer_factory;
+		$this->xmlrpc_client        = Helper_Factory::get_instance()->get_client();
 		$this->batch_import_job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
 		$this->batch_dao            = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao             = Helper_Factory::get_instance()->get_dao( 'Post' );
@@ -474,27 +476,8 @@ class Batch_Ctrl {
 
 		$batch = unserialize( base64_decode( $batch->get_content() ) );
 
-		/*
-		 * Give third-party developers the option to import images before batch
-		 * is sent to production.
-		 */
-		do_action( 'sme_deploy_custom_attachment_importer', $batch->get_attachments(), $batch );
-
-		/*
-		 * Make it possible for third-party developers to alter the list of
-		 * attachments to deploy.
-		 */
-		$batch->set_attachments(
-			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
-		);
-
-		// Start building request to send to production.
-		$request = array(
-			'batch'  => $batch,
-		);
-
-		$this->xmlrpc_client->request( 'smeContentStaging.import', $request );
-		$response = $this->xmlrpc_client->get_response_data();
+		// Deploy the batch.
+		$response = $this->api->deploy( $batch );
 
 		/*
 		 * Batch has been deployed and should no longer be accessible by user,

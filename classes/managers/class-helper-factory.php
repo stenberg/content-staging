@@ -7,6 +7,7 @@ class Helper_Factory {
 
 	private $wpdb;
 	private $mappers = array();
+	private $clients = array();
 	private static $instance;
 
 	private function __construct( $wpdb ) {
@@ -31,6 +32,15 @@ class Helper_Factory {
 		}
 		$this->mappers[$mapper] = new $mapper( $this->wpdb );
 		return $this->mappers[$mapper];
+	}
+
+	public function get_client() {
+		$client = 'Me\Stenberg\Content\Staging\XMLRPC\Client';
+		if ( ! class_exists( $client ) ) {
+			throw new Exception( 'Class ' . $client . ' not found' );
+		}
+		$this->clients[$client] = new $client( $this->wpdb );
+		return $this->clients[$client];
 	}
 
 }

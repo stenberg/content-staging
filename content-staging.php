@@ -105,7 +105,7 @@ class Content_Staging {
 	 */
 	public static function init() {
 
-		global $sme_content_staging_api;
+		global $api;
 
 		// Determine plugin URL and plugin path of this plugin.
 		$plugin_path = dirname( __FILE__ );
@@ -122,24 +122,18 @@ class Content_Staging {
 			closedir( $handle );
 		}
 
-		// Set endpoint.
-		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
-
-		// XML-RPC client.
-		$client = new Client( $endpoint, CONTENT_STAGING_SECRET_KEY );
-
 		// Managers / Factories.
 		$importer_factory = new Batch_Importer_Factory();
 
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
-		// Controllers.
-		$batch_ctrl         = new Batch_Ctrl( $template, $client, $importer_factory );
-		$batch_history_ctrl = new Batch_History_Ctrl( $template );
+		// API.
+		$api = new API();
 
-		// APIs.
-		$sme_content_staging_api = new API();
+		// Controllers.
+		$batch_ctrl         = new Batch_Ctrl( $api, $template, $importer_factory );
+		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 
 		// Direct requests to the correct entry point.
 		$router = new Router( $batch_ctrl, $batch_history_ctrl );
@@ -148,7 +142,7 @@ class Content_Staging {
 		$import_messages = new Import_Message_Listener();
 
 		// Plugin setup.
-		$setup = new Setup( $router, $client, $plugin_url );
+		$setup = new Setup( $router, $plugin_url );
 
 		// Actions.
 		add_action( 'init', array( $setup, 'register_post_types' ) );
