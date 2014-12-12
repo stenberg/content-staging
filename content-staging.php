@@ -128,11 +128,16 @@ class Content_Staging {
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
-		// API.
-		$api = new API();
+		/*
+		 * Content Staging API.
+		 * Important! Do not change the name of this variable! It is used as a
+		 * global in the helpers.php scripts so third-party developers have a
+		 * way of working with the plugin using functions instead of classes.
+		 */
+		$sme_content_staging_api = new API();
 
 		// Controllers.
-		$batch_ctrl         = new Batch_Ctrl( $api, $template, $importer_factory );
+		$batch_ctrl         = new Batch_Ctrl( $sme_content_staging_api, $template, $importer_factory );
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 
 		// Direct requests to the correct entry point.
