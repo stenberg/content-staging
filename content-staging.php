@@ -105,7 +105,7 @@ class Content_Staging {
 	 */
 	public static function init() {
 
-		global $api;
+		global $sme_content_staging_api;
 
 		// Determine plugin URL and plugin path of this plugin.
 		$plugin_path = dirname( __FILE__ );
