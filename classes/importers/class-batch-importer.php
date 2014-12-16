@@ -180,25 +180,38 @@ abstract class Batch_Importer {
 		}
 
 		/*
-		 * Check if post already exist on production, if it does then add the old
-		 * production post ID to the diff and update the GUID to indicate that
-		 * this post will now be a revision.
+		 * Check if post already exist on production, if it does then update the
+		 * old version of the post rather then creating a new post.
 		 */
 		if ( ( $prod_revision = $this->post_dao->get_by_guid( $post->get_guid() ) ) !== null ) {
-			$post_diff->set_revision_id( $prod_revision->get_id() );
-			$this->post_dao->update_guid( $prod_revision->get_id(), $prod_revision->get_guid() . '-rev' );
-		}
 
-		// Turn published posts into drafts for now.
-		if ( $post->get_post_status() == 'publish' ) {
-			$post->set_post_status( 'draft' );
-		}
+			/*
+			 * This is an existing post.
+			 */
 
-		// Insert post.
-		$this->post_dao->insert( $post );
+			$post_diff->set_prod_id( $prod_revision->get_id() );
+			$post->set_id( $prod_revision->get_id() );
+			$this->post_dao->update_post( $post );
+
+		} else {
+
+			/*
+			 * This is a new post.
+			 */
+
+			// Turn published posts into drafts for now.
+			if ( $post->get_post_status() == 'publish' ) {
+				$post->set_post_status( 'draft' );
+			}
+
+			// Insert post.
+			$this->post_dao->insert( $post );
+
+			// Store new production ID in diff.
+			$post_diff->set_prod_id( $post->get_id() );
+		}
 
 		// Add post diff to array of post diffs.
-		$post_diff->set_prod_id( $post->get_id() );
 		$this->add_post_diff( $post_diff );
 
 		// Import post/taxonomy relationships.
@@ -264,7 +277,7 @@ abstract class Batch_Importer {
 			$meta[$i]['post_id'] = $this->post_diffs[$meta[$i]['post_id']]->get_prod_id();
 		}
 
-		$this->postmeta_dao->insert_post_meta( $meta );
+		$this->postmeta_dao->update_postmeta_by_post( $post->get_id(), $meta );
 	}
 
 	/**
@@ -326,11 +339,27 @@ abstract class Batch_Importer {
 	 * @param Post_Taxonomy $post_taxonomy
 	 */
 	public function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
+
 		// Import taxonomy.
 		$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
 
-		// Import relationship between post and taxonomy.
-		$this->post_taxonomy_dao->insert( $post_taxonomy );
+		/*
+		 * Check if a relationship between a post and a taxonomy exists on
+		 * production.
+		 */
+		$has_relationship = $this->post_taxonomy_dao->has_post_taxonomy_relationship( $post_taxonomy );
+
+		// Check if this is a new term-taxonomy.
+		if ( ! $has_relationship ) {
+			/*
+			 * This post/taxonomy relationship does not exist on production,
+			 * create it.
+			 */
+			$this->post_taxonomy_dao->insert( $post_taxonomy );
+		} else {
+			// This post/taxonomy relationship exists on production, update it.
+			$this->post_taxonomy_dao->update_post_taxonomy( $post_taxonomy );
+		}
 	}
 
 	/**
