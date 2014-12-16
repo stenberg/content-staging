@@ -323,30 +323,26 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$batch = $this->api->prepare_batch( $_GET['id'] );
 
-		/*
-		 * Make sure to get rid of any old messages generated during pre-flight
-		 * of this batch.
-		 */
-		$this->api->delete_messages( $batch->get_id() );
-
-		/*
-		 * Let third party developers perform actions before pre-flight. This is
-		 * most often where third-party developers would add custom data.
-		 */
-		do_action( 'sme_prepare', $batch );
-
-		// Get messages related to this batch.
-		$messages = $this->api->get_messages( $batch->get_id() );
-
 		// Send batch to production for verification.
-		if ( ! $this->error_message_exists( $messages ) ) {
+		if ( $this->api->is_valid_batch( $batch->get_id() ) ) {
 
 			$request = array(
 				'batch' => $batch,
 			);
 
 			$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
-			$messages = array_merge( $messages, $this->xmlrpc_client->get_response_data() );
+			$messages = $this->xmlrpc_client->get_response_data();
+
+			foreach ( $messages as $message ) {
+				if ( $message['level'] == 'error' ) {
+
+					// Mark batch invalid.
+					$this->api->set_batch_status( $batch->get_id(), false );
+				}
+
+				// Save message.
+				$this->api->add_message( $message['message'], $message['level'], $batch->get_id() );
+			}
 		}
 
 		/*
@@ -356,7 +352,7 @@ class Batch_Ctrl {
 		do_action( 'sme_prepared', $batch );
 
 		// Add batch data to database if pre-flight was successful.
-		if ( ! $this->error_message_exists( $messages ) ) {
+		if ( $this->api->is_valid_batch( $batch->get_id() ) ) {
 			$this->api->add_message( 'Pre-flight successful!', 'success', $batch->get_id() );
 			$this->batch_dao->update_batch( $batch );
 		}
@@ -365,7 +361,7 @@ class Batch_Ctrl {
 		$data = array(
 			'batch'      => $batch,
 			'messages'   => $this->api->get_messages( $batch->get_id() ),
-			'is_success' => ! $this->error_message_exists( $messages ),
+			'is_success' => $this->api->is_valid_batch( $batch->get_id() ),
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -775,22 +771,6 @@ class Batch_Ctrl {
 
 		if ( $code == 200 ) {
 			return true;
-		}
-
-		return false;
-	}
-
-	/**
-	 * Check array for error messages.
-	 *
-	 * @param array $messages
-	 * @return bool
-	 */
-	private function error_message_exists( array $messages ) {
-		foreach ( $messages as $message ) {
-			if ( $message['level'] == 'error' ) {
-				return true;
-			}
 		}
 
 		return false;

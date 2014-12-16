@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Apis;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Post;
 
 class Common_API {
 
@@ -17,9 +18,9 @@ class Common_API {
 		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
 	}
 
-	/* ----------------------------------------------------------------------
-	 * Common
-	 * ----------------------------------------------------------------------/
+	/* **********************************************************************
+	 * Common API
+	 * **********************************************************************/
 
 	/**
 	 * Find post by GUID.
@@ -31,9 +32,9 @@ class Common_API {
 		return $this->post_dao->get_by_guid( $guid );
 	}
 
-	/* ----------------------------------------------------------------------
+	/* **********************************************************************
 	 * Batch API
-	 * ----------------------------------------------------------------------/
+	 * **********************************************************************/
 
 	/**
 	 * Prepare a batch.
@@ -56,6 +57,18 @@ class Common_API {
 		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
+
+		/*
+		 * Make sure to get rid of any old messages generated during pre-flight
+		 * of this batch.
+		 */
+		$this->delete_messages( $batch->get_id() );
+
+		/*
+		 * Let third party developers perform actions before pre-flight. This is
+		 * most often where third-party developers would add custom data.
+		 */
+		do_action( 'sme_prepare', $batch );
 
 		return $batch;
 	}
@@ -91,9 +104,37 @@ class Common_API {
 		return $this->client->get_response_data();
 	}
 
-	/* ----------------------------------------------------------------------
+	/* **********************************************************************
+	 * Status API
+	 * **********************************************************************/
+
+	/**
+	 * Set status for a batch.
+	 *
+	 * @param int $batch_id
+	 * @param bool
+	 */
+	public function set_batch_status( $batch_id, $status ) {
+		update_post_meta( $batch_id, '_sme_batch_status', intval( $status ) );
+	}
+
+	/**
+	 * Get status for a batch.
+	 *
+	 * @param $batch_id
+	 * @return bool
+	 */
+	public function is_valid_batch( $batch_id ) {
+		$status = get_post_meta( $batch_id, '_sme_batch_status', true );
+		if ( ! $status || $status == 1 ) {
+			return true;
+		}
+		return false;
+	}
+
+	/* **********************************************************************
 	 * Message API
-	 * ----------------------------------------------------------------------/
+	 * **********************************************************************/
 
 	/**
 	 * Add a message.
@@ -191,4 +232,5 @@ class Common_API {
 
 		return $key;
 	}
+
 }
