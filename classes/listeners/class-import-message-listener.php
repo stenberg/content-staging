@@ -23,7 +23,6 @@ class Import_Message_Listener {
 
 		// Register listeners.
 		add_action( 'sme_verify_batch_parent_post_missing', array( $this, 'verify_batch_parent_post_missing' ), 10, 2 );
-		add_action( 'sme_prepared', array( $this, 'prepared' ) );
 		add_action( 'sme_import', array( $this, 'import' ) );
 		add_action( 'sme_batch_import_job_creation_failure', array( $this, 'batch_import_job_creation_failure' ) );
 		add_action( 'sme_batch_import_job_created', array( $this, 'batch_import_job_created' ) );
@@ -52,17 +51,6 @@ class Import_Message_Listener {
 			'error',
 			$job
 		);
-	}
-
-	/**
-	 * Batch prepared.
-	 *
-	 * @param Batch_Import_Job $job
-	 */
-	public function prepared( Batch_Import_Job $job ) {
-		if ( $job->get_status() !== 2 ) {
-			$this->add_message( 'Pre-flight successful!', 'success', $job );
-		}
 	}
 
 	/**

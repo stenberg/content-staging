@@ -1,7 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
-use Me\Stenberg\Content\Staging\API;
+use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
@@ -12,15 +12,18 @@ use Me\Stenberg\Content\Staging\View\Batch_Table;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\View\Post_Table;
 use Me\Stenberg\Content\Staging\View\Template;
-use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 class Batch_Ctrl {
 
-	private $api;
 	private $template;
 	private $batch_mgr;
 	private $xmlrpc_client;
 	private $importer_factory;
+
+	/**
+	 * @var Common_API
+	 */
+	private $api;
 
 	/**
 	 * @var Batch_Import_Job
@@ -40,15 +43,14 @@ class Batch_Ctrl {
 	/**
 	 * Constructor.
 	 *
-	 * @param API $api
 	 * @param Template $template
 	 * @param Batch_Importer_Factory $importer_factory
 	 */
-	public function __construct( API $api, Template $template, Batch_Importer_Factory $importer_factory ) {
-		$this->api                  = $api;
+	public function __construct( Template $template, Batch_Importer_Factory $importer_factory ) {
 		$this->template             = $template;
 		$this->batch_mgr            = new Batch_Mgr();
 		$this->importer_factory     = $importer_factory;
+		$this->api                  = Helper_Factory::get_instance()->get_api( 'Common' );
 		$this->xmlrpc_client        = Helper_Factory::get_instance()->get_client();
 		$this->batch_import_job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
 		$this->batch_dao            = Helper_Factory::get_instance()->get_dao( 'Batch' );
@@ -310,55 +312,60 @@ class Batch_Ctrl {
 	 * trouble when user later on deploys the batch.
 	 *
 	 * Display any pre-flight messages that is returned by production.
-	 *
-	 * @param Batch $batch
 	 */
-	public function prepare( $batch = null ) {
+	public function prepare() {
 
 		// Make sure a query param ID exists in current URL.
-		if ( ! isset( $_GET['id'] ) && ! $batch ) {
+		if ( ! isset( $_GET['id'] ) ) {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
-		if ( ! $batch ) {
-			$batch = $this->batch_mgr->get_batch( $_GET['id'] );
-		}
+		// Populate batch with actual data.
+		$batch = $this->api->prepare_batch( $_GET['id'] );
 
-		// Let third-party developers filter batch data.
-		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );
-		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
-		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
-
-		$job = new Batch_Import_Job();
-		$job->set_batch( $batch );
+		/*
+		 * Make sure to get rid of any old messages generated during pre-flight
+		 * of this batch.
+		 */
+		$this->api->delete_messages( $batch->get_id() );
 
 		/*
 		 * Let third party developers perform actions before pre-flight. This is
-		 * most often when users would add custom data.
+		 * most often where third-party developers would add custom data.
 		 */
-		do_action( 'sme_prepare', $job );
+		do_action( 'sme_prepare', $batch );
+
+		// Get messages related to this batch.
+		$messages = $this->api->get_messages( $batch->get_id() );
 
 		// Send batch to production for verification.
-		if ( $job->get_status() !== 2 ) {
-			$this->send_verification_request( $job );
+		if ( ! $this->error_message_exists( $messages ) ) {
+
+			$request = array(
+				'batch' => $batch,
+			);
+
+			$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
+			$messages = array_merge( $messages, $this->xmlrpc_client->get_response_data() );
 		}
 
 		/*
 		 * Let third party developers perform actions after pre-flight has
 		 * completed.
 		 */
-		do_action( 'sme_prepared', $job );
+		do_action( 'sme_prepared', $batch );
 
 		// Add batch data to database if pre-flight was successful.
-		if ( $job->get_status() !== 2 ) {
-			$this->batch_dao->update_batch( $job->get_batch() );
+		if ( ! $this->error_message_exists( $messages ) ) {
+			$this->api->add_message( 'Pre-flight successful!', 'success', $batch->get_id() );
+			$this->batch_dao->update_batch( $batch );
 		}
 
 		// Prepare data we want to pass to view.
 		$data = array(
-			'batch'      => $job->get_batch(),
-			'messages'   => $job->get_messages(),
-			'is_success' => ( $job->get_status() !== 2 ),
+			'batch'      => $batch,
+			'messages'   => $this->api->get_messages( $batch->get_id() ),
+			'is_success' => ! $this->error_message_exists( $messages ),
 		);
 
 		$this->template->render( 'preflight-batch', $data );
@@ -674,29 +681,6 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Send a batch to production for verification. Batch is checked for
-	 * potential issues on production and messages that can be displayed to
-	 * the user is returned to content stage.
-	 *
-	 * @param Batch_Import_Job $job
-	 */
-	private function send_verification_request( Batch_Import_Job $job ) {
-		$request = array(
-			'batch' => $job->get_batch(),
-		);
-
-		$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
-		$messages = $this->xmlrpc_client->get_response_data();
-
-		foreach ( $messages as $message ) {
-			if ( $message['level'] == 'error' ) {
-				$job->set_status( 2 );
-			}
-			$job->add_message( $message['message'], $message['level'] );
-		}
-	}
-
-	/**
 	 * Checks running on content stage before a batch is sent to production
 	 * for verification.
 	 *
@@ -791,6 +775,22 @@ class Batch_Ctrl {
 
 		if ( $code == 200 ) {
 			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check array for error messages.
+	 *
+	 * @param array $messages
+	 * @return bool
+	 */
+	private function error_message_exists( array $messages ) {
+		foreach ( $messages as $message ) {
+			if ( $message['level'] == 'error' ) {
+				return true;
+			}
 		}
 
 		return false;

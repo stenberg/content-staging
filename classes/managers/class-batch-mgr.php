@@ -60,6 +60,8 @@ class Batch_Mgr {
 	 */
 	public function get_batch( $id = null, $lazy = false ) {
 
+		$post_ids = array();
+
 		// This is a new batch, no need to populate the batch with any content.
 		if ( $id === null ) {
 			$batch = new Batch();
@@ -74,7 +76,12 @@ class Batch_Mgr {
 		if ( ! $lazy ) {
 
 			// Get IDs of posts user has selected to include in this batch.
-			$post_ids = $this->batch_dao->get_post_meta( $this->batch->get_id(), 'sme_selected_post_ids', true );
+			$meta = $this->batch_dao->get_post_meta( $this->batch->get_id(), 'sme_selected_post_ids', true );
+
+			// Ensure that we got an array back when looking for posts IDs in DB.
+			if ( is_array( $meta ) ) {
+				$post_ids = $meta;
+			}
 
 			$this->add_posts( $post_ids );
 			$this->add_users();

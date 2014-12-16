@@ -30,6 +30,7 @@
 require_once( ABSPATH . WPINC . '/class-IXR.php' );
 require_once( ABSPATH . WPINC . '/class-wp-http-ixr-client.php' );
 require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
+require_once( 'classes/apis/class-common-api.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/controllers/class-batch-history-ctrl.php' );
 require_once( 'classes/db/class-dao.php' );
@@ -62,7 +63,6 @@ require_once( 'classes/view/class-batch-table.php' );
 require_once( 'classes/view/class-batch-history-table.php' );
 require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
-require_once( 'classes/class-api.php' );
 require_once( 'classes/class-background-process.php' );
 require_once( 'classes/class-object-watcher.php' );
 require_once( 'classes/class-router.php' );
@@ -73,15 +73,14 @@ require_once( 'functions/helpers.php' );
 /*
  * Import classes.
  */
-use Me\Stenberg\Content\Staging\API;
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Router;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
-use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
  * Class Content_Staging
@@ -130,14 +129,15 @@ class Content_Staging {
 
 		/*
 		 * Content Staging API.
+		 *
 		 * Important! Do not change the name of this variable! It is used as a
 		 * global in the helpers.php scripts so third-party developers have a
 		 * way of working with the plugin using functions instead of classes.
 		 */
-		$sme_content_staging_api = new API();
+		$sme_content_staging_api = Helper_Factory::get_instance()->get_api( 'Common' );
 
 		// Controllers.
-		$batch_ctrl         = new Batch_Ctrl( $sme_content_staging_api, $template, $importer_factory );
+		$batch_ctrl         = new Batch_Ctrl( $template, $importer_factory );
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 
 		// Direct requests to the correct entry point.
