@@ -269,7 +269,7 @@ abstract class Batch_Importer {
 				 * relationship to.
 				 */
 				if ( isset( $this->post_diffs[$meta[$i]['meta_value']] ) ) {
-					$meta[$i]['meta_value'] = $prod_id;
+					$meta[$i]['meta_value'] = $this->post_diffs[$meta[$i]['meta_value']]->get_prod_id();
 				} else {
 					error_log(
 						sprintf(
