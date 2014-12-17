@@ -250,10 +250,18 @@ abstract class Batch_Importer {
 	 */
 	public function import_post_meta( Post $post ) {
 
-		$meta = $post->get_meta();
+		$stage_id = null;
+		$prod_id  = null;
+		$meta     = $post->get_meta();
+
+		// Keys in postmeta table containing relationship to another post.
+		$keys = $this->job->get_batch()->get_post_rel_keys();
 
 		for ( $i = 0; $i < count( $meta ); $i++ ) {
-			if ( in_array( $meta[$i]['meta_key'], $this->job->get_batch()->get_post_rel_keys() ) ) {
+			$stage_id = $meta[$i]['post_id'];
+			$prod_id  = $this->post_diffs[$stage_id]->get_prod_id();
+
+			if ( in_array( $meta[$i]['meta_key'], $keys ) ) {
 
 				/*
 				 * The meta value must be an integer pointing at the ID of the post
@@ -261,12 +269,12 @@ abstract class Batch_Importer {
 				 * relationship to.
 				 */
 				if ( isset( $this->post_diffs[$meta[$i]['meta_value']] ) ) {
-					$meta[$i]['meta_value'] = $this->post_diffs[$meta[$i]['meta_value']]->get_prod_id();
+					$meta[$i]['meta_value'] = $prod_id;
 				} else {
 					error_log(
 						sprintf(
 							'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: %d, meta_key: %s, meta_value: %s) where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.',
-							$this->post_diffs[$meta[$i]['post_id']]->get_prod_id(),
+							$prod_id,
 							$meta[$i]['meta_key'],
 							$meta[$i]['meta_value']
 						)
@@ -274,10 +282,12 @@ abstract class Batch_Importer {
 				}
 			}
 
-			$meta[$i]['post_id'] = $this->post_diffs[$meta[$i]['post_id']]->get_prod_id();
+			$meta[$i]['post_id'] = $prod_id;
 		}
 
-		$this->postmeta_dao->update_postmeta_by_post( $post->get_id(), $meta );
+		if ( $prod_id ) {
+			$this->postmeta_dao->update_postmeta_by_post( $prod_id, $meta );
+		}
 	}
 
 	/**
