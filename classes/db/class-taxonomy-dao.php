@@ -227,8 +227,8 @@ class Taxonomy_DAO extends DAO {
 		}
 
 		if ( ! $parent_id ) {
-			foreach( $hierarchy as $term => $children ) {
-				if ( ( $index = array_search( $taxonomy->get_term()->get_id(), $children) ) !== false ) {
+			foreach ( $hierarchy as $term => $children ) {
+				if ( ( $index = array_search( $taxonomy->get_term()->get_id(), $children ) ) !== false ) {
 					/*
 					 * The term used to have a parent term, but that is no longer the case.
 					 * Remove the child term from the hierarchy.

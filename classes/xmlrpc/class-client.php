@@ -31,7 +31,7 @@ class Client extends WP_HTTP_IXR_Client {
 		$args = array(
 			$method,
 			$this->generate_access_token( $data ),
-			$data
+			$data,
 		);
 
 		// Allow custom path to send XML-RPC request to.
@@ -58,7 +58,7 @@ class Client extends WP_HTTP_IXR_Client {
 					array(
 						'level'   => 'error',
 						'message' => 'Content Staging plugin not activated on host <strong>' . $this->server . '</strong>',
-					)
+					),
 				);
 				return;
 			}
@@ -68,7 +68,7 @@ class Client extends WP_HTTP_IXR_Client {
 					array(
 						'level'   => 'error',
 						'message' => 'Could not connect to host <strong>' . $this->server . '</strong>',
-					)
+					),
 				);
 				return;
 			}
@@ -77,9 +77,8 @@ class Client extends WP_HTTP_IXR_Client {
 				array(
 					'level'   => 'error',
 					'message' => $this->getErrorMessage() . ' - on host: ' . $this->server . ' (error code ' . $this->getErrorCode() . ')',
-				)
+				),
 			);
-
 		} else {
 
 			// Get the XML-RPC response data.

@@ -11,11 +11,13 @@ class Batch_Table extends WP_List_Table {
 	public function __construct() {
 
 		// Set parent defaults.
-		parent::__construct( array(
-			'singular'  => 'batch',
-			'plural'    => 'batches',
-			'ajax'      => false
-		) );
+		parent::__construct(
+			array(
+				'singular' => 'batch',
+				'plural'   => 'batches',
+				'ajax'     => false,
+			)
+		);
 
 		$this->actions = array();
 	}
@@ -29,7 +31,7 @@ class Batch_Table extends WP_List_Table {
 	 * @return string Text or HTML to be placed inside the column.
 	 */
 	public function column_default( Batch $item, $column_name ) {
-		switch( $column_name ) {
+		switch ( $column_name ) {
 			case 'post_modified':
 				return $item->get_modified();
 			case 'post_author':

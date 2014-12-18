@@ -11,8 +11,8 @@ class Batch_History_Ctrl {
 	private $helper;
 
 	public function __construct( Template $template ) {
-		$this->template  = $template;
-		$this->helper = Helper_Factory::get_instance();
+		$this->template = $template;
+		$this->helper   = Helper_Factory::get_instance();
 	}
 
 	public function init() {

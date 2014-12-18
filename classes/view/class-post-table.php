@@ -23,11 +23,13 @@ class Post_Table extends WP_List_Table {
 	public function __construct( Batch $batch ) {
 
 		// Set parent defaults.
-		parent::__construct( array(
-			'singular'  => 'post',
-			'plural'    => 'posts',
-			'ajax'      => false
-		) );
+		parent::__construct(
+			array(
+				'singular' => 'post',
+				'plural'   => 'posts',
+				'ajax'     => false,
+			)
+		);
 
 		$this->batch = $batch;
 	}
@@ -48,7 +50,7 @@ class Post_Table extends WP_List_Table {
 	 * @return string Text or HTML to be placed inside the column.
 	 */
 	public function column_default( Post $post, $column_name ) {
-		switch( $column_name ) {
+		switch ( $column_name ) {
 			case 'post_title':
 				$value = $this->column_title( $post );
 				break;

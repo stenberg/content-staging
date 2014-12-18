@@ -1,12 +1,6 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Managers;
 
-use Me\Stenberg\Content\Staging\DB\Batch_DAO;
-use Me\Stenberg\Content\Staging\DB\Post_DAO;
-use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
-use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
-use Me\Stenberg\Content\Staging\DB\Term_DAO;
-use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -85,7 +79,6 @@ class Batch_Mgr {
 
 			$this->add_posts( $post_ids );
 			$this->add_users();
-
 		}
 
 		return $this->batch;
@@ -100,7 +93,7 @@ class Batch_Mgr {
 		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
 		$posts    = $this->post_dao->find_by_ids( $post_ids );
 
-		foreach( $posts as $post ) {
+		foreach ( $posts as $post ) {
 			$this->add_post( $post );
 		}
 	}

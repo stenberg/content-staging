@@ -47,7 +47,7 @@ class Post_DAO extends DAO {
 	 * @return int
 	 */
 	public function get_id_by_guid( $guid ) {
-		$guid = $this->guid_regex( $guid );
+		$guid  = $this->guid_regex( $guid );
 		$query = $this->wpdb->prepare(
 			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid REGEXP %s',
 			$guid
@@ -138,7 +138,7 @@ class Post_DAO extends DAO {
 		$values = apply_filters( 'sme_values_posts_where', $values );
 		$query  = 'SELECT COUNT(*) FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
 		if ( ! empty( $values ) ) {
-			$query  = $this->wpdb->prepare( $query, $values );
+			$query = $this->wpdb->prepare( $query, $values );
 		}
 		return $this->wpdb->get_var( $query );
 	}
@@ -228,7 +228,7 @@ class Post_DAO extends DAO {
 				'post_status' => 'inherit',
 				'post_parent' => $parent_id,
 				'post_name'   => $parent_id . '-revision-v1',
-				'post_type'   => 'revision'
+				'post_type'   => 'revision',
 			),
 			array( 'ID' => $revision_id ),
 			array( '%s', '%d', '%s', '%s' ),

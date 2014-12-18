@@ -4,7 +4,6 @@ namespace Me\Stenberg\Content\Staging\DB;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Model;
-use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 
 class Batch_Import_Job_DAO extends DAO {
 

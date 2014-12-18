@@ -2,7 +2,6 @@
 namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\Models\Model;
-use Me\Stenberg\Content\Staging\Models\Post;
 
 class Postmeta_DAO extends DAO {
 
@@ -177,7 +176,7 @@ class Postmeta_DAO extends DAO {
 			$delete[] = $record;
 		}
 
-		foreach( $delete as $record ) {
+		foreach ( $delete as $record ) {
 			$this->delete_postmeta(
 				array( 'meta_id' => $record['meta_id'] ),
 				array( '%d' )
@@ -188,7 +187,7 @@ class Postmeta_DAO extends DAO {
 			$this->insert_postmeta( $record );
 		}
 
-		foreach( $update as $record ) {
+		foreach ( $update as $record ) {
 			$this->update_postmeta( $record );
 		}
 	}

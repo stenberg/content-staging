@@ -73,8 +73,7 @@ class User_DAO extends DAO {
 	/**
 	 * Update user meta.
 	 *
-	 * @param int $user_id
-	 * @param array $stage_records
+	 * @param User $user
 	 */
 	public function update_all_user_meta( User $user ) {
 
@@ -119,7 +118,7 @@ class User_DAO extends DAO {
 			} else {
 				foreach ( $stage_records as $stage_key => $stage_record ) {
 					if ( $stage_record['meta_key'] == $prod_record['meta_key'] ) {
-						$stage_record['user_id'] = $prod_record['user_id'];
+						$stage_record['user_id']  = $prod_record['user_id'];
 						$stage_record['umeta_id'] = $prod_record['umeta_id'];
 						$update[] = $stage_record;
 						unset( $stage_records[$stage_key] );
@@ -139,7 +138,7 @@ class User_DAO extends DAO {
 			$delete[] = $record;
 		}
 
-		foreach( $delete as $record ) {
+		foreach ( $delete as $record ) {
 			$this->delete_user_meta( $record['umeta_id'] );
 		}
 
@@ -147,7 +146,7 @@ class User_DAO extends DAO {
 			$this->insert_user_meta( $record );
 		}
 
-		foreach( $update as $record ) {
+		foreach ( $update as $record ) {
 			$this->update_user_meta( $record );
 		}
 	}
