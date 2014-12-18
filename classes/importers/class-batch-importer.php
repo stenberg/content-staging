@@ -99,7 +99,7 @@ abstract class Batch_Importer {
 	/**
 	 * @param Batch_Import_Job $job
 	 */
-	public function set_job( Batch_Import_Job $job) {
+	public function set_job( Batch_Import_Job $job ) {
 		$this->job = $job;
 	}
 
@@ -192,7 +192,6 @@ abstract class Batch_Importer {
 			$post_diff->set_prod_id( $prod_revision->get_id() );
 			$post->set_id( $prod_revision->get_id() );
 			$this->post_dao->update_post( $post );
-
 		} else {
 
 			/*
@@ -228,7 +227,7 @@ abstract class Batch_Importer {
 	 *
 	 * @param array $posts
 	 */
-	public function import_posts_meta( array $posts) {
+	public function import_posts_meta( array $posts ) {
 		foreach ( $posts as $post ) {
 			$this->import_post_meta( $post );
 		}

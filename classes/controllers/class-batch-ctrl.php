@@ -167,7 +167,7 @@ class Batch_Ctrl {
 			$selected_posts = $this->post_dao->find_by_ids( $use_post_ids );
 		}
 
-		$status  = apply_filters( 'sme_post_list_statuses', array( 'publish' ) );
+		$status = apply_filters( 'sme_post_list_statuses', array( 'publish' ) );
 
 		// Get posts user can select to include in the batch.
 		$posts       = $this->post_dao->get_posts( $status, $order_by, $order, $per_page, $paged, $post_ids );
@@ -472,8 +472,8 @@ class Batch_Ctrl {
 		 * here. Decode data.
 		 */
 		if ( ! isset( $_GET['id'] )
-			 || ! ( $batch = $this->batch_dao->find( $_GET['id'] ) )
-			 || $batch->get_status() != 'publish' ) {
+			|| ! ( $batch = $this->batch_dao->find( $_GET['id'] ) )
+			|| $batch->get_status() != 'publish' ) {
 			wp_die( __( 'No batch found.', 'sme-content-staging' ) );
 		}
 
@@ -680,32 +680,6 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Checks running on content stage before a batch is sent to production
-	 * for verification.
-	 *
-	 * @param Batch $batch
-	 * @return array
-	 */
-	private function prepare_checks( Batch $batch ) {
-		$messages = array();
-
-		foreach ( $batch->get_attachments() as $attachment ) {
-			foreach ( $attachment['items'] as $item ) {
-				$url = $attachment['url'] . '/' . $item;
-				// Check if attachment exists on content stage.
-				if ( ! $this->attachment_exists( $url ) ) {
-					$messages[] = array(
-						'level'   => 'warning',
-						'message' => 'Attachment <a href="' . $url . '" target="_blank">' . $url . '</a> is missing on content stage and will not be deployed to production.',
-					);
-				}
-			}
-		}
-
-		return $messages;
-	}
-
-	/**
 	 * Runs on production when an import status request has been received.
 	 *
 	 * @param array $result
@@ -754,26 +728,6 @@ class Batch_Ctrl {
 			if ( $item->get_id() == $post->get_parent()->get_id() ) {
 				return true;
 			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * Check if an attachment exists.
-	 *
-	 * @param string $attachment
-	 * @return bool
-	 */
-	private function attachment_exists( $attachment ) {
-		$ch = curl_init( $attachment );
-		curl_setopt( $ch, CURLOPT_NOBODY, true );
-		curl_exec( $ch );
-		$code = curl_getinfo( $ch, CURLINFO_HTTP_CODE );
-		curl_close($ch);
-
-		if ( $code == 200 ) {
-			return true;
 		}
 
 		return false;
