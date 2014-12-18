@@ -156,14 +156,30 @@ class Import_Message_Listener {
 
 		$links  = array();
 		$output = '';
+		$posts  = array();
+		$types  = array( 'page', 'post' );
 
 		// Get diffs from database.
 		$diffs = $this->post_dao->get_post_diffs( $job );
 
-		foreach ( $diffs as $post ) {
+		// Get all posts.
+		foreach ( $diffs as $diff ) {
+			$posts[] = get_post( $diff->get_prod_id() );
+		}
+
+		// Only keep published posts of type $types.
+		$posts = array_filter(
+			$posts,
+			function( $post ) use ( $types ) {
+				return ( $post->post_status == 'publish' && in_array( $post->post_type, $types ) );
+			}
+		);
+
+		// Create links for each of the posts.
+		foreach ( $posts as $post ) {
 			$links[] = array(
-				'link'  => get_permalink( $post->get_prod_id() ),
-				'title' => get_the_title( $post->get_prod_id() ),
+				'link'  => get_permalink( $post->ID ),
+				'title' => $post->post_title,
 			);
 		}
 
