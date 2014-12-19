@@ -140,10 +140,20 @@ class Batch_Mgr {
 	 * @param int $attachment_id
 	 */
 	private function add_attachment( $attachment_id ) {
-		$attachment            = array();
-		$upload_dir            = wp_upload_dir();
-		$attachment_meta       = wp_get_attachment_metadata( $attachment_id );
-		$attachment_info       = pathinfo( $attachment_meta['file'] );
+		$attachment      = array();
+		$upload_dir      = wp_upload_dir();
+		$attachment_meta = wp_get_attachment_metadata( $attachment_id );
+
+		if ( ! isset( $attachment_meta['file'] ) ) {
+			return;
+		}
+
+		$attachment_info = pathinfo( $attachment_meta['file'] );
+
+		if ( ! isset( $attachment_info['dirname'] ) ) {
+			return;
+		}
+
 		$attachment['subdir']  = '/' .$attachment_info['dirname'];
 		$attachment['basedir'] = $upload_dir['basedir'];
 		$attachment['baseurl'] = $upload_dir['baseurl'];

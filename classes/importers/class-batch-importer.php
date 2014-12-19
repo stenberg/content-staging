@@ -165,7 +165,7 @@ abstract class Batch_Importer {
 	public function import_post( Post $post ) {
 
 		// Notify listeners that post is about to be imported.
-		do_action( 'sme_post_import', $post );
+		do_action( 'sme_post_import', $post, $this->job );
 
 		/*
 		 * Create object that can keep track of differences between stage and
