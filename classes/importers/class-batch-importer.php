@@ -472,6 +472,13 @@ abstract class Batch_Importer {
 	 * @param Post_Env_Diff $diff
 	 */
 	public function publish_post( Post_Env_Diff $diff ) {
+
+		/*
+		 * Trigger an action before changing the post status to give other plug-ins
+		 * a chance to act before the post goes public (e.g. cache warm-up).
+		 */
+		do_action( 'sme_pre_publish_post', $diff, get_current_blog_id() );
+
 		/*
 		 * Publish the new post if post status from staging environment is set to
 		 * "publish".
