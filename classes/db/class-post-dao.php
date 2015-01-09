@@ -19,11 +19,10 @@ class Post_DAO extends DAO {
 	 * @return Post
 	 */
 	public function get_by_guid( $guid ) {
-		$guid = $this->guid_regex( $guid );
 
 		// Select post with a specific GUID ending.
 		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE guid REGEXP %s',
+			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
 			$guid
 		);
 
