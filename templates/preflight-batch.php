@@ -7,7 +7,7 @@ $submit_btn_attr = array( 'id' => 'sme-cs-deploy-batch-btn' );
  * If an error message exists in the response, then deactivate the
  * Deploy Batch button.
  */
-if ( ! $is_success ) {
+if ( ! $preflight_passed ) {
 	$submit_btn_attr['disabled'] = 'disabled';
 }
 ?>

@@ -323,26 +323,23 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$batch = $this->api->prepare_batch( $_GET['id'] );
 
-		// Send batch to production for verification.
-		if ( $this->api->is_valid_batch( $batch->get_id() ) ) {
+		$request = array(
+			'batch' => $batch,
+		);
 
-			$request = array(
-				'batch' => $batch,
-			);
+		$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
+		$messages = $this->xmlrpc_client->get_response_data();
 
-			$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
-			$messages = $this->xmlrpc_client->get_response_data();
+		$preflight_passed = false;
 
-			foreach ( $messages as $message ) {
-				if ( $message['level'] == 'error' ) {
-
-					// Mark batch invalid.
-					$this->api->set_batch_status( $batch->get_id(), false );
-				}
-
-				// Save message.
-				$this->api->add_message( $message['message'], $message['level'], $batch->get_id() );
+		$errors = array_filter(
+			$messages, function( $message ) {
+				return ( isset( $message['level'] ) && $message['level'] == 'error' );
 			}
+		);
+
+		if ( empty( $errors ) ) {
+			$preflight_passed = true;
 		}
 
 		/*
@@ -352,16 +349,15 @@ class Batch_Ctrl {
 		do_action( 'sme_prepared', $batch );
 
 		// Add batch data to database if pre-flight was successful.
-		if ( $this->api->is_valid_batch( $batch->get_id() ) ) {
-			$this->api->add_message( 'Pre-flight successful!', 'success', $batch->get_id() );
-			$this->batch_dao->update_batch( $batch );
+		if ( $preflight_passed ) {
+			$messages[] = array( 'level' => 'success', 'message' => 'Pre-flight successful!' );
 		}
 
 		// Prepare data we want to pass to view.
 		$data = array(
-			'batch'      => $batch,
-			'messages'   => $this->api->get_messages( $batch->get_id() ),
-			'is_success' => $this->api->is_valid_batch( $batch->get_id() ),
+			'batch'            => $batch,
+			'messages'         => $messages,
+			'preflight_passed' => $preflight_passed,
 		);
 
 		$this->template->render( 'preflight-batch', $data );
