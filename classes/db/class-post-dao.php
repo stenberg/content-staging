@@ -5,6 +5,7 @@ use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
+use Exception;
 
 class Post_DAO extends DAO {
 
@@ -17,6 +18,7 @@ class Post_DAO extends DAO {
 	 *
 	 * @param $guid
 	 * @return Post
+	 * @throws Exception
 	 */
 	public function get_by_guid( $guid ) {
 
@@ -26,10 +28,18 @@ class Post_DAO extends DAO {
 			$guid
 		);
 
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
+		$result = $this->wpdb->get_results( $query, ARRAY_A );
 
-		if ( isset( $result['ID'] ) ) {
-			return $this->create_object( $result );
+		if ( empty( $result ) ) {
+			return null;
+		}
+
+		if ( count( $result ) > 1 ) {
+			throw new Exception( sprintf( 'GUID %s is not unique', $guid ) );
+		}
+
+		if ( isset( $result[0] ) && isset( $result[0]['ID'] ) ) {
+			return $this->create_object( $result[0] );
 		}
 
 		return null;

@@ -12,6 +12,7 @@ use Me\Stenberg\Content\Staging\View\Batch_Table;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\View\Post_Table;
 use Me\Stenberg\Content\Staging\View\Template;
+use Exception;
 
 class Batch_Ctrl {
 
@@ -351,6 +352,7 @@ class Batch_Ctrl {
 		// Add batch data to database if pre-flight was successful.
 		if ( $preflight_passed ) {
 			$messages[] = array( 'level' => 'success', 'message' => 'Pre-flight successful!' );
+			$this->batch_dao->update_batch( $batch );
 		}
 
 		// Prepare data we want to pass to view.
@@ -364,6 +366,8 @@ class Batch_Ctrl {
 	}
 
 	/**
+	 * Perform pre-flight checks to ensure that batch is ready for deploy.
+	 *
 	 * Runs on production when a pre-flight request has been received.
 	 *
 	 * @param array $args
@@ -387,36 +391,66 @@ class Batch_Ctrl {
 		// Get batch.
 		$batch = $result['batch'];
 
-		// Create importer.
-		$job = new Batch_Import_Job();
-		$job->set_batch( $batch );
-
 		/*
 		 * Let third party developers perform actions before any pre-flight
 		 * checks are done.
 		 */
-		do_action( 'sme_verify', $job );
+		do_action( 'sme_verify', $batch );
 
+		// Perform checks for each of the posts in this batch.
 		foreach ( $batch->get_posts() as $post ) {
-			// Check if parent post exist on production or in batch.
-			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-				do_action( 'sme_verify_batch_parent_post_missing', $post, $job );
+
+			/*
+			 * If more then one post is found when searching posts with a specific
+			 * GUID, then add an error message. Two or more posts should never share
+			 * the same GUID.
+			 */
+			try {
+
+				/*
+				 * Check if a revision of this post already exist on production of if it
+				 * is a brand new post.
+				 */
+				$production_revision = $this->post_dao->get_by_guid( $post->get_guid() );
+
+				// Check if parent post exist on production or in batch.
+				if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
+					$message = sprintf(
+						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
+						$batch->get_backend() . 'post.php?post=' . $post->get_id() . '&action=edit',
+						$post->get_title(),
+						$batch->get_backend() . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
+						$post->get_parent()->get_title()
+					);
+
+					$this->api->add_preflight_message( $batch->get_id(), $message, 'error' );
+				}
+
+			} catch ( Exception $e ) {
+				$this->api->add_preflight_message( $batch->get_id(), $e->getMessage(), 'error' );
 			}
+
 		}
 
 		// Pre-flight custom data.
-		foreach ( $job->get_batch()->get_custom_data() as $addon => $data ) {
-			do_action( 'sme_verify_' . $addon, $data, $job );
+		foreach ( $batch->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_verify_' . $addon, $data, $batch );
 		}
 
 		/*
 		 * Let third party developers perform actions before pre-flight data is
 		 * returned from production to content stage.
 		 */
-		do_action( 'sme_verified', $job );
+		do_action( 'sme_verified', $batch );
+
+		// Get all messages set during verification of this batch.
+		$messages = $this->api->get_preflight_messages( $batch->get_id() );
+
+		// Clear pre-flight messages.
+		$this->api->delete_preflight_messages( $batch->get_id() );
 
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $job->get_messages() );
+		return $this->xmlrpc_client->prepare_response( $messages );
 	}
 
 	/**
@@ -516,7 +550,7 @@ class Batch_Ctrl {
 
 		$response = array(
 			'status'   => $job->get_status(),
-			'messages' => $job->get_messages(),
+			'messages' => $this->api->get_deploy_messages( $job->get_id() ),
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -539,6 +573,8 @@ class Batch_Ctrl {
 
 		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
+
+		$response = apply_filters( 'sme_deploy_status', $response );
 
 		if ( isset( $response['status'] ) && $response['status'] > 1 ) {
 			do_action( 'sme_deployed' );
@@ -569,7 +605,7 @@ class Batch_Ctrl {
 
 		$response = array(
 			'status'   => $job->get_status(),
-			'messages' => $job->get_messages(),
+			'messages' => $this->api->get_deploy_messages( $job->get_id() ),
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -685,16 +721,25 @@ class Batch_Ctrl {
 
 		$job = new Batch_Import_Job();
 
+		$this->batch_import_job_dao->insert( $job );
+
 		// Check if a batch has been provided.
 		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			do_action( 'sme_batch_import_job_creation_failure', $job );
+			$this->api->add_deploy_message( $job->get_id(), 'Failed creating import job.', 'error' );
 			$job->set_status( 2 );
 			return $job;
 		}
 
 		$job->set_batch( $result['batch'] );
-		$this->batch_import_job_dao->insert( $job );
-		do_action( 'sme_batch_import_job_created', $job );
+		$this->batch_import_job_dao->update_job( $job );
+
+		$message = sprintf(
+			'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
+			$job->get_id()
+		);
+
+		$this->api->add_deploy_message( $job->get_id(), $message, 'info' );
+
 		return $job;
 	}
 

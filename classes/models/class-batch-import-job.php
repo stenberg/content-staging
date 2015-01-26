@@ -61,13 +61,6 @@ class Batch_Import_Job extends Model {
 	private $status;
 
 	/**
-	 * Messages generated during batch import.
-	 *
-	 * @var
-	 */
-	private $messages;
-
-	/**
 	 * Import key.
 	 *
 	 * @var string
@@ -81,8 +74,7 @@ class Batch_Import_Job extends Model {
 	 */
 	public function __construct( $id = null ) {
 		parent::__construct( (int) $id );
-		$this->status   = 0;
-		$this->messages = array();
+		$this->status = 0;
 	}
 
 	/**
@@ -189,46 +181,6 @@ class Batch_Import_Job extends Model {
 	 */
 	public function get_status() {
 		return $this->status;
-	}
-
-	/**
-	 * Set messages.
-	 *
-	 * @param array
-	 */
-	public function set_messages( array $messages ) {
-		$this->messages = $messages;
-	}
-
-	/**
-	 * Add a message.
-	 *
-	 * @param string $message
-	 * @param string $level
-	 * @throws Exception
-	 */
-	public function add_message( $message, $level = 'info' ) {
-
-		// Supported levels.
-		$levels = array( 'success', 'info', 'warning', 'error' );
-
-		if ( ! in_array( $level, $levels ) ) {
-			throw new Exception( 'Unsupported message level: ' . $level );
-		}
-
-		$this->messages[] = array(
-			'message' => $message,
-			'level'   => $level,
-		);
-	}
-
-	/**
-	 * Return all messages.
-	 *
-	 * @return array
-	 */
-	public function get_messages() {
-		return $this->messages;
 	}
 
 	/**

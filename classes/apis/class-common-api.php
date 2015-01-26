@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Apis;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
@@ -76,7 +77,10 @@ class Common_API {
 	/**
 	 * Deploy a batch from content stage to production.
 	 *
+	 * Runs on content stage when a deploy request has been received.
+	 *
 	 * @param Batch $batch
+	 *
 	 * @return array
 	 */
 	public function deploy( Batch $batch ) {
@@ -141,43 +145,89 @@ class Common_API {
 	 *
 	 * Messages will be displayed to the user through the UI.
 	 *
-	 * @param string $message
-	 * @param string $level
-	 * @param int $post_id
-	 * @param string $type
+	 * @param int    $post_id Post this message belongs to.
+	 * @param string $message The message.
+	 * @param string $type    What type of message this is, can be any of:
+	 *                        info, warning, error, success
+	 * @param string $group   Group this message is part of, use this to categorize different kind
+	 *                        of messages, e.g. preflight, deploy, etc.
+	 * @param int    $code    Set a specific code for this message.
+	 *
+	 * @throws Exception
 	 */
-	public function add_message( $message, $level, $post_id, $type = '' ) {
+	public function add_message( $post_id, $message, $type = 'info', $group = null, $code = 0 ) {
 
-		$key = $this->get_message_key( $type );
+		// Supported message types.
+		$types = array( 'info', 'warning', 'error', 'success' );
+		$types = apply_filters( 'sme_message_types', $types );
+
+		if ( ! in_array( $type, $types ) ) {
+			throw new Exception( 'Unsupported message type: ' . $type );
+		}
+
+		$key = $this->get_message_key( $group );
 
 		$value = array(
-			'level'   => $level,
 			'message' => $message,
+			'level'   => $type,
+			'code'    => $code,
 		);
 
 		add_post_meta( $post_id, $key, $value );
 	}
 
 	/**
+	 * Add a pre-flight message.
+	 *
+	 * @see add_message()
+	 *
+	 * @param int    $post_id
+	 * @param string $message
+	 * @param string $type
+	 * @param int    $code
+	 */
+	public function add_preflight_message( $post_id, $message, $type = 'info', $code = 0 ) {
+		$this->add_message( $post_id, $message, $type, 'preflight', $code );
+	}
+
+	/**
+	 * Add a deploy message.
+	 *
+	 * @see add_message()
+	 *
+	 * @param int    $post_id
+	 * @param string $message
+	 * @param string $type
+	 * @param int    $code
+	 */
+	public function add_deploy_message( $post_id, $message, $type = 'info', $code = 0 ) {
+		$this->add_message( $post_id, $message, $type, 'deploy', $code );
+	}
+
+	/**
 	 * Get messages for a specific post.
 	 *
-	 * @param $post_id
-	 * @param string $type
+	 * @param int    $post_id
+	 * @param string $type    Not supported at the moment.
+	 * @param string $group
+	 * @param int    $code    Not supported at the moment.
+	 *
 	 * @return array
 	 */
-	public function get_messages( $post_id, $type = '' ) {
+	public function get_messages( $post_id, $type = null, $group = null, $code = 0 ) {
 
 		$messages = array();
-		$key      = $this->get_message_key( $type );
+		$key      = $this->get_message_key( $group );
 
-		if ( $type ) {
+		// If a group has been set, only fetch messages for that group.
+		if ( $group ) {
 			return get_post_meta( $post_id, $key );
 		}
 
 		$meta = get_post_meta( $post_id );
 
-		foreach ( $meta as $group => $values ) {
-			if ( strpos( $group, $key ) === 0 ) {
+		foreach ( $meta as $meta_key => $values ) {
+			if ( strpos( $meta_key, $key ) === 0 ) {
 				foreach ( $values as $message ) {
 					array_push( $messages, unserialize( $message ) );
 				}
@@ -188,26 +238,57 @@ class Common_API {
 	}
 
 	/**
+	 * @see get_messages()
+	 *
+	 * @param  int    $post_id
+	 * @param  string $type
+	 * @param  int    $code
+	 *
+	 * @return array
+	 */
+	public function get_preflight_messages( $post_id, $type = null, $code = 0 ) {
+		$messages = $this->get_messages( $post_id, $type, 'preflight', $code );
+		return apply_filters( 'sme_get_preflight_messages', $messages );
+	}
+
+	/**
+	 * @see get_messages()
+	 *
+	 * @param int    $post_id
+	 * @param string $type
+	 * @param int    $code
+	 *
+	 * @return array
+	 */
+	public function get_deploy_messages( $post_id, $type = null, $code = 0 ) {
+		$messages = $this->get_messages( $post_id, $type, 'deploy', $code );
+		return apply_filters( 'sme_get_deploy_messages', $messages );
+	}
+
+	/**
 	 * Delete messages for a specific post.
 	 *
-	 * @param $post_id
-	 * @param string $type
+	 * @param int    $post_id
+	 * @param string $type    Not supported at the moment.
+	 * @param string $group
+	 * @param int    $code    Not supported at the moment.
+	 *
 	 * @return bool
 	 */
-	public function delete_messages( $post_id, $type = '' ) {
+	public function delete_messages( $post_id, $type = null, $group = null, $code = 0 ) {
 
-		$key = $this->get_message_key( $type );
+		$key = $this->get_message_key( $group );
 
-		if ( $type ) {
+		if ( $group ) {
 			delete_post_meta( $post_id, $key );
 			return true;
 		}
 
 		$meta = get_post_meta( $post_id );
 
-		foreach ( $meta as $group => $values ) {
-			if ( strpos( $group, $key ) === 0 ) {
-				delete_post_meta( $post_id, $group );
+		foreach ( $meta as $meta_key => $values ) {
+			if ( strpos( $meta_key, $key ) === 0 ) {
+				delete_post_meta( $post_id, $meta_key );
 			}
 		}
 
@@ -215,12 +296,39 @@ class Common_API {
 	}
 
 	/**
+	 * @see delete_messages()
+	 *
+	 * @param int    $post_id
+	 * @param string $type
+	 * @param int    $code
+	 *
+	 * @return bool
+	 */
+	public function delete_preflight_messages( $post_id, $type = null, $code = 0 ) {
+		return $this->delete_messages( $post_id, $type, 'preflight', $code );
+	}
+
+	/**
+	 * @see delete_messages()
+	 *
+	 * @param int    $post_id
+	 * @param string $type
+	 * @param int    $code
+	 *
+	 * @return bool
+	 */
+	public function delete_deploy_messages( $post_id, $type = null, $code = 0 ) {
+		return $this->delete_messages( $post_id, $type, 'deploy', $code );
+	}
+
+	/**
 	 * Get meta_key to use when searching for records in wp_postmeta.
 	 *
 	 * @param string $type
+	 *
 	 * @return string
 	 */
-	private function get_message_key( $type = '' ) {
+	private function get_message_key( $type = null ) {
 
 		// Default meta_key in wp_postmeta table.
 		$key = '_sme_message';

@@ -1,18 +1,29 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
+use Me\Stenberg\Content\Staging\Apis\Common_API;
+use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
 class Batch_Importer_Factory {
 
+	/**
+	 * @var Batch_Import_Job_DAO
+	 */
 	private $job_dao;
+
+	/**
+	 * @var Common_API
+	 */
+	private $api;
 
 	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
+		$this->api     = Helper_Factory::get_instance()->get_api( 'Common' );
 	}
 
 	/**
@@ -64,10 +75,12 @@ class Batch_Importer_Factory {
 
 		// Validate key.
 		if ( $import_key !== $job->get_key() ) {
-			do_action( 'sme_unauthorized_batch_import', $job );
+
 			error_log( 'Unauthorized batch import attempt terminated.' );
+
+			$this->api->add_deploy_message( $job->get_id(), __( 'Something went wrong', 'sme-content-staging' ), 'error' );
 			$job->set_status( 2 );
-			$this->job_dao->update_job( $job );
+
 			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );
 		}
 

@@ -1,14 +1,27 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Apis\Common_API;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Model;
 
 class Batch_Import_Job_DAO extends DAO {
 
+	/**
+	 * @var Common_API
+	 */
+	private $api;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param $wpdb
+	 */
 	public function __construct( $wpdb ) {
 		parent::__construct( $wpdb );
+		$this->api = Helper_Factory::get_instance()->get_api( 'Common' );
 	}
 
 	/**
@@ -186,7 +199,7 @@ class Batch_Import_Job_DAO extends DAO {
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $record ) {
 			if ( $record['meta_key'] == 'sme_import_message' ) {
 				$value = unserialize( $record['meta_value'] );
-				$job->add_message( $value['message'], $value['level'] );
+				$this->api->add_deploy_message( $job->get_id(), $value['message'], $value['level'] );
 			}
 
 			if ( $record['meta_key'] == 'sme_import_status' ) {

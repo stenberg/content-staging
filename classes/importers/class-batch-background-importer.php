@@ -1,10 +1,17 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
+use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\Background_Process;
+use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 
 class Batch_Background_Importer extends Batch_Importer {
+
+	/**
+	 * @var Common_API
+	 */
+	private $api;
 
 	/**
 	 * Constructor.
@@ -13,6 +20,7 @@ class Batch_Background_Importer extends Batch_Importer {
 	 */
 	public function __construct( Batch_Import_Job $job ) {
 		parent::__construct( $job );
+		$this->api = Helper_Factory::get_instance()->get_api( 'Common' );
 	}
 
 	/**
@@ -49,7 +57,7 @@ class Batch_Background_Importer extends Batch_Importer {
 			$this->job->set_status( 1 );
 		} else {
 			// Failed to start background import.
-			do_action( 'sme_batch_import_startup_failure', $this->job );
+			$this->api->add_deploy_message( $this->job->get_id(), 'Batch import failed to start.', 'info' );
 			$this->job->set_status( 2 );
 		}
 
