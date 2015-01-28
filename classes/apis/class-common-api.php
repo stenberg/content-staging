@@ -2,15 +2,29 @@
 namespace Me\Stenberg\Content\Staging\Apis;
 
 use Exception;
+use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
+use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 class Common_API {
 
+	/**
+	 * @var Client
+	 */
 	private $client;
+
+	/**
+	 * @var Post_DAO
+	 */
 	private $post_dao;
+
+	/**
+	 * @var Postmeta_DAO
+	 */
 	private $postmeta_dao;
 
 	public function __construct() {
@@ -136,6 +150,23 @@ class Common_API {
 		return false;
 	}
 
+	/**
+	 * @param int $job_id
+	 * @param int $status
+	 */
+	public function set_deploy_status( $job_id, $status = 0 ) {
+		add_post_meta( $job_id, '_sme_deploy_status', $status, true );
+	}
+
+	/**
+	 * @param int $job_id
+	 *
+	 * @return int
+	 */
+	public function get_deploy_status( $job_id ) {
+		return get_post_meta( $job_id, '_sme_deploy_status', true );
+	}
+
 	/* **********************************************************************
 	 * Message API
 	 * **********************************************************************/
@@ -173,7 +204,7 @@ class Common_API {
 			'code'    => $code,
 		);
 
-		add_post_meta( $post_id, $key, $value );
+		$this->postmeta_dao->add_post_meta( $post_id, $key, $value );
 	}
 
 	/**
@@ -221,10 +252,10 @@ class Common_API {
 
 		// If a group has been set, only fetch messages for that group.
 		if ( $group ) {
-			return get_post_meta( $post_id, $key );
+			return $this->postmeta_dao->get_post_meta( $post_id, $key );
 		}
 
-		$meta = get_post_meta( $post_id );
+		$meta = $this->postmeta_dao->get_post_meta( $post_id );
 
 		foreach ( $meta as $meta_key => $values ) {
 			if ( strpos( $meta_key, $key ) === 0 ) {

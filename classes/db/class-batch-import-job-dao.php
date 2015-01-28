@@ -197,11 +197,6 @@ class Batch_Import_Job_DAO extends DAO {
 		);
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $record ) {
-			if ( $record['meta_key'] == 'sme_import_message' ) {
-				$value = unserialize( $record['meta_value'] );
-				$this->api->add_deploy_message( $job->get_id(), $value['message'], $value['level'] );
-			}
-
 			if ( $record['meta_key'] == 'sme_import_status' ) {
 				$job->set_status( $record['meta_value'] );
 			}

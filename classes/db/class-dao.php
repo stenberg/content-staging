@@ -3,11 +3,20 @@ namespace Me\Stenberg\Content\Staging\DB;
 
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Object_Watcher;
+use wpdb;
 
 abstract class DAO {
 
+	/**
+	 * @var wpdb
+	 */
 	protected $wpdb;
 
+	/**
+	 * Constructor.
+	 *
+	 * @param wpdb $wpdb
+	 */
 	protected function __construct( $wpdb ) {
 		$this->wpdb = $wpdb;
 	}

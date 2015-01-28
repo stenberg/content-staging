@@ -56,27 +56,79 @@ class Postmeta_DAO extends DAO {
 	}
 
 	/**
-	 * Insert post meta record.
+	 * Add post meta record.
 	 *
-	 * @param array $record
+	 * @param int    $post_id
+	 * @param string $key
+	 * @param string $value
+	 *
 	 * @return int
 	 */
-	public function insert_post_meta_record( $record ) {
+	public function add_post_meta( $post_id, $key, $value ) {
+
+		if ( is_array( $value ) ) {
+			$value = serialize( $value );
+		}
+
 		$this->wpdb->insert(
 			$this->wpdb->postmeta,
 			array(
-				'post_id'    => $record['post_id'],
-				'meta_key'   => $record['meta_key'],
-				'meta_value' => $record['meta_value'],
+				'post_id'    => $post_id,
+				'meta_key'   => $key,
+				'meta_value' => $value,
 			),
 			array( '%d', '%s', '%s' )
 		);
 	}
 
 	/**
+	 * Get post meta record(s).
+	 *
+	 * @param int    $post_id
+	 * @param string $key
+	 * @param bool   $single
+	 *
+	 * @return array
+	 */
+	public function get_post_meta( $post_id, $key = null, $single = false ) {
+
+		$where_stmt = 'post_id = %d';
+		$query_vars = array( $post_id );
+
+		if ( $key ) {
+			$where_stmt .= ' AND meta_key = %s';
+			array_push( $query_vars, $key );
+		}
+
+		$query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->wpdb->postmeta . ' WHERE ' . $where_stmt,
+			$query_vars
+		);
+
+		$records = $this->wpdb->get_results( $query, ARRAY_A );
+
+		if ( isset( $records[0] ) && $single ) {
+			if ( is_serialized( $records[0]['meta_value'] ) ) {
+				return unserialize( $records[0]['meta_value'] );
+			}
+
+			return $records[0]['meta_value'];
+		}
+
+		$values = array();
+
+		foreach ( $records as $record ) {
+			array_push( $values, unserialize( $record['meta_value'] ) );
+		}
+
+		return $values;
+	}
+
+	/**
 	 * Insert postmeta.
 	 *
 	 * @param array $postmeta
+	 *
 	 * @return int|null Return generated meta_id on success, null otherwise.
 	 */
 	public function insert_postmeta( $postmeta ) {
