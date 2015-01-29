@@ -65,28 +65,7 @@ class Setup {
 			'supports'    => array( 'title', 'editor' ),
 		);
 
-		// Arguments for batch importer post type
-		$import_job = array(
-			'label'  => __( 'Batch Import Jobs', 'sme-content-staging' ),
-			'labels' => array(
-				'singular_name'      => __( 'Batch Import Jobs', 'sme-content-staging' ),
-				'add_new_item'       => __( 'Add New Batch Import Job', 'sme-content-staging' ),
-				'edit_item'          => __( 'Edit Batch Import Job', 'sme-content-staging' ),
-				'new_item'           => __( 'New Batch Import Job', 'sme-content-staging' ),
-				'view_item'          => __( 'View Batch Import Job', 'sme-content-staging' ),
-				'search_items'       => __( 'Search Batch Import Jobs', 'sme-content-staging' ),
-				'not_found'          => __( 'No Batch Import Jobs found', 'sme-content-staging' ),
-				'not_found_in_trash' => __( 'No Batch Import Jobs found in Trash', 'sme-content-staging' )
-			),
-			'description' => __( 'Batches are packaged in Batch Import Jobs that in turn is imported by Batch Importers.', 'sme-content-staging' ),
-			'public'      => false,
-			'supports'    => array( 'editor' ),
-		);
-
 		register_post_type( 'sme_content_batch', $batch );
-		register_post_type( 'sme_batch_import_job', $import_job );
-
-
 	}
 
 	public function register_menu_pages() {

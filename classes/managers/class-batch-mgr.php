@@ -1,6 +1,11 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Managers;
 
+use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
+use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
+use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -22,12 +27,34 @@ class Batch_Mgr {
 	 */
 	private $batch;
 
+	/**
+	 * @var Batch_DAO
+	 */
 	private $batch_dao;
+
+	/**
+	 * @var Post_DAO
+	 */
 	private $post_dao;
+
+	/**
+	 * @var Post_Taxonomy_DAO
+	 */
 	private $post_taxonomy_dao;
+
+	/**
+	 * @var Postmeta_DAO
+	 */
 	private $postmeta_dao;
+
+	/**
+	 * @var User_DAO
+	 */
 	private $user_dao;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
@@ -42,19 +69,11 @@ class Batch_Mgr {
 	 *
 	 * If $id is not provided an empty Batch object will be returned.
 	 *
-	 * If $lazy is set to 'true' only default batch data such as batch ID,
-	 * title, modification date, etc. will be fetched.
-	 *
-	 * When $lazy is set to 'false' the batch will be populated with all data
-	 * in this batch, e.g. posts, terms, users, etc.
-	 *
 	 * @param int $id
-	 * @param bool $lazy
+	 *
 	 * @return Batch
 	 */
-	public function get_batch( $id = null, $lazy = false ) {
-
-		$post_ids = array();
+	public function get( $id = null ) {
 
 		// This is a new batch, no need to populate the batch with any content.
 		if ( $id === null ) {
@@ -63,50 +82,67 @@ class Batch_Mgr {
 			return $batch;
 		}
 
-		$this->batch = $this->batch_dao->find( $id );
-		$this->batch->set_post_rel_keys( apply_filters( 'sme_post_relationship_keys', array() ) );
+		return $this->batch_dao->find( $id );
+	}
 
-		// Populate batch with data (posts, terms, etc.).
-		if ( ! $lazy ) {
+	/**
+	 * Prepare batch with relevant content.
+	 *
+	 * @param Batch $batch
+	 */
+	public function prepare( Batch $batch ) {
 
-			// Get IDs of posts user has selected to include in this batch.
-			$meta = $this->batch_dao->get_post_meta( $this->batch->get_id(), 'sme_selected_post_ids', true );
-
-			// Ensure that we got an array back when looking for posts IDs in DB.
-			if ( is_array( $meta ) ) {
-				$post_ids = $meta;
-			}
-
-			$this->add_posts( $post_ids );
-			$this->add_users();
+		// Batch not yet created, nothing to prepare.
+		if ( ! $batch->get_id() ) {
+			return;
 		}
 
-		return $this->batch;
+		$post_ids = array();
+		$batch->set_post_rel_keys( apply_filters( 'sme_post_relationship_keys', array() ) );
+
+		// Clean batch from any old content.
+		$batch->set_attachments( array() );
+		$batch->set_users( array() );
+		$batch->set_posts( array() );
+		$batch->set_custom_data( array() );
+
+		// Get IDs of posts user has selected to include in this batch.
+		$meta = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
+
+		// Ensure that we got an array back when looking for posts IDs in DB.
+		if ( is_array( $meta ) ) {
+			$post_ids = $meta;
+		}
+
+		$this->add_posts( $batch, $post_ids );
+		$this->add_users( $batch );
 	}
 
 	/**
 	 * Provide IDs of posts you want to add to the current batch.
 	 *
+	 * @param Batch $batch
 	 * @param array $post_ids
 	 */
-	private function add_posts( $post_ids ) {
+	private function add_posts( Batch $batch, $post_ids ) {
 		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
 		$posts    = $this->post_dao->find_by_ids( $post_ids );
 
 		foreach ( $posts as $post ) {
-			$this->add_post( $post );
+			$this->add_post( $batch, $post );
 		}
 	}
 
 	/**
 	 * Provide a Post object you want to add to the current batch.
 	 *
-	 * @param Post $post
+	 * @param Batch $batch
+	 * @param Post  $post
 	 */
-	private function add_post( Post $post ) {
+	private function add_post( Batch $batch, Post $post ) {
 
 		if ( $post->get_type() === 'attachment' ) {
-			$this->add_attachment( $post->get_id() );
+			$this->add_attachment( $batch, $post->get_id() );
 		}
 
 		$this->post_taxonomy_dao->get_post_taxonomy_relationships( $post );
@@ -116,30 +152,34 @@ class Batch_Mgr {
 		 * Make it possible for third-party developers to modify post before it
 		 * is added to batch.
 		 */
-		do_action( 'sme_prepare_post', $post, $this->batch );
-		$this->batch->add_post( $post );
+		do_action( 'sme_prepare_post', $post, $batch );
+		$batch->add_post( $post );
 
 		foreach ( $post->get_meta() as $item ) {
-			$this->add_related_posts( $item );
+			$this->add_related_posts( $batch, $item );
 		}
 	}
 
-	private function add_users() {
+	/**
+	 * @param Batch $batch
+	 */
+	private function add_users( Batch $batch ) {
 		$user_ids = array();
 
-		foreach ( $this->batch->get_posts() as $post ) {
+		foreach ( $batch->get_posts() as $post ) {
 			$user_ids[] = $post->get_author();
 		}
 
-		$this->batch->set_users( $this->user_dao->find_by_ids( $user_ids ) );
+		$batch->set_users( $this->user_dao->find_by_ids( $user_ids ) );
 	}
 
 	/**
 	 * Add an attachment to batch.
 	 *
-	 * @param int $attachment_id
+	 * @param Batch $batch
+	 * @param int   $attachment_id
 	 */
-	private function add_attachment( $attachment_id ) {
+	private function add_attachment( Batch $batch, $attachment_id ) {
 		$attachment      = array();
 		$upload_dir      = wp_upload_dir();
 		$attachment_meta = wp_get_attachment_metadata( $attachment_id );
@@ -172,17 +212,21 @@ class Batch_Mgr {
 			}
 		}
 
-		$this->batch->add_attachment( $attachment );
+		$batch->add_attachment( $attachment );
 	}
 
-	private function add_related_posts( $postmeta ) {
-		foreach ( $this->batch->get_post_rel_keys() as $key ) {
+	/**
+	 * @param Batch $batch
+	 * @param array $postmeta
+	 */
+	private function add_related_posts( Batch $batch, $postmeta ) {
+		foreach ( $batch->get_post_rel_keys() as $key ) {
 			if ( $postmeta['meta_key'] === $key ) {
 				// Get post thumbnail.
 				$post = $this->post_dao->find( $postmeta['meta_value'] );
 
 				if ( isset( $post ) && $post->get_id() !== null ) {
-					$this->add_post( $post );
+					$this->add_post( $batch, $post );
 				}
 			}
 		}

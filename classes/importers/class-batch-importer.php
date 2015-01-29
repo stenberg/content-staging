@@ -1,7 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
-use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
+use Me\Stenberg\Content\Staging\Apis\Common_API;
+use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -9,7 +10,7 @@ use Me\Stenberg\Content\Staging\DB\Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
-use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
+use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
@@ -28,14 +29,19 @@ abstract class Batch_Importer {
 	public $post_diffs;
 
 	/**
-	 * @var Batch_Import_Job
+	 * @var Batch
 	 */
-	protected $job;
+	protected $batch;
 
 	/**
-	 * @var Batch_Import_Job_DAO
+	 * @var Common_API
 	 */
-	protected $import_job_dao;
+	protected $api;
+
+	/**
+	 * @var Batch_DAO
+	 */
+	protected $batch_dao;
 
 	/**
 	 * @var Post_DAO
@@ -70,11 +76,12 @@ abstract class Batch_Importer {
 	/**
 	 * Constructor.
 	 *
-	 * @param Batch_Import_Job $job
+	 * @param Batch $batch
 	 */
-	protected function __construct( Batch_Import_Job $job ) {
-		$this->job               = $job;
-		$this->import_job_dao    = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
+	protected function __construct( Batch $batch ) {
+		$this->batch             = $batch;
+		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
 		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
@@ -83,7 +90,7 @@ abstract class Batch_Importer {
 		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
 
 		// Get diffs from database.
-		$this->post_diffs = $this->post_dao->get_post_diffs( $this->job );
+		$this->post_diffs = $this->post_dao->get_post_diffs( $batch );
 	}
 
 	/**
@@ -95,20 +102,6 @@ abstract class Batch_Importer {
 	 * Get import status.
 	 */
 	abstract function status();
-
-	/**
-	 * @param Batch_Import_Job $job
-	 */
-	public function set_job( Batch_Import_Job $job ) {
-		$this->job = $job;
-	}
-
-	/**
-	 * @return Batch_Import_Job
-	 */
-	public function get_job() {
-		return $this->job;
-	}
 
 	/**
 	 * Import users.
@@ -165,7 +158,7 @@ abstract class Batch_Importer {
 	public function import_post( Post $post ) {
 
 		// Notify listeners that post is about to be imported.
-		do_action( 'sme_post_import', $post, $this->job );
+		do_action( 'sme_post_import', $post, $this->batch );
 
 		/*
 		 * Create object that can keep track of differences between stage and
@@ -219,7 +212,7 @@ abstract class Batch_Importer {
 		}
 
 		// Notify listeners that post has been imported.
-		do_action( 'sme_post_imported', $post, $this->job );
+		do_action( 'sme_post_imported', $post, $this->batch );
 	}
 
 	/**
@@ -254,7 +247,7 @@ abstract class Batch_Importer {
 		$meta     = $post->get_meta();
 
 		// Keys in postmeta table containing relationship to another post.
-		$keys = $this->job->get_batch()->get_post_rel_keys();
+		$keys = $this->batch->get_post_rel_keys();
 
 		for ( $i = 0; $i < count( $meta ); $i++ ) {
 			$stage_id = $meta[$i]['post_id'];
@@ -298,17 +291,17 @@ abstract class Batch_Importer {
 		 * Make it possible for third-party developers to inject their custom
 		 * attachment import functionality.
 		 */
-		do_action( 'sme_import_custom_attachment_importer', $this->job->get_batch()->get_attachments(), $this->job );
+		do_action( 'sme_import_custom_attachment_importer', $this->batch->get_attachments(), $this->batch );
 
 		/*
 		 * Make it possible for third-party developers to alter the list of
 		 * attachments to import.
 		 */
-		$this->job->get_batch()->set_attachments(
-			apply_filters( 'sme_import_attachments', $this->job->get_batch()->get_attachments(), $this->job )
+		$this->batch->set_attachments(
+			apply_filters( 'sme_import_attachments', $this->batch->get_attachments(), $this->batch )
 		);
 
-		foreach ( $this->job->get_batch()->get_attachments() as $attachment ) {
+		foreach ( $this->batch->get_attachments() as $attachment ) {
 			$this->import_attachment( $attachment );
 		}
 	}
@@ -328,7 +321,7 @@ abstract class Batch_Importer {
 			 * Directory to place image in does not exist and we were not able to
 			 * create it.
 			 */
-			do_action( 'import_attachment_failure', $attachment, $filepath, $this->job );
+			do_action( 'import_attachment_failure', $attachment, $filepath, $this->batch );
 			return false;
 		}
 
@@ -419,8 +412,8 @@ abstract class Batch_Importer {
 	 * Import data added by a third-party.
 	 */
 	public function import_custom_data() {
-		foreach ( $this->job->get_batch()->get_custom_data() as $addon => $data ) {
-			do_action( 'sme_import_' . $addon, $data, $this->job );
+		foreach ( $this->batch->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_import_' . $addon, $data, $this->batch );
 		}
 	}
 
@@ -498,11 +491,10 @@ abstract class Batch_Importer {
 
 	public function tear_down() {
 
-		do_action( 'sme_imported', $this->job );
+		do_action( 'sme_imported', $this->batch );
 
 		// Import finished, update import status.
-		$this->job->set_status( 3 );
-		$this->import_job_dao->update_job( $this->job );
+		$this->api->set_deploy_status( $this->batch->get_id(), 3 );
 	}
 
 	/**
@@ -516,7 +508,7 @@ abstract class Batch_Importer {
 		if ( ! isset( $this->post_diffs[$diff->get_stage_id()] ) ) {
 
 			// Store diff in database.
-			add_post_meta( $this->job->get_id(), 'sme_post_diff', $diff->to_array() );
+			add_post_meta( $this->batch->get_id(), 'sme_post_diff', $diff->to_array() );
 
 			// Store diff in property.
 			$this->post_diffs[$diff->get_stage_id()] = $diff;

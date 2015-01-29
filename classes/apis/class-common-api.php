@@ -51,6 +51,10 @@ class Common_API {
 	 * Batch API
 	 * **********************************************************************/
 
+	public function create_batch() {
+		return new Batch();
+	}
+
 	/**
 	 * Prepare a batch.
 	 *
@@ -60,13 +64,12 @@ class Common_API {
 	 *
 	 * Runs on content stage.
 	 *
-	 * @param int $id
-	 * @return Batch
+	 * @param Batch $batch
 	 */
-	public function prepare_batch( $id ) {
+	public function prepare_batch( $batch ) {
 
-		$mgr   = new Batch_Mgr();
-		$batch = $mgr->get_batch( $id );
+		$mgr = new Batch_Mgr();
+		$mgr->prepare( $batch );
 
 		// Let third-party developers filter batch data.
 		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );
@@ -84,8 +87,6 @@ class Common_API {
 		 * most often where third-party developers would add custom data.
 		 */
 		do_action( 'sme_prepare', $batch );
-
-		return $batch;
 	}
 
 	/**
@@ -129,6 +130,8 @@ class Common_API {
 	/**
 	 * Set status for a batch.
 	 *
+	 * @deprecated
+	 *
 	 * @param int $batch_id
 	 * @param bool
 	 */
@@ -138,6 +141,8 @@ class Common_API {
 
 	/**
 	 * Get status for a batch.
+	 *
+	 * @deprecated
 	 *
 	 * @param $batch_id
 	 * @return bool
@@ -151,20 +156,20 @@ class Common_API {
 	}
 
 	/**
-	 * @param int $job_id
+	 * @param int $batch_id
 	 * @param int $status
 	 */
-	public function set_deploy_status( $job_id, $status = 0 ) {
-		add_post_meta( $job_id, '_sme_deploy_status', $status, true );
+	public function set_deploy_status( $batch_id, $status = 0 ) {
+		update_post_meta( $batch_id, '_sme_deploy_status', $status );
 	}
 
 	/**
-	 * @param int $job_id
+	 * @param int $batch_id
 	 *
 	 * @return int
 	 */
-	public function get_deploy_status( $job_id ) {
-		return get_post_meta( $job_id, '_sme_deploy_status', true );
+	public function get_deploy_status( $batch_id ) {
+		return get_post_meta( $batch_id, '_sme_deploy_status', true );
 	}
 
 	/* **********************************************************************
@@ -370,6 +375,42 @@ class Common_API {
 		}
 
 		return $key;
+	}
+
+	/* **********************************************************************
+	 * Import API
+	 * **********************************************************************/
+
+	/**
+	 * Generate an import key that can be used in background imports.
+	 *
+	 * @param Batch $batch
+	 *
+	 * @return string
+	 *
+	 * @throws Exception
+	 */
+	public function generate_import_key( Batch $batch ) {
+
+		if ( ! $batch->get_id() || ! $batch->get_modified_gmt() ) {
+			throw new Exception( 'Failed generating batch import key.' );
+		}
+
+		$key = md5( $batch->get_id() . '-' . $batch->get_modified_gmt() . '-' . rand( 0, 100000 ) );
+		update_post_meta( $batch->get_id(), '_sme_import_key', $key );
+
+		return $key;
+	}
+
+	/**
+	 * Get generated background import key.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return string
+	 */
+	public function get_import_key( $batch_id ) {
+		return get_post_meta( $batch_id, '_sme_import_key', true );
 	}
 
 }

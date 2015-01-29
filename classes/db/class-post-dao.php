@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -246,15 +247,16 @@ class Post_DAO extends DAO {
 	}
 
 	/**
-	 * Get post environment diff object for a batch import job.
+	 * Get post environment diff object for a batch.
 	 *
-	 * @param Batch_Import_Job $job
+	 * @param Batch $batch
+	 *
 	 * @return array
 	 */
-	public function get_post_diffs( Batch_Import_Job $job ) {
+	public function get_post_diffs( Batch $batch ) {
 
 		$objects = array();
-		$diffs   = get_post_meta( $job->get_id(), 'sme_post_diff' );
+		$diffs   = get_post_meta( $batch->get_id(), 'sme_post_diff' );
 
 		if ( empty( $diffs ) ) {
 			return $objects;

@@ -1,35 +1,45 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
-use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\View\Batch_Table;
-use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\View\Post_Table;
 use Me\Stenberg\Content\Staging\View\Template;
-use Exception;
+use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 class Batch_Ctrl {
 
+	/**
+	 * @var Template
+	 */
 	private $template;
+
+	/**
+	 * @var Batch_Mgr
+	 */
 	private $batch_mgr;
+
+	/**
+	 * @var Client
+	 */
 	private $xmlrpc_client;
+
+	/**
+	 * @var Batch_Importer_Factory
+	 */
 	private $importer_factory;
 
 	/**
 	 * @var Common_API
 	 */
 	private $api;
-
-	/**
-	 * @var Batch_Import_Job
-	 */
-	private $batch_import_job_dao;
 
 	/**
 	 * @var Batch_DAO
@@ -48,14 +58,13 @@ class Batch_Ctrl {
 	 * @param Batch_Importer_Factory $importer_factory
 	 */
 	public function __construct( Template $template, Batch_Importer_Factory $importer_factory ) {
-		$this->template             = $template;
-		$this->batch_mgr            = new Batch_Mgr();
-		$this->importer_factory     = $importer_factory;
-		$this->api                  = Helper_Factory::get_instance()->get_api( 'Common' );
-		$this->xmlrpc_client        = Helper_Factory::get_instance()->get_client();
-		$this->batch_import_job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
-		$this->batch_dao            = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->post_dao             = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->template         = $template;
+		$this->batch_mgr        = new Batch_Mgr();
+		$this->importer_factory = $importer_factory;
+		$this->api              = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->xmlrpc_client    = Helper_Factory::get_instance()->get_client();
+		$this->batch_dao        = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->post_dao         = Helper_Factory::get_instance()->get_dao( 'Post' );
 	}
 
 	/**
@@ -129,7 +138,7 @@ class Batch_Ctrl {
 			$batch_id = intval( $_GET['id'] );
 		}
 
-		$batch = $this->batch_mgr->get_batch( $batch_id );
+		$batch = $this->batch_mgr->get( $batch_id );
 
 		if ( isset( $_GET['orderby'] ) ) {
 			$order_by = $_GET['orderby'];
@@ -222,7 +231,7 @@ class Batch_Ctrl {
 
 		// Get batch.
 		$batch_id = $_GET['id'] > 0 ? intval( $_GET['id'] ) : null;
-		$batch    = $this->batch_mgr->get_batch( $batch_id, true );
+		$batch    = $this->batch_mgr->get( $batch_id );
 
 		/*
 		 * Make it possible for third-party developers to modify 'Save Batch'
@@ -275,7 +284,7 @@ class Batch_Ctrl {
 		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
 
 		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+		$batch = $this->batch_mgr->get( $_GET['id'] );
 
 		// Delete batch.
 		$this->batch_dao->delete_batch( $batch );
@@ -296,7 +305,7 @@ class Batch_Ctrl {
 		}
 
 		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get_batch( $_GET['id'], true );
+		$batch = $this->batch_mgr->get( $_GET['id'] );
 
 		// Data to be passed to view.
 		$data = array( 'batch' => $batch );
@@ -321,8 +330,11 @@ class Batch_Ctrl {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
+		// Get batch from database.
+		$batch = $this->batch_dao->find( $_GET['id'] );
+
 		// Populate batch with actual data.
-		$batch = $this->api->prepare_batch( $_GET['id'] );
+		$this->api->prepare_batch( $batch );
 
 		$request = array(
 			'batch' => $batch,
@@ -466,7 +478,7 @@ class Batch_Ctrl {
 		// Get as integer.
 		$post_id = intval( $_GET['post_id'] );
 
-		$batch = $this->batch_mgr->get_batch();
+		$batch = $this->batch_mgr->get();
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
 		$this->batch_dao->insert( $batch );
@@ -507,8 +519,6 @@ class Batch_Ctrl {
 			wp_die( __( 'No batch found.', 'sme-content-staging' ) );
 		}
 
-		$batch = unserialize( base64_decode( $batch->get_content() ) );
-
 		// Deploy the batch.
 		$response = $this->api->deploy( $batch );
 
@@ -539,18 +549,16 @@ class Batch_Ctrl {
 		$this->xmlrpc_client->handle_request( $args );
 
 		$result   = $this->xmlrpc_client->get_request_data();
-		$job      = $this->create_import_job( $result );
-		$importer = $this->importer_factory->get_importer( $job );
+		$batch    = $this->extract_batch( $result );
+		$importer = $this->importer_factory->get_importer( $batch );
 
-		do_action( 'sme_import', $job );
-
-		$this->batch_import_job_dao->update_job( $job );
+		do_action( 'sme_import', $batch );
 
 		$importer->run();
 
 		$response = array(
-			'status'   => $job->get_status(),
-			'messages' => $this->api->get_deploy_messages( $job->get_id() ),
+			'status'   => $this->api->get_deploy_status( $batch->get_id() ),
+			'messages' => $this->api->get_deploy_messages( $batch->get_id() ),
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -558,7 +566,7 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Output the status of an import job together with any messages
+	 * Output the status of an ongoing import together with any messages
 	 * generated during import.
 	 *
 	 * Triggered by an AJAX call.
@@ -568,7 +576,7 @@ class Batch_Ctrl {
 	public function import_status_request() {
 
 		$request = array(
-			'job_id' => intval( $_POST['job_id'] ),
+			'batch_id' => intval( $_POST['batch_id'] ),
 		);
 
 		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
@@ -596,16 +604,16 @@ class Batch_Ctrl {
 		$this->xmlrpc_client->handle_request( $args );
 
 		$result = $this->xmlrpc_client->get_request_data();
-		$job    = $this->batch_import_job_dao->find( intval( $result['job_id'] ) );
+		$batch  = $this->batch_dao->find( intval( $result['batch_id'] ) );
 
-		if ( $job->get_status() !== 2 ) {
-			$importer = $this->importer_factory->get_importer( $job );
+		if ( $this->api->get_deploy_status( $batch->get_id() ) !== 2 ) {
+			$importer = $this->importer_factory->get_importer( $batch );
 			$importer->status();
 		}
 
 		$response = array(
-			'status'   => $job->get_status(),
-			'messages' => $this->api->get_deploy_messages( $job->get_id() ),
+			'status'   => $this->api->get_deploy_status( $batch->get_id() ),
+			'messages' => $this->api->get_deploy_messages( $batch->get_id() ),
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -636,7 +644,7 @@ class Batch_Ctrl {
 		}
 
 		// Get batch.
-		$batch = $this->batch_mgr->get_batch( $batch_id, true );
+		$batch = $this->batch_mgr->get( $batch_id );
 
 		// Create new batch if needed.
 		if ( ! $batch->get_id() ) {
@@ -715,32 +723,49 @@ class Batch_Ctrl {
 	 * Runs on production when an import status request has been received.
 	 *
 	 * @param array $result
-	 * @return Batch_Import_Job
+	 *
+	 * @return Batch
+	 *
+	 * @throws Exception
 	 */
-	private function create_import_job( $result ) {
-
-		$job = new Batch_Import_Job();
-
-		$this->batch_import_job_dao->insert( $job );
+	private function extract_batch( $result ) {
 
 		// Check if a batch has been provided.
 		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			$this->api->add_deploy_message( $job->get_id(), 'Failed creating import job.', 'error' );
-			$job->set_status( 2 );
-			return $job;
+			// Error: Failed to create batch on production.
+			// How to pass error message to user?
+			throw new Exception( 'No batch has been sent from content stage to production.' );
 		}
 
-		$job->set_batch( $result['batch'] );
-		$this->batch_import_job_dao->update_job( $job );
+		$batch = $result['batch'];
+		$batch->set_id( null );
+
+		// Get former revisions of this batch (if exists).
+//		$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
+		$revision = null;
+
+		if ( $revision !== null ) {
+			/*
+			 * Updating existing batch on production.
+			 */
+			$batch->set_id( $revision->get_id() );
+			$this->batch_dao->update_batch( $batch );
+			unset( $revision );
+		} else {
+			/*
+			 * Creating new batch on production.
+			 */
+			$this->batch_dao->insert( $batch );
+		}
 
 		$message = sprintf(
-			'Created import job ID: <span id="sme-batch-import-job-id">%s</span>',
-			$job->get_id()
+			'Preparing batch import (ID: <span id="sme-batch-id">%s</span>)',
+			$batch->get_id()
 		);
 
-		$this->api->add_deploy_message( $job->get_id(), $message, 'info' );
+		$this->api->add_deploy_message( $batch->get_id(), $message, 'info' );
 
-		return $job;
+		return $batch;
 	}
 
 	/**

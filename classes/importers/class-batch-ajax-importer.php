@@ -1,17 +1,17 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
-use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
+use Me\Stenberg\Content\Staging\Models\Batch;
 
 class Batch_AJAX_Importer extends Batch_Importer {
 
 	/**
 	 * Constructor.
 	 *
-	 * @param Batch_Import_Job $job
+	 * @param Batch $batch
 	 */
-	public function __construct( Batch_Import_Job $job ) {
-		parent::__construct( $job );
+	public function __construct( Batch $batch ) {
+		parent::__construct( $batch );
 	}
 
 	/**
@@ -20,16 +20,13 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	public function run() {
 
 		// Import is running.
-		$this->job->set_status( 1 );
+		$this->api->set_deploy_status( $this->batch->get_id(), 1 );
 
 		// Get first thing to import.
 		$first = $this->get_next();
 
 		// Store the first thing to import in database.
-		update_post_meta( $this->job->get_id(), 'sme_import_next', $first );
-
-		// Update job.
-		$this->import_job_dao->update_job( $this->job );
+		update_post_meta( $this->batch->get_id(), '_sme_import_next', $first );
 	}
 
 	/**
@@ -38,29 +35,27 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	public function status() {
 
 		// Make sure AJAX import has not already finished.
-		if ( $this->job->get_status() > 1 ) {
+		if ( $this->api->get_deploy_status( $this->batch->get_id() ) > 1 ) {
 			return;
 		}
 
 		// Get next thing to import from database.
-		$next = get_post_meta( $this->job->get_id(), 'sme_import_next', true );
+		$next = get_post_meta( $this->batch->get_id(), '_sme_import_next', true );
 
 		// Import.
 		call_user_func( array( $this, $next['method'] ), $next['params'] );
 
 		// Get next thing to import and store it in database.
 		$next = $this->get_next( $next );
-		update_post_meta( $this->job->get_id(), 'sme_import_next', $next );
+		update_post_meta( $this->batch->get_id(), '_sme_import_next', $next );
 
-		$this->import_job_dao->update_job( $this->job );
-
-		if ( $this->job->get_status() > 1 ) {
+		if ( $this->api->get_deploy_status( $this->batch->get_id() ) > 1 ) {
 			/*
-			 * Delete importer. Importer is not actually deleted, just set to draft
+			 * Delete batch. Batch is not actually deleted, just set to draft
 			 * mode. This is important since we need to access e.g. meta data telling
 			 * us the status of the import even after import has finished.
 			 */
-			$this->import_job_dao->delete_job( $this->job );
+			$this->batch_dao->delete_batch( $this->batch );
 		}
 	}
 
@@ -83,7 +78,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Attachments.
 		if ( $current['method'] == 'import_attachment' ) {
-			$attachments = $this->job->get_batch()->get_attachments();
+			$attachments = $this->batch->get_attachments();
 			if ( isset( $attachments[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],
@@ -100,7 +95,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Users.
 		if ( $current['method'] == 'import_user' ) {
-			$users = $this->job->get_batch()->get_users();
+			$users = $this->batch->get_users();
 			if ( isset( $users[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],
@@ -117,7 +112,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 
 		// Posts.
 		if ( $current['method'] == 'import_post' ) {
-			$posts = $this->job->get_batch()->get_posts();
+			$posts = $this->batch->get_posts();
 			if ( isset( $posts[$current['index'] + 1] ) ) {
 				return array(
 					'method' => $current['method'],

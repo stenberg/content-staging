@@ -2,16 +2,11 @@
 namespace Me\Stenberg\Content\Staging\Importers;
 
 use Me\Stenberg\Content\Staging\Apis\Common_API;
-use Me\Stenberg\Content\Staging\DB\Batch_Import_Job_DAO;
+use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
-use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
+use Me\Stenberg\Content\Staging\Models\Batch;
 
 class Batch_Importer_Factory {
-
-	/**
-	 * @var Batch_Import_Job_DAO
-	 */
-	private $job_dao;
 
 	/**
 	 * @var Common_API
@@ -19,26 +14,32 @@ class Batch_Importer_Factory {
 	private $api;
 
 	/**
+	 * @var Batch_DAO
+	 */
+	private $batch_dao;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->job_dao = Helper_Factory::get_instance()->get_dao( 'Batch_Import_Job' );
-		$this->api     = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->api       = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->batch_dao = Helper_Factory::get_instance()->get_dao( 'Batch' );
 	}
 
 	/**
 	 * Determine what importer to use and return it.
 	 *
-	 * @param Batch_Import_Job $job
+	 * @param Batch $batch
+	 *
 	 * @return Batch_Importer
 	 */
-	public function get_importer( Batch_Import_Job $job ) {
+	public function get_importer( Batch $batch ) {
 
 		// What importer class to use.
 		$class = $this->get_importer_class();
 
 		// Initialize and return the importer.
-		return new $class( $job );
+		return new $class( $batch );
 	}
 
 	/**
@@ -51,45 +52,46 @@ class Batch_Importer_Factory {
 			return;
 		}
 
-		// Make sure a job ID has been provided.
-		if ( ! isset( $_GET['sme_batch_import_job_id'] ) || ! $_GET['sme_batch_import_job_id'] ) {
+		// Make sure a batch ID has been provided.
+		if ( ! isset( $_GET['sme_batch_id'] ) || ! $_GET['sme_batch_id'] ) {
 			return;
 		}
 
-		// Make sure a job key has been provided.
-		if ( ! isset( $_GET['sme_import_batch_key'] ) || ! $_GET['sme_import_batch_key'] ) {
+		// Make sure a background import key has been provided.
+		if ( ! isset( $_GET['sme_import_key'] ) || ! $_GET['sme_import_key'] ) {
 			return;
 		}
 
-		$job_id     = intval( $_GET['sme_batch_import_job_id'] );
-		$import_key = $_GET['sme_import_batch_key'];
+		$batch_id   = intval( $_GET['sme_batch_id'] );
+		$import_key = $_GET['sme_import_key'];
 
-		// Get batch importer from database.
-		$job = $this->job_dao->find( $job_id );
+		// Get batch from database.
+		$batch = $this->batch_dao->find( $batch_id );
 
-		// No job found, error.
-		if ( ! $job ) {
-			error_log( sprintf( 'Batch job with ID %d failed to start.', $job_id ) );
+		// No batch to import found, error.
+		if ( ! $batch ) {
+			error_log( sprintf( 'Batch with ID %d could not be imported.', $batch_id ) );
 			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );
 		}
 
 		// Validate key.
-		if ( $import_key !== $job->get_key() ) {
+		if ( $import_key !== $this->api->get_import_key( $batch->get_id() ) ) {
 
 			error_log( 'Unauthorized batch import attempt terminated.' );
 
-			$this->api->add_deploy_message( $job->get_id(), __( 'Something went wrong', 'sme-content-staging' ), 'error' );
-			$job->set_status( 2 );
+			$this->api->add_deploy_message( $batch->get_id(), __( 'Something went wrong', 'sme-content-staging' ), 'error' );
+			$this->api->set_deploy_status( $batch->get_id(), 2 );
 
 			wp_die( __( 'Something went wrong', 'sme-content-staging' ) );
 		}
 
-		// Background importer is running. Make the old import key useless.
-		$job->generate_key();
-		$this->job_dao->update_job( $job );
+		// Background import is running. Make the old import key useless.
+		$this->api->generate_import_key( $batch );
 
-		$importer = new Batch_Background_Importer( $job );
+		// Create the importer.
+		$importer = new Batch_Background_Importer( $batch );
 
+		// Trigger import.
 		$importer->import();
 	}
 

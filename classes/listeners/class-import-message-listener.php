@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Listeners;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Post;
 
@@ -36,35 +37,35 @@ class Import_Message_Listener {
 	/**
 	 * Start batch import.
 	 *
-	 * @param Batch_Import_Job $job
+	 * @param Batch $batch
 	 */
-	public function import( Batch_Import_Job $job ) {
-		$this->api->add_deploy_message( $job->get_id(), 'Starting batch import...', 'info' );
+	public function import( Batch $batch ) {
+		$this->api->add_deploy_message( $batch->get_id(), 'Starting batch import...', 'info' );
 
 	}
 
 	/**
 	 * Post has just been imported.
 	 *
-	 * @param Post             $post
-	 * @param Batch_Import_Job $job
+	 * @param Post  $post
+	 * @param Batch $batch
 	 */
-	public function post_imported( Post $post, Batch_Import_Job $job ) {
+	public function post_imported( Post $post, Batch $batch ) {
 
 		$message = sprintf(
 			'Post <strong>%s</strong> has been successfully imported.',
 			$post->get_title()
 		);
 
-		$this->api->add_deploy_message( $job->get_id(), $message, 'success' );
+		$this->api->add_deploy_message( $batch->get_id(), $message, 'success' );
 	}
 
 	/**
 	 * Batch has been successfully imported.
 	 *
-	 * @param Batch_Import_Job $job
+	 * @param Batch $batch
 	 */
-	public function imported( Batch_Import_Job $job ) {
+	public function imported( Batch $batch ) {
 
 		$links  = array();
 		$output = '';
@@ -72,7 +73,7 @@ class Import_Message_Listener {
 		$types  = array( 'page', 'post' );
 
 		// Get diffs from database.
-		$diffs = $this->post_dao->get_post_diffs( $job );
+		$diffs = $this->post_dao->get_post_diffs( $batch );
 
 		// Get all posts.
 		foreach ( $diffs as $diff ) {
@@ -105,10 +106,10 @@ class Import_Message_Listener {
 			$output  = '<ul>' . $output . '</ul>';
 			$message = '<h3>Posts deployed to the live site:</h3>' . $output;
 
-			$this->api->add_deploy_message( $job->get_id(), $message, 'info' );
+			$this->api->add_deploy_message( $batch->get_id(), $message, 'info' );
 		}
 
-		$this->api->add_deploy_message( $job->get_id(), 'Batch has been successfully imported!', 'success' );
+		$this->api->add_deploy_message( $batch->get_id(), 'Batch has been successfully imported!', 'success' );
 	}
 
 }

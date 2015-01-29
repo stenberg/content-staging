@@ -180,13 +180,13 @@ jQuery( document ).ready(function($) {
 
 			var data = {
 				action: 'sme_import_status_request',
-				job_id: $('#sme-batch-import-job-id').html()
+				batch_id: $('#sme-batch-id').html()
 			};
 
 			var printed = $('.sme-deploy-messages .sme-cs-message').length;
 
 			// Check if a batch importer ID has been found.
-			if (data.job_id) {
+			if (data.batch_id) {
 				this.deployStatus(data, printed);
 			}
 		},

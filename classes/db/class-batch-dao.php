@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Model;
@@ -15,13 +16,14 @@ class Batch_DAO extends DAO {
 	}
 
 	/**
-	 * Get published content batches.
+	 * Get published batches.
 	 *
-	 * @param array $statuses
+	 * @param array  $statuses
 	 * @param string $order_by
 	 * @param string $order
-	 * @param int $per_page
-	 * @param int $paged
+	 * @param int    $per_page
+	 * @param int    $paged
+	 *
 	 * @return array
 	 */
 	public function get_batches( $statuses = array(), $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
@@ -74,6 +76,40 @@ class Batch_DAO extends DAO {
 	}
 
 	/**
+	 * Get post by global unique identifier.
+	 *
+	 * @param $guid
+	 *
+	 * @return Batch
+	 *
+	 * @throws Exception
+	 */
+	public function get_by_guid( $guid ) {
+
+		// Select post with a specific GUID ending.
+		$query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
+			$guid
+		);
+
+		$result = $this->wpdb->get_results( $query, ARRAY_A );
+
+		if ( empty( $result ) ) {
+			return null;
+		}
+
+		if ( count( $result ) > 1 ) {
+			throw new Exception( sprintf( 'GUID %s is not unique', $guid ) );
+		}
+
+		if ( isset( $result[0] ) && isset( $result[0]['ID'] ) ) {
+			return $this->create_object( $result[0] );
+		}
+
+		return null;
+	}
+
+	/**
 	 * Get number of published content batches that exists.
 	 *
 	 * @param array $statuses
@@ -96,12 +132,7 @@ class Batch_DAO extends DAO {
 		$batch->set_modified( current_time( 'mysql' ) );
 		$batch->set_modified_gmt( current_time( 'mysql', 1 ) );
 
-		/*
-		 * Important! Failing to reset content will result in the content field
-		 * growing larger and larger until DB cannot handle it anymore.
-		 */
-		$batch->set_content( '' );
-		$batch->set_content( base64_encode( serialize( $batch ) ) );
+		$this->prepare_content( $batch );
 
 		$data         = $this->create_array( $batch );
 		$where        = array( 'ID' => $batch->get_id() );
@@ -186,6 +217,8 @@ class Batch_DAO extends DAO {
 		$obj->set_modified( $obj->get_date() );
 		$obj->set_modified_gmt( $obj->get_date_gmt() );
 
+		$this->prepare_content( $obj );
+
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 
@@ -219,11 +252,11 @@ class Batch_DAO extends DAO {
 	 * @return Batch
 	 */
 	protected function do_create_object( array $raw ) {
+
 		$obj  = new Batch( $raw['ID'] );
 		$user = $this->user_dao->find( $raw['post_author'] );
 		$obj->set_guid( $raw['guid'] );
 		$obj->set_title( $raw['post_title'] );
-		$obj->set_content( $raw['post_content'] );
 		$obj->set_creator( $user );
 		$obj->set_date( $raw['post_date'] );
 		$obj->set_date_gmt( $raw['post_date_gmt'] );
@@ -231,25 +264,51 @@ class Batch_DAO extends DAO {
 		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
 		$obj->set_status( $raw['post_status'] );
 		$obj->set_backend( admin_url() );
+
+		$content = unserialize( base64_decode( $raw['post_content'] ) );
+
+		if ( isset( $content['attachments'] ) ) {
+			$obj->set_attachments( $content['attachments'] );
+		}
+
+		if ( isset( $content['users'] ) ) {
+			$obj->set_users( $content['users'] );
+		}
+
+		if ( isset( $content['posts'] ) ) {
+			$obj->set_posts( $content['posts'] );
+		}
+
+		if ( isset( $content['custom_data'] ) ) {
+			$obj->set_custom_data( $content['custom_data'] );
+		}
+
 		return $obj;
 	}
 
 	protected function do_create_array( Model $obj ) {
-		return array(
-			'post_author'       => $obj->get_creator()->get_id(),
-			'post_date'         => $obj->get_date(),
-			'post_date_gmt'     => $obj->get_date_gmt(),
-			'post_content'      => $obj->get_content(),
-			'post_title'        => $obj->get_title(),
-			'post_status'       => $obj->get_status(),
-			'comment_status'    => 'closed',
-			'ping_status'       => 'closed',
-			'post_name'         => '',
-			'post_modified'     => $obj->get_modified(),
-			'post_modified_gmt' => $obj->get_modified_gmt(),
-			'guid'              => $obj->get_guid(),
-			'post_type'         => 'sme_content_batch',
-		);
+
+		$batch = array();
+		$user  = $obj->get_creator();
+
+		if ( $user !== null ) {
+			$batch['post_author'] = $user->get_id();
+		}
+
+		$batch['post_date']         = $obj->get_date();
+		$batch['post_date_gmt']     = $obj->get_date_gmt();
+		$batch['post_content']      = $obj->get_content();
+		$batch['post_title']        = $obj->get_title();
+		$batch['post_status']       = $obj->get_status();
+		$batch['comment_status']    = 'closed';
+		$batch['ping_status']       = 'closed';
+		$batch['post_name']         = '';
+		$batch['post_modified']     = $obj->get_modified();
+		$batch['post_modified_gmt'] = $obj->get_modified_gmt();
+		$batch['guid']              = $obj->get_guid();
+		$batch['post_type']         = 'sme_content_batch';
+
+		return $batch;
 	}
 
 	/**
@@ -276,6 +335,23 @@ class Batch_DAO extends DAO {
 			'%s', // guid
 			'%s', // post_type
 		);
+	}
+
+	/**
+	 * Take content of a batch (attachments, users, post, custom data) and
+	 * prepare it for being inserted into database.
+	 * @param Batch $batch
+	 */
+	private function prepare_content( Batch $batch ) {
+
+		$content = array(
+			'attachments' => $batch->get_attachments(),
+			'users'       => $batch->get_users(),
+			'posts'       => $batch->get_posts(),
+			'custom_data' => $batch->get_custom_data(),
+		);
+
+		$batch->set_content( base64_encode( serialize( $content ) ) );
 	}
 
 	/**
