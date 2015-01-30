@@ -99,7 +99,8 @@ class Batch_DAO extends DAO {
 		}
 
 		if ( count( $result ) > 1 ) {
-			throw new Exception( sprintf( 'GUID %s is not unique', $guid ), 1 );
+			$this->fix_duplicated_guids( $guid );
+			return $this->get_by_guid( $guid );
 		}
 
 		if ( isset( $result[0] ) && isset( $result[0]['ID'] ) ) {
