@@ -280,9 +280,18 @@ class Batch_DAO extends DAO {
 			$batch['post_author'] = $user->get_id();
 		}
 
+		$content = array(
+			'attachments' => $obj->get_attachments(),
+			'users'       => $obj->get_users(),
+			'posts'       => $obj->get_posts(),
+			'custom_data' => $obj->get_custom_data(),
+		);
+
+		$content = base64_encode( serialize( $content ) );
+
 		$batch['post_date']         = $obj->get_date();
 		$batch['post_date_gmt']     = $obj->get_date_gmt();
-		$batch['post_content']      = $obj->get_content();
+		$batch['post_content']      = $content;
 		$batch['post_title']        = $obj->get_title();
 		$batch['post_status']       = $obj->get_status();
 		$batch['comment_status']    = 'closed';
@@ -329,14 +338,7 @@ class Batch_DAO extends DAO {
 	 */
 	private function prepare_content( Batch $batch ) {
 
-		$content = array(
-			'attachments' => $batch->get_attachments(),
-			'users'       => $batch->get_users(),
-			'posts'       => $batch->get_posts(),
-			'custom_data' => $batch->get_custom_data(),
-		);
 
-		$batch->set_content( base64_encode( serialize( $content ) ) );
 	}
 
 	/**

@@ -20,14 +20,6 @@ class Batch extends Model {
 	private $title;
 
 	/**
-	 * Content of this batch.
-	 *
-	 * @todo Should not be in here.
-	 * @var string
-	 */
-	private $content;
-
-	/**
 	 * User who created this batch.
 	 *
 	 * @var User
@@ -151,20 +143,6 @@ class Batch extends Model {
 	 */
 	public function get_creator() {
 		return $this->creator;
-	}
-
-	/**
-	 * @param string $content
-	 */
-	public function set_content( $content ) {
-		$this->content = $content;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function get_content() {
-		return $this->content;
 	}
 
 	/**
