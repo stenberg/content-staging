@@ -86,7 +86,7 @@ class Batch_DAO extends DAO {
 	 */
 	public function get_by_guid( $guid ) {
 
-		// Select post with a specific GUID ending.
+		// Select post with a specific GUID.
 		$query = $this->wpdb->prepare(
 			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
 			$guid
@@ -99,7 +99,7 @@ class Batch_DAO extends DAO {
 		}
 
 		if ( count( $result ) > 1 ) {
-			throw new Exception( sprintf( 'GUID %s is not unique', $guid ) );
+			throw new Exception( sprintf( 'GUID %s is not unique', $guid ), 1 );
 		}
 
 		if ( isset( $result[0] ) && isset( $result[0]['ID'] ) ) {
@@ -107,6 +107,40 @@ class Batch_DAO extends DAO {
 		}
 
 		return null;
+	}
+
+	/**
+	 * Give each batch sharing the same GUID its own GUID.
+	 *
+	 * Every batch should have its own GUID, if that is not the case then
+	 * this method can be used to fix that.
+	 *
+	 * @param $guid
+	 */
+	public function fix_duplicated_guids( $guid ) {
+
+		// Select posts with a specific GUID.
+		$query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
+			$guid
+		);
+
+		$result = $this->wpdb->get_results( $query, ARRAY_A );
+
+		// No duplicates exist.
+		if ( count( $result ) < 2 ) {
+			return;
+		}
+
+		foreach ( $result as $post ) {
+			$updated_guid = get_site_url( get_current_blog_id(), '/?content_staging_batch=' . $post['ID'] );
+			$updated_post = array(
+				'ID'   => $post['ID'],
+				'guid' => $updated_guid,
+			);
+
+			wp_update_post( $updated_post );
+		}
 	}
 
 	/**

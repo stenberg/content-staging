@@ -743,8 +743,25 @@ class Batch_Ctrl {
 		$batch->set_id( null );
 
 		// Get former revisions of this batch (if exists).
-//		$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
-		$revision = null;
+		try {
+			$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
+		} catch ( Exception $e ) {
+
+			/*
+			 * Re-throw exception if this exception did not come from batches not
+			 * having unique GUIDs.
+			 */
+			if ( $e->getCode() !== 1 ) {
+				throw $e;
+			}
+
+			/*
+			 * Batch GUID is not unique. This is common among legacy batches.
+			 * Try to fix it.
+			 */
+			$this->batch_dao->fix_duplicated_guids( $batch->get_guid() );
+			$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
+		}
 
 		if ( $revision !== null ) {
 			/*
