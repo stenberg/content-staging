@@ -132,8 +132,6 @@ class Batch_DAO extends DAO {
 		$batch->set_modified( current_time( 'mysql' ) );
 		$batch->set_modified_gmt( current_time( 'mysql', 1 ) );
 
-		$this->prepare_content( $batch );
-
 		$data         = $this->create_array( $batch );
 		$where        = array( 'ID' => $batch->get_id() );
 		$format       = $this->format();
@@ -219,8 +217,6 @@ class Batch_DAO extends DAO {
 		$obj->set_modified( $obj->get_date() );
 		$obj->set_modified_gmt( $obj->get_date_gmt() );
 
-		$this->prepare_content( $obj );
-
 		$array = $this->create_array( $obj );
 		$id    = wp_insert_post( $array );
 		$batch = get_post( $id, ARRAY_A );
@@ -252,6 +248,14 @@ class Batch_DAO extends DAO {
 
 		$content = unserialize( base64_decode( $raw['post_content'] ) );
 
+		/*
+		 * Previously $content would have contained a Batch object. This check
+		 * deals with legacy batches.
+		 */
+		if ( ! is_array( $content ) ) {
+			$content = array();
+		}
+
 		if ( isset( $content['attachments'] ) ) {
 			$obj->set_attachments( $content['attachments'] );
 		}
@@ -280,6 +284,10 @@ class Batch_DAO extends DAO {
 			$batch['post_author'] = $user->get_id();
 		}
 
+		/*
+		 * Take content of a batch (attachments, users, post, custom data) and
+		 * prepare it for being inserted into database.
+		 */
 		$content = array(
 			'attachments' => $obj->get_attachments(),
 			'users'       => $obj->get_users(),
@@ -329,16 +337,6 @@ class Batch_DAO extends DAO {
 			'%s', // guid
 			'%s', // post_type
 		);
-	}
-
-	/**
-	 * Take content of a batch (attachments, users, post, custom data) and
-	 * prepare it for being inserted into database.
-	 * @param Batch $batch
-	 */
-	private function prepare_content( Batch $batch ) {
-
-
 	}
 
 	/**
