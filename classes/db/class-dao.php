@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Object_Watcher;
 use wpdb;
@@ -41,22 +42,20 @@ abstract class DAO {
 	 * Get any object that matches one of the provided IDs.
 	 *
 	 * @param array $ids Array of IDs.
+	 *
 	 * @return array
 	 */
 	public function find_by_ids( $ids ) {
 		$collection = array();
 
-		foreach ( $ids as $index => $id ) {
-			$old = $this->get_from_map( $id );
-			if ( ! is_null( $old ) ) {
-				$collection[] = $old;
-				unset( $ids[$index] );
-			}
-		}
-
 		if ( count( $ids ) < 1 ) {
 			return $collection;
 		}
+
+		// Repair broken arrays of IDs.
+		$ids = array_filter( $ids, function( $id ) {
+			return ( is_string( $id ) || is_int( $id ) );
+		});
 
 		$query = $this->wpdb->prepare( $this->select_by_ids_stmt( $ids ), $ids );
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $record ) {

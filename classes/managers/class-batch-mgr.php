@@ -125,6 +125,7 @@ class Batch_Mgr {
 	 * @param array $post_ids
 	 */
 	private function add_posts( Batch $batch, $post_ids ) {
+
 		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
 		$posts    = $this->post_dao->find_by_ids( $post_ids );
 
