@@ -210,7 +210,9 @@ class Batch_DAO extends DAO {
 	 * @param Model $obj
 	 */
 	protected function do_insert( Model $obj ) {
+
 		$user = $this->user_dao->find( get_current_user_id() );
+
 		$obj->set_creator( $user );
 		$obj->set_date( current_time( 'mysql' ) );
 		$obj->set_date_gmt( current_time( 'mysql', 1 ) );
@@ -219,32 +221,15 @@ class Batch_DAO extends DAO {
 
 		$this->prepare_content( $obj );
 
-		$data   = $this->create_array( $obj );
-		$format = $this->format();
+		$array = $this->create_array( $obj );
+		$id    = wp_insert_post( $array );
+		$batch = get_post( $id, ARRAY_A );
 
-		$this->wpdb->insert( $this->get_table(), $data, $format );
-		$obj->set_id( $this->wpdb->insert_id );
+		$obj->set_id( $id );
 
-		$name = wp_unique_post_slug(
-			sanitize_title( $obj->get_title() ),
-			$obj->get_id(),
-			$data['post_status'],
-			$data['post_type'],
-			0
-		);
-
-		$guid = get_permalink( $obj->get_id() );
-
-		// Update batch with GUID and post name.
-		$this->update(
-			array(
-				'post_name' => $name,
-				'guid'      => $guid,
-			),
-			array( 'ID' => $obj->get_id() ),
-			array( '%s', '%s' ),
-			array( '%d' )
-		);
+		if ( isset( $batch['guid'] ) ) {
+			$obj->set_guid( $batch['guid'] );
+		}
 	}
 
 	/**
