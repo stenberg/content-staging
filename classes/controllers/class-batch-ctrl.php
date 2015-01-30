@@ -616,6 +616,8 @@ class Batch_Ctrl {
 			'messages' => $this->api->get_deploy_messages( $batch->get_id() ),
 		);
 
+		$response = apply_filters( 'sme_import_status_response', $response, $batch );
+
 		// Prepare and return the XML-RPC response data.
 		return $this->xmlrpc_client->prepare_response( $response );
 	}
