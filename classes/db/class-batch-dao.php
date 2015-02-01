@@ -134,13 +134,10 @@ class Batch_DAO extends DAO {
 		}
 
 		foreach ( $result as $post ) {
-			$updated_guid = get_site_url( get_current_blog_id(), '/?content_staging_batch=' . $post['ID'] );
-			$updated_post = array(
-				'ID'   => $post['ID'],
-				'guid' => $updated_guid,
+			$new_guid = get_site_url( get_current_blog_id(), '/?content_staging_batch=' . $post['ID'] );
+			$this->wpdb->update(
+				$this->get_table(), array( 'guid' => $new_guid ), array( 'ID' => $post['ID'] ), '%s', '%d'
 			);
-
-			wp_update_post( $updated_post );
 		}
 	}
 

@@ -109,7 +109,7 @@ class Import_Message_Listener {
 			$this->api->add_deploy_message( $batch->get_id(), $message, 'info' );
 		}
 
-		$this->api->add_deploy_message( $batch->get_id(), 'Batch has been successfully imported!', 'success' );
+		$this->api->add_deploy_message( $batch->get_id(), 'Batch has been successfully imported!', 'success', 101 );
 	}
 
 }
