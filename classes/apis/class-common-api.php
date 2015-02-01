@@ -77,10 +77,11 @@ class Common_API {
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
 		/*
-		 * Make sure to get rid of any old messages generated during pre-flight
-		 * of this batch.
+		 * Delete any previous pre-flight or deploy messages and deploy status
+		 * just in case this batch has been imported once before.
 		 */
 		$this->delete_messages( $batch->get_id() );
+		$this->delete_deploy_status( $batch->get_id() );
 
 		/*
 		 * Let third party developers perform actions before pre-flight. This is
@@ -170,6 +171,17 @@ class Common_API {
 	 */
 	public function get_deploy_status( $batch_id ) {
 		return get_post_meta( $batch_id, '_sme_deploy_status', true );
+	}
+
+	/**
+	 * Delete deploy status for a specific batch.
+	 *
+	 * @param int    $batch_id
+	 *
+	 * @return bool
+	 */
+	public function delete_deploy_status( $batch_id ) {
+		return delete_post_meta( $batch_id, '_sme_deploy_status' );
 	}
 
 	/* **********************************************************************

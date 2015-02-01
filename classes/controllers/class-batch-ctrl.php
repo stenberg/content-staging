@@ -751,13 +751,6 @@ class Batch_Ctrl {
 			$batch->set_id( $revision->get_id() );
 			$this->batch_dao->update_batch( $batch );
 			unset( $revision );
-
-			/*
-			 * Delete any previous deploy messages and statuses just in case this
-			 * batch has been imported once before.
-			 */
-			$this->api->delete_messages( $batch->get_id() );
-			$this->api->delete_statuses( $batch->get_id() );
 		} else {
 			/*
 			 * Creating new batch on production.
