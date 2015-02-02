@@ -29,19 +29,8 @@ class Import_Message_Listener {
 		$this->api      = Helper_Factory::get_instance()->get_api( 'Common' );
 
 		// Register listeners.
-		add_action( 'sme_import', array( $this, 'import' ) );
 		add_action( 'sme_post_imported', array( $this, 'post_imported' ), 10, 2 );
 		add_action( 'sme_imported', array( $this, 'imported' ) );
-	}
-
-	/**
-	 * Start batch import.
-	 *
-	 * @param Batch $batch
-	 */
-	public function import( Batch $batch ) {
-		$this->api->add_deploy_message( $batch->get_id(), 'Starting batch import...', 'info' );
-
 	}
 
 	/**
@@ -57,7 +46,7 @@ class Import_Message_Listener {
 			$post->get_title()
 		);
 
-		$this->api->add_deploy_message( $batch->get_id(), $message, 'success' );
+		$this->api->add_deploy_message( $batch->get_id(), $message, 'success', 103 );
 	}
 
 	/**
@@ -106,7 +95,7 @@ class Import_Message_Listener {
 			$output  = '<ul>' . $output . '</ul>';
 			$message = '<h3>Posts deployed to the live site:</h3>' . $output;
 
-			$this->api->add_deploy_message( $batch->get_id(), $message, 'info' );
+			$this->api->add_deploy_message( $batch->get_id(), $message, 'info', 102 );
 		}
 
 		$this->api->add_deploy_message( $batch->get_id(), 'Batch has been successfully imported!', 'success', 101 );

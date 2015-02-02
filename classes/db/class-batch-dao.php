@@ -336,7 +336,6 @@ class Batch_DAO extends DAO {
 		$batch['post_status']       = $obj->get_status();
 		$batch['comment_status']    = 'closed';
 		$batch['ping_status']       = 'closed';
-		$batch['post_name']         = '';
 		$batch['post_modified']     = $obj->get_modified();
 		$batch['post_modified_gmt'] = $obj->get_modified_gmt();
 		$batch['guid']              = $obj->get_guid();
@@ -363,7 +362,6 @@ class Batch_DAO extends DAO {
 			'%s', // post_status
 			'%s', // comment_status
 			'%s', // ping_status
-			'%s', // post_name
 			'%s', // post_modified
 			'%s', // post_modified_gmt
 			'%s', // guid

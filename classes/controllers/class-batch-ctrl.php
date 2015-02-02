@@ -763,6 +763,9 @@ class Batch_Ctrl {
 			$batch->get_id()
 		);
 
+		$this->api->delete_deploy_status( $batch->get_id() );
+		$this->api->delete_deploy_messages( $batch->get_id() );
+		$this->api->set_deploy_status( $batch->get_id(), 1 );
 		$this->api->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
 
 		return $batch;
