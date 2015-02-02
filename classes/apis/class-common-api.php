@@ -35,7 +35,7 @@ class Common_API {
 
 	public function __construct() {
 		$this->client       = Helper_Factory::get_instance()->get_client();
-		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->batch_dao    = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
 	}
@@ -129,6 +129,9 @@ class Common_API {
 
 		$this->client->request( 'smeContentStaging.import', $request );
 		$response = $this->client->get_response_data();
+
+		// Batch deploy in progress.
+		do_action( 'sme_deploying', $batch );
 
 		/*
 		 * Batch has been deployed and should no longer be accessible by user,
