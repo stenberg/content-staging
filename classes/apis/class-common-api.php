@@ -2,6 +2,7 @@
 namespace Me\Stenberg\Content\Staging\Apis;
 
 use Exception;
+use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
@@ -18,6 +19,11 @@ class Common_API {
 	private $client;
 
 	/**
+	 * @var Batch_DAO
+	 */
+	private $batch_dao;
+
+	/**
 	 * @var Post_DAO
 	 */
 	private $post_dao;
@@ -29,6 +35,7 @@ class Common_API {
 
 	public function __construct() {
 		$this->client       = Helper_Factory::get_instance()->get_client();
+		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
 	}
@@ -121,7 +128,16 @@ class Common_API {
 		);
 
 		$this->client->request( 'smeContentStaging.import', $request );
-		return $this->client->get_response_data();
+		$response = $this->client->get_response_data();
+
+		/*
+		 * Batch has been deployed and should no longer be accessible by user,
+		 * delete it (not actually deleting the batch, just setting it to draft
+		 * to make it invisible to users).
+		 */
+		$this->batch_dao->delete_batch( $batch );
+
+		return $response;
 	}
 
 	/* **********************************************************************

@@ -522,16 +522,6 @@ class Batch_Ctrl {
 		// Deploy the batch.
 		$response = $this->api->deploy( $batch );
 
-		// Batch deploy in progress.
-		do_action( 'sme_deploying', $batch );
-
-		/*
-		 * Batch has been deployed and should no longer be accessible by user,
-		 * delete it (not actually deleting the batch, just setting it to draft
-		 * to make it invisible to users).
-		 */
-		$this->batch_dao->delete_batch( $batch );
-
 		$data = array(
 			'messages' => $response['messages'],
 		);
