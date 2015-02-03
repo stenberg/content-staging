@@ -427,11 +427,15 @@ class Batch_Ctrl {
 
 				// Check if parent post exist on production or in batch.
 				if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
+
+					// Admin URL of content stage.
+					$admin_url = $batch->get_custom_data( 'sme_content_staging_admin_url' );
+
 					$message = sprintf(
 						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
-						$batch->get_backend() . 'post.php?post=' . $post->get_id() . '&action=edit',
+						$admin_url . 'post.php?post=' . $post->get_id() . '&action=edit',
 						$post->get_title(),
-						$batch->get_backend() . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
+						$admin_url . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
 						$post->get_parent()->get_title()
 					);
 

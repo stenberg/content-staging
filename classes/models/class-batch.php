@@ -62,11 +62,6 @@ class Batch extends Model {
 	private $status;
 
 	/**
-	 * @var string Content staging environment backend URL.
-	 */
-	private $backend;
-
-	/**
 	 * Posts in this batch.
 	 *
 	 * @var array
@@ -213,20 +208,6 @@ class Batch extends Model {
 	 */
 	public function get_status() {
 		return $this->status;
-	}
-
-	/**
-	 * @return string
-	 */
-	public function get_backend() {
-		return $this->backend;
-	}
-
-	/**
-	 * @param string $backend
-	 */
-	public function set_backend( $backend ) {
-		$this->backend = $backend;
 	}
 
 	/**

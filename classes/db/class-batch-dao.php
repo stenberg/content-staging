@@ -276,7 +276,6 @@ class Batch_DAO extends DAO {
 		$obj->set_modified( $raw['post_modified'] );
 		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
 		$obj->set_status( $raw['post_status'] );
-		$obj->set_backend( admin_url() );
 
 		$content = unserialize( base64_decode( $raw['post_content'] ) );
 

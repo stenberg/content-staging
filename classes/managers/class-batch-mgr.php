@@ -116,6 +116,9 @@ class Batch_Mgr {
 
 		$this->add_posts( $batch, $post_ids );
 		$this->add_users( $batch );
+
+		// Add the admin URL of content stage to the batch.
+		$batch->add_custom_data( 'sme_content_stage_admin_url', admin_url() );
 	}
 
 	/**
