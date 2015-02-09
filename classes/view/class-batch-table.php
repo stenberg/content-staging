@@ -26,16 +26,24 @@ class Batch_Table extends WP_List_Table {
 	 * Called if a column does not have a method that provides logic for
 	 * rendering that column.
 	 *
-	 * @param Batch $item
+	 * @param Batch $batch
 	 * @param array $column_name
 	 * @return string Text or HTML to be placed inside the column.
 	 */
-	public function column_default( Batch $item, $column_name ) {
+	public function column_default( Batch $batch, $column_name ) {
+
+		// Display name of user who created the batch.
+		$display_name = '';
+
+		if ( $batch->get_creator() !== null ) {
+			$display_name = $batch->get_creator()->get_display_name();
+		}
+
 		switch ( $column_name ) {
 			case 'post_modified':
-				return $item->get_modified();
+				return $batch->get_modified();
 			case 'post_author':
-				return $item->get_creator()->get_display_name();
+				return $display_name;
 			default:
 				return '';
 		}
