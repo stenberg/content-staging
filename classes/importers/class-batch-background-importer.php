@@ -20,10 +20,16 @@ class Batch_Background_Importer extends Batch_Importer {
 	 */
 	public function run() {
 
+		// Get current deploy status (if any).
+		$deploy_status = $this->api->get_deploy_status( $this->batch->get_id() );
+
 		// Make sure background import for this job is not already running.
-		if ( $this->api->get_deploy_status( $this->batch->get_id() ) > 0 ) {
+		if ( $deploy_status > 0 ) {
 			return;
 		}
+
+		// Inicate that background import is about to start.
+		$this->api->set_deploy_status( $this->batch->get_id(), 1 );
 
 		// Default site path.
 		$site_path = '/';
@@ -44,10 +50,8 @@ class Batch_Background_Importer extends Batch_Importer {
 			$background_process->run();
 		}
 
-		if ( $background_process->get_pid() ) {
-			// Background import started.
-			$this->api->set_deploy_status( $this->batch->get_id(), 1 );
-		} else {
+		if ( ! $background_process->get_pid() ) {
+
 			// Failed to start background import.
 			$this->api->add_deploy_message( $this->batch->get_id(), 'Batch import failed to start.', 'info' );
 			$this->api->set_deploy_status( $this->batch->get_id(), 2 );

@@ -420,7 +420,7 @@ class Batch_Ctrl {
 			try {
 
 				/*
-				 * Check if a revision of this post already exist on production of if it
+				 * Check if a revision of this post already exist on production or if it
 				 * is a brand new post.
 				 */
 				$production_revision = $this->post_dao->get_by_guid( $post->get_guid() );
@@ -542,13 +542,21 @@ class Batch_Ctrl {
 	public function import( array $args ) {
 		$this->xmlrpc_client->handle_request( $args );
 
-		$result   = $this->xmlrpc_client->get_request_data();
-		$batch    = $this->extract_batch( $result );
-		$importer = $this->importer_factory->get_importer( $batch );
+		$result = $this->xmlrpc_client->get_request_data();
+		$batch  = $this->extract_batch( $result );
 
-		do_action( 'sme_import', $batch );
+		/*
+		 * Whether import should start automatically when the batch reaches the
+		 * production environment or not.
+		 */
+		$auto_import = apply_filters( 'sme_auto_import', true, $batch );
 
-		$importer->run();
+		// If auto import is set to true, then start the batch import immediately.
+		if ( $auto_import ) {
+			$importer = $this->importer_factory->get_importer( $batch );
+			do_action( 'sme_import', $batch );
+			$importer->run();
+		}
 
 		$response = array(
 			'status'   => $this->api->get_deploy_status( $batch->get_id() ),
@@ -744,6 +752,7 @@ class Batch_Ctrl {
 			 */
 			$batch->set_id( $revision->get_id() );
 			$this->batch_dao->update_batch( $batch );
+
 			unset( $revision );
 		} else {
 			/*
@@ -759,7 +768,7 @@ class Batch_Ctrl {
 
 		$this->api->delete_deploy_status( $batch->get_id() );
 		$this->api->delete_deploy_messages( $batch->get_id() );
-		$this->api->set_deploy_status( $batch->get_id(), 1 );
+		$this->api->set_deploy_status( $batch->get_id(), 0 );
 		$this->api->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
 
 		return $batch;
