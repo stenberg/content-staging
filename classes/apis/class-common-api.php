@@ -128,9 +128,6 @@ class Common_API {
 			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
 		);
 
-		// Should import of batch start as soon as it reaches production?
-		$auto_import = true;
-
 		// Start building request to send to production.
 		$request = array(
 			'batch'       => $batch,
