@@ -545,14 +545,8 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 		$batch  = $this->extract_batch( $result );
 
-		/*
-		 * Whether import should start automatically when the batch reaches the
-		 * production environment or not.
-		 */
-		$auto_import = apply_filters( 'sme_auto_import', true, $batch );
-
 		// If auto import is set to true, then start the batch import immediately.
-		if ( $auto_import ) {
+		if ( ! isset( $result['auto_import'] ) || $result['auto_import'] ) {
 			$importer = $this->importer_factory->get_importer( $batch );
 			do_action( 'sme_import', $batch );
 			$importer->run();

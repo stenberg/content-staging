@@ -119,12 +119,6 @@ class Content_Staging {
 			closedir( $handle );
 		}
 
-		// Managers / Factories.
-		$importer_factory = new Batch_Importer_Factory();
-
-		// Template engine.
-		$template = new Template( dirname( __FILE__ ) . '/templates/' );
-
 		/*
 		 * Content Staging API.
 		 *
@@ -133,6 +127,15 @@ class Content_Staging {
 		 * way of working with the plugin using functions instead of classes.
 		 */
 		$sme_content_staging_api = Helper_Factory::get_instance()->get_api( 'Common' );
+
+		// Data access objects.
+		$batch_dao = Helper_Factory::get_instance()->get_dao( 'Batch' );
+
+		// Managers / Factories.
+		$importer_factory = new Batch_Importer_Factory( $sme_content_staging_api, $batch_dao );
+
+		// Template engine.
+		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
 		// Controllers.
 		$batch_ctrl         = new Batch_Ctrl( $template, $importer_factory );

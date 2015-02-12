@@ -21,7 +21,7 @@ class Batch_Importer_Factory {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
+	public function __construct( Common_API $api, Batch_DAO $batch_dao ) {
 		$this->api       = Helper_Factory::get_instance()->get_api( 'Common' );
 		$this->batch_dao = Helper_Factory::get_instance()->get_dao( 'Batch' );
 	}

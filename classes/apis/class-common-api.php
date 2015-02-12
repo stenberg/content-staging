@@ -6,6 +6,7 @@ use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -33,6 +34,9 @@ class Common_API {
 	 */
 	private $postmeta_dao;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->client       = Helper_Factory::get_instance()->get_client();
 		$this->batch_dao    = Helper_Factory::get_instance()->get_dao( 'Batch' );
@@ -103,10 +107,12 @@ class Common_API {
 	 * Runs on content stage when a deploy request has been received.
 	 *
 	 * @param Batch $batch
+	 * @param bool  $auto_import If set to false the batch will be sent to production but the import
+	 *                           will not be triggered.
 	 *
 	 * @return array
 	 */
-	public function deploy( Batch $batch ) {
+	public function deploy( Batch $batch, $auto_import = true ) {
 
 		/*
 		 * Give third-party developers the option to import images before batch
@@ -122,9 +128,13 @@ class Common_API {
 			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
 		);
 
+		// Should import of batch start as soon as it reaches production?
+		$auto_import = true;
+
 		// Start building request to send to production.
 		$request = array(
-			'batch'  => $batch,
+			'batch'       => $batch,
+			'auto_import' => $auto_import,
 		);
 
 		$this->client->request( 'smeContentStaging.import', $request );
@@ -141,6 +151,18 @@ class Common_API {
 		$this->batch_dao->delete_batch( $batch );
 
 		return $response;
+	}
+
+	/**
+	 * Trigger batch import on production.
+	 *
+	 * @param Batch $batch
+	 */
+	public function import( Batch $batch ) {
+		$factory  = new Batch_Importer_Factory( $this, $this->batch_dao );
+		$importer = $factory->get_importer( $batch );
+		do_action( 'sme_import', $batch );
+		$importer->run();
 	}
 
 	/* **********************************************************************
