@@ -547,9 +547,7 @@ class Batch_Ctrl {
 
 		// If auto import is set to true, then start the batch import immediately.
 		if ( ! isset( $result['auto_import'] ) || $result['auto_import'] ) {
-			$importer = $this->importer_factory->get_importer( $batch );
-			do_action( 'sme_import', $batch );
-			$importer->run();
+			$this->api->import( $batch );
 		}
 
 		$response = array(
