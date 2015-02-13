@@ -9,6 +9,7 @@ use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Message;
 use Me\Stenberg\Content\Staging\View\Batch_Table;
 use Me\Stenberg\Content\Staging\View\Post_Table;
 use Me\Stenberg\Content\Staging\View\Template;
@@ -347,7 +348,7 @@ class Batch_Ctrl {
 
 		$errors = array_filter(
 			$messages, function( $message ) {
-				return ( isset( $message['level'] ) && $message['level'] == 'error' );
+				return ( $message->get_level() == 'error' );
 			}
 		);
 
@@ -363,7 +364,12 @@ class Batch_Ctrl {
 
 		// Add batch data to database if pre-flight was successful.
 		if ( $preflight_passed ) {
-			$messages[] = array( 'level' => 'success', 'message' => 'Pre-flight successful!' );
+			$msg = new Message();
+			$msg->set_level( 'success' );
+			$msg->set_message( 'Pre-flight successful!' );
+
+			array_push( $messages, $msg );
+
 			$this->batch_dao->update_batch( $batch );
 		}
 
@@ -573,17 +579,50 @@ class Batch_Ctrl {
 			'batch_id' => intval( $_POST['batch_id'] ),
 		);
 
+		// Status returned from production.
+		$status = 0;
+
+		// Messages returned from production.
+		$messages = array();
+
 		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
 
 		$response = apply_filters( 'sme_deploy_status', $response );
 
 		if ( isset( $response['status'] ) && $response['status'] > 1 ) {
-			do_action( 'sme_deployed' );
+
+			// Deploy hss finished.
+			if ( $response['status'] > 1 ) {
+				do_action( 'sme_deployed' );
+			}
+
+			$status = $response['status'];
+			unset( $response['status'] );
+		}
+
+		if ( isset( $response['messages'] ) ) {
+
+			// Convert messages to format we can JSON encode.
+			foreach ( $response['messages'] as $message ) {
+				array_push( $messages, $message->to_array() );
+			}
+
+			unset( $response['messages'] );
+		}
+
+		// Ensure that the production response did not contain any unexpected data.
+		if ( ! empty( $response ) ) {
+			throw new Exception( 'Response from production contained unexpected data.' );
 		}
 
 		header( 'Content-Type: application/json' );
-		echo json_encode( $response );
+		echo json_encode(
+			array(
+				'status'    => $status,
+				'messages'  => $messages,
+			)
+		);
 
 		die(); // Required to return a proper result.
 	}
@@ -716,7 +755,7 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Runs on production when an import status request has been received.
+	 * Runs on production when an import request has been received.
 	 *
 	 * @param array $result
 	 *

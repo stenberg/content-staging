@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\Apis;
 
 use Exception;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Message_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
@@ -25,6 +26,11 @@ class Common_API {
 	private $batch_dao;
 
 	/**
+	 * @var Message_DAO
+	 */
+	private $message_dao;
+
+	/**
 	 * @var Post_DAO
 	 */
 	private $post_dao;
@@ -40,6 +46,7 @@ class Common_API {
 	public function __construct() {
 		$this->client       = Helper_Factory::get_instance()->get_client();
 		$this->batch_dao    = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->message_dao     = Helper_Factory::get_instance()->get_dao( 'Message' );
 		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
 	}
@@ -145,7 +152,7 @@ class Common_API {
 		 * delete it (not actually deleting the batch, just setting it to draft
 		 * to make it invisible to users).
 		 */
-		$this->batch_dao->delete_batch( $batch );
+//		$this->batch_dao->delete_batch( $batch );
 
 		return $response;
 	}
@@ -301,26 +308,8 @@ class Common_API {
 	 * @return array
 	 */
 	public function get_messages( $post_id, $type = null, $group = null, $code = 0 ) {
-
-		$messages = array();
-		$key      = $this->get_message_key( $group );
-
-		// If a group has been set, only fetch messages for that group.
-		if ( $group ) {
-			return $this->postmeta_dao->get_post_meta( $post_id, $key );
-		}
-
-		$meta = $this->postmeta_dao->get_post_meta( $post_id );
-
-		foreach ( $meta as $meta_key => $values ) {
-			if ( strpos( $meta_key, $key ) === 0 ) {
-				foreach ( $values as $message ) {
-					array_push( $messages, unserialize( $message ) );
-				}
-			}
-		}
-
-		return $messages;
+		$messages = $this->message_dao->get_by_post_id( $post_id, $type, $group, $code );
+		return apply_filters( 'sme_get_messages', $messages );
 	}
 
 	/**
@@ -333,7 +322,7 @@ class Common_API {
 	 * @return array
 	 */
 	public function get_preflight_messages( $post_id, $type = null, $code = 0 ) {
-		$messages = $this->get_messages( $post_id, $type, 'preflight', $code );
+		$messages = $this->message_dao->get_by_post_id( $post_id, $type, 'preflight', $code );
 		return apply_filters( 'sme_get_preflight_messages', $messages );
 	}
 
@@ -347,7 +336,7 @@ class Common_API {
 	 * @return array
 	 */
 	public function get_deploy_messages( $post_id, $type = null, $code = 0 ) {
-		$messages = $this->get_messages( $post_id, $type, 'deploy', $code );
+		$messages = $this->message_dao->get_by_post_id( $post_id, $type, 'deploy', $code );
 		return apply_filters( 'sme_get_deploy_messages', $messages );
 	}
 

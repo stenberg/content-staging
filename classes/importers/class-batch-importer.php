@@ -491,10 +491,10 @@ abstract class Batch_Importer {
 
 	public function tear_down() {
 
-		do_action( 'sme_imported', $this->batch );
-
 		// Import finished, update import status.
 		$this->api->set_deploy_status( $this->batch->get_id(), 3 );
+
+		do_action( 'sme_imported', $this->batch );
 	}
 
 	/**
