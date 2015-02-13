@@ -435,7 +435,7 @@ class Batch_Ctrl {
 				if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
 
 					// Admin URL of content stage.
-					$admin_url = $batch->get_custom_data( 'sme_content_staging_admin_url' );
+					$admin_url = $batch->get_custom_data( 'sme_content_stage_admin_url' );
 
 					$message = sprintf(
 						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
@@ -590,7 +590,7 @@ class Batch_Ctrl {
 
 		$response = apply_filters( 'sme_deploy_status', $response );
 
-		if ( isset( $response['status'] ) && $response['status'] > 1 ) {
+		if ( isset( $response['status'] ) ) {
 
 			// Deploy hss finished.
 			if ( $response['status'] > 1 ) {
@@ -613,7 +613,7 @@ class Batch_Ctrl {
 
 		// Ensure that the production response did not contain any unexpected data.
 		if ( ! empty( $response ) ) {
-			throw new Exception( 'Response from production contained unexpected data.' );
+			throw new Exception( 'Response from production contained unexpected data (JSON encoded): ' . json_encode( $response ) );
 		}
 
 		header( 'Content-Type: application/json' );

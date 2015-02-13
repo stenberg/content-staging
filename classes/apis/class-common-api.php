@@ -152,7 +152,7 @@ class Common_API {
 		 * delete it (not actually deleting the batch, just setting it to draft
 		 * to make it invisible to users).
 		 */
-//		$this->batch_dao->delete_batch( $batch );
+		$this->batch_dao->delete_batch( $batch );
 
 		return $response;
 	}
@@ -301,14 +301,15 @@ class Common_API {
 	 * Get messages for a specific post.
 	 *
 	 * @param int    $post_id
-	 * @param string $type    Not supported at the moment.
+	 * @param bool   $new_only Only fetch messages that has not been fetched before.
+	 * @param string $type     Not supported at the moment.
 	 * @param string $group
-	 * @param int    $code    Not supported at the moment.
+	 * @param int    $code     Not supported at the moment.
 	 *
 	 * @return array
 	 */
-	public function get_messages( $post_id, $type = null, $group = null, $code = 0 ) {
-		$messages = $this->message_dao->get_by_post_id( $post_id, $type, $group, $code );
+	public function get_messages( $post_id, $new_only = true, $type = null, $group = null, $code = 0 ) {
+		$messages = $this->message_dao->get_by_post_id( $post_id, $new_only, $type, $group, $code );
 		return apply_filters( 'sme_get_messages', $messages );
 	}
 
@@ -316,13 +317,14 @@ class Common_API {
 	 * @see get_messages()
 	 *
 	 * @param  int    $post_id
+	 * @param  bool   $new_only
 	 * @param  string $type
 	 * @param  int    $code
 	 *
 	 * @return array
 	 */
-	public function get_preflight_messages( $post_id, $type = null, $code = 0 ) {
-		$messages = $this->message_dao->get_by_post_id( $post_id, $type, 'preflight', $code );
+	public function get_preflight_messages( $post_id, $new_only = true, $type = null, $code = 0 ) {
+		$messages = $this->get_messages( $post_id, $new_only, $type, 'preflight', $code );
 		return apply_filters( 'sme_get_preflight_messages', $messages );
 	}
 
@@ -330,13 +332,14 @@ class Common_API {
 	 * @see get_messages()
 	 *
 	 * @param int    $post_id
+	 * @param bool   $new_only
 	 * @param string $type
 	 * @param int    $code
 	 *
 	 * @return array
 	 */
-	public function get_deploy_messages( $post_id, $type = null, $code = 0 ) {
-		$messages = $this->message_dao->get_by_post_id( $post_id, $type, 'deploy', $code );
+	public function get_deploy_messages( $post_id, $new_only = true, $type = null, $code = 0 ) {
+		$messages = $this->get_messages( $post_id, $new_only, $type, 'deploy', $code );
 		return apply_filters( 'sme_get_deploy_messages', $messages );
 	}
 

@@ -183,11 +183,9 @@ jQuery( document ).ready(function($) {
 				batch_id: $('#sme-batch-id').html()
 			};
 
-			var printed = $('.sme-deploy-messages .sme-cs-message').length;
-
 			// Check if a batch importer ID has been found.
 			if (data.batch_id) {
-				this.deployStatus(data, printed);
+				this.deployStatus(data);
 			}
 		},
 
@@ -195,9 +193,8 @@ jQuery( document ).ready(function($) {
 		 * Get batch import status.
 		 *
 		 * @param data
-		 * @param printed Number of messages that has been printed.
 		 */
-		deployStatus: function(data, printed) {
+		deployStatus: function(data) {
 
 			var self = this;
 
@@ -207,10 +204,8 @@ jQuery( document ).ready(function($) {
 				var nbrOfMsg = response.messages.length;
 				var reloadLoader = false;
 
-				// Only print messages we haven't printed before.
-				for (var i = printed; i < nbrOfMsg; i++) {
+				for (var i = 0; i < nbrOfMsg; i++) {
 					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
-					printed++;
 				}
 
 				if (response.status > 1) {
@@ -219,7 +214,7 @@ jQuery( document ).ready(function($) {
 
 				// If import is not completed, select import method.
 				if (response.status < 2) {
-					self.deployStatus(data, printed);
+					self.deployStatus(data);
 				}
 			});
 		},

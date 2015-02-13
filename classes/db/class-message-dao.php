@@ -14,16 +14,16 @@ class Message_DAO extends DAO {
 	 * Get messages belonging to specific post.
 	 *
 	 * @param int    $post_id
-	 * @param string $type    Not supported.
-	 * @param string $group   Should be set to null, preflight or deploy.
-	 * @param int    $code    Not supported.
+	 * @param bool   $new_only Only fetch messages that has not been fetched before.
+	 * @param string $type     Not supported.
+	 * @param string $group    Should be set to null, preflight or deploy.
+	 * @param int    $code     Not supported.
 	 *
 	 * @return Message
 	 */
-	public function get_by_post_id( $post_id, $type = null, $group = null, $code = 0 ) {
+	public function get_by_post_id( $post_id, $new_only = true, $type = null, $group = null, $code = 0 ) {
 
 		$messages   = array();
-		$key        = '_sme_message';
 		$where_stmt = 'post_id = %d';
 		$query_vars = array( $post_id );
 
@@ -36,8 +36,18 @@ class Message_DAO extends DAO {
 			array_push( $query_vars, '_sme_message_deploy' );
 		}
 
+		// Should only messages that has not been fetched before be fetched?
+		if ( $new_only ) {
+			$last_message_id = $this->get_last_fetched_message_id( $post_id );
+
+			if ( $last_message_id ) {
+				$where_stmt .= ' AND meta_id > %d';
+				array_push( $query_vars, $last_message_id );
+			}
+		}
+
 		$query = $this->wpdb->prepare(
-			'SELECT * FROM ' . $this->get_table() . ' WHERE ' . $where_stmt,
+			'SELECT * FROM ' . $this->get_table() . ' WHERE ' . $where_stmt . ' ORDER BY meta_id ASC',
 			$query_vars
 		);
 
@@ -51,7 +61,49 @@ class Message_DAO extends DAO {
 			array_push( $messages, $this->create_object( $record ) );
 		}
 
+		/*
+		 * If only fetching new messages we should also make sure to save what
+		 * the last message we fetched was so that the next time when this method
+		 * is called the fetching of messages can start from the correct point.
+		 */
+		if ( $new_only && ! empty( $messages ) ) {
+			$last_message = end( $messages );
+			$this->set_last_fetched_message( $last_message );
+		}
+
 		return $messages;
+	}
+
+	/**
+	 * Set last message that has been fetched.
+	 *
+	 * @param Message $message
+	 */
+	public function set_last_fetched_message( Message $message ) {
+		update_post_meta( $message->get_post_id(), '_last_fetched_message', $message->get_id() );
+	}
+
+	/**
+	 * Get the last message that has been fetched.
+	 *
+	 * @param int $post_id
+	 *
+	 * @return Message
+	 */
+	public function get_last_fetched_message_id( $post_id ) {
+
+		$query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->get_table() . ' WHERE post_id = %d AND meta_key = "_last_fetched_message"',
+			$post_id
+		);
+
+		$row = $this->wpdb->get_row( $query, ARRAY_A );
+
+		if ( isset( $row['meta_value'] ) ) {
+			return $row['meta_value'];
+		}
+
+		return null;
 	}
 
 	/**
@@ -108,6 +160,10 @@ class Message_DAO extends DAO {
 	 * @return Message
 	 */
 	protected function do_create_object( array $raw ) {
+
+		if ( ! isset( $raw['meta_id'] ) ) {
+			return null;
+		}
 
 		$obj = new Message( $raw['meta_id'] );
 
