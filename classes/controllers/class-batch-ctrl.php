@@ -344,6 +344,9 @@ class Batch_Ctrl {
 		$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
 		$messages = $this->xmlrpc_client->get_response_data();
 
+		// Enable third party developers to filter messages.
+		$messages = apply_filters( 'sme_prepare_messages', $messages, $batch );
+
 		$preflight_passed = false;
 
 		$errors = array_filter(
