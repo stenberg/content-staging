@@ -46,7 +46,7 @@ class Common_API {
 	public function __construct() {
 		$this->client       = Helper_Factory::get_instance()->get_client();
 		$this->batch_dao    = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->message_dao     = Helper_Factory::get_instance()->get_dao( 'Message' );
+		$this->message_dao  = Helper_Factory::get_instance()->get_dao( 'Message' );
 		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
 	}
@@ -106,6 +106,26 @@ class Common_API {
 		 * most often where third-party developers would add custom data.
 		 */
 		do_action( 'sme_prepare', $batch );
+	}
+
+	/**
+	 * Perform pre-flight.
+	 *
+	 * @param Batch $batch
+	 *
+	 * @return array
+	 */
+	public function preflight( Batch $batch ) {
+
+		$request = array(
+			'batch' => $batch,
+		);
+
+		$this->client->request( 'smeContentStaging.verify', $request );
+		$messages = $this->client->get_response_data();
+
+		// Return messages received during pre-flight.
+		return $messages;
 	}
 
 	/**

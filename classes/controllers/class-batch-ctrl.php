@@ -337,16 +337,16 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$this->api->prepare_batch( $batch );
 
-		$request = array(
-			'batch' => $batch,
-		);
+		// Pre-flight batch.
+		$messages = $this->api->preflight( $batch );
 
-		$this->xmlrpc_client->request( 'smeContentStaging.verify', $request );
-		$messages = $this->xmlrpc_client->get_response_data();
+		/*
+		 * Let third party developers perform actions after pre-flight has
+		 * completed.
+		 */
+		do_action( 'sme_prepared', $batch );
 
-		// Enable third party developers to filter messages.
-		$messages = apply_filters( 'sme_prepare_messages', $messages, $batch );
-
+		// Did pre-flight pass?
 		$preflight_passed = false;
 
 		$errors = array_filter(
@@ -358,12 +358,6 @@ class Batch_Ctrl {
 		if ( empty( $errors ) ) {
 			$preflight_passed = true;
 		}
-
-		/*
-		 * Let third party developers perform actions after pre-flight has
-		 * completed.
-		 */
-		do_action( 'sme_prepared', $batch );
 
 		// Add batch data to database if pre-flight was successful.
 		if ( $preflight_passed ) {
