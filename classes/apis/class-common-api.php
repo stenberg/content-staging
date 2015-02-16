@@ -124,8 +124,8 @@ class Common_API {
 		$this->client->request( 'smeContentStaging.verify', $request );
 		$messages = $this->client->get_response_data();
 
-		// Return messages received during pre-flight.
-		return $messages;
+		// Enable third party developers to filter messages.
+		return apply_filters( 'sme_preflight_messages', $messages, $batch );
 	}
 
 	/**
