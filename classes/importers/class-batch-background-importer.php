@@ -87,7 +87,7 @@ class Batch_Background_Importer extends Batch_Importer {
 		}
 
 		// Update relationship between posts and their parents.
-		$this->update_parent_post_relations();
+		$this->update_parent_post_relations( $this->batch->get_posts() );
 
 		// Import custom data.
 		$this->import_custom_data();

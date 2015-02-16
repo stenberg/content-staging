@@ -160,6 +160,8 @@ abstract class Batch_Importer {
 		// Notify listeners that post is about to be imported.
 		do_action( 'sme_post_import', $post, $this->batch );
 
+		$publish_status_changed = false;
+
 		/*
 		 * Create object that can keep track of differences between stage and
 		 * production post.
@@ -194,10 +196,16 @@ abstract class Batch_Importer {
 			// Turn published posts into drafts for now.
 			if ( $post->get_post_status() == 'publish' ) {
 				$post->set_post_status( 'draft' );
+				$publish_status_changed = true;
 			}
 
 			// Insert post.
 			$this->post_dao->insert( $post );
+
+			// Reset publish status.
+			if ( $publish_status_changed ) {
+				$post->set_post_status( 'publish' );
+			}
 
 			// Store new production ID in diff.
 			$post_diff->set_prod_id( $post->get_id() );
@@ -242,44 +250,58 @@ abstract class Batch_Importer {
 	 */
 	public function import_post_meta( Post $post ) {
 
-		$stage_id = null;
-		$prod_id  = null;
-		$meta     = $post->get_meta();
+		$meta = $post->get_meta();
 
 		// Keys in postmeta table containing relationship to another post.
 		$keys = $this->batch->get_post_rel_keys();
 
+		// Stage ID of current post.
+		$stage_id = $post->get_id();
+
+		// Get the production ID of the current post.
+		$prod_id = $this->post_dao->get_id_by_guid( $post->get_guid() );
+
+		// Post not found on production.
+		if ( ! $prod_id ) {
+			$message = sprintf( 'Post not found on production. Stage ID %d, GUID: %s', $stage_id, $prod_id );
+			$this->api->add_deploy_message( $this->batch->get_id(), $message, 'error' );
+			return;
+		}
+
 		for ( $i = 0; $i < count( $meta ); $i++ ) {
-			$stage_id = $meta[$i]['post_id'];
-			$prod_id  = $this->post_diffs[$stage_id]->get_prod_id();
+
+			// Update post ID to point at the post ID on production.
+			$meta[$i]['post_id'] = $prod_id;
 
 			if ( in_array( $meta[$i]['meta_key'], $keys ) ) {
 
-				/*
-				 * The meta value must be an integer pointing at the ID of the post
-				 * that the post whose post meta we are currently importing has a
-				 * relationship to.
-				 */
-				if ( isset( $this->post_diffs[$meta[$i]['meta_value']] ) ) {
-					$meta[$i]['meta_value'] = $this->post_diffs[$meta[$i]['meta_value']]->get_prod_id();
-				} else {
-					error_log(
-						sprintf(
-							'Trying to update dependency between posts. Relationship is defined in postmeta (post_id: %d, meta_key: %s, meta_value: %s) where post_id is the post ID that has a relationship to the post defined in meta_value. If meta_value does not contain a valid post ID relationship between posts cannot be maintained.',
-							$prod_id,
-							$meta[$i]['meta_key'],
-							$meta[$i]['meta_value']
-						)
-					);
+				// Post ID this meta value is referring to.
+				$referenced_post_id = $this->post_dao->get_id_by_guid( $meta[$i]['meta_value'] );
+
+				// Referenced post could not be found.
+				if ( ! $referenced_post_id ) {
+
+					$referenced_post_id = 0;
+
+					$message  = 'Failed updating relationship between posts. The relationship is defined in the postmeta table. ';
+					$message .= '<ul>';
+					$message .= '<li>Stage ID referencing post: %d</li>';
+					$message .= '<li>Production ID referencing post: %d</li>';
+					$message .= '<li>Key holding referenced post: %s</li>';
+					$message .= '<li>GUID referenced post: %s</li>';
+					$message .= '</ul>';
+
+					$message = sprintf( $message, $stage_id, $prod_id, $meta[$i]['meta_key'], $meta[$i]['meta_value'] );
+
+					$this->api->add_deploy_message( $this->batch->get_id(), $message, 'error' );
 				}
+
+				// Update meta value to point at the post ID on production.
+				$meta[$i]['meta_value'] = $referenced_post_id;
 			}
-
-			$meta[$i]['post_id'] = $prod_id;
 		}
 
-		if ( $prod_id ) {
-			$this->postmeta_dao->update_postmeta_by_post( $prod_id, $meta );
-		}
+		$this->postmeta_dao->update_postmeta_by_post( $prod_id, $meta );
 	}
 
 	/**
@@ -326,6 +348,7 @@ abstract class Batch_Importer {
 		}
 
 		foreach ( $attachment['items'] as $item ) {
+
 			// Get file if it exists.
 			if ( $image = file_get_contents( $attachment['url'] . '/' . $item ) ) {
 				file_put_contents( $filepath . $item, $image );
@@ -396,8 +419,10 @@ abstract class Batch_Importer {
 	 * @param Term $term
 	 */
 	public function import_term( Term $term ) {
+
 		// Term ID on production environment.
-		$this->term_dao->get_term_id_by_slug( $term );
+		$term_id = $this->term_dao->get_term_id_by_slug( $term->get_slug() );
+		$term->set_id( $term_id );
 
 		if ( ! $term->get_id() ) {
 			// This term does not exist on production, create it.
@@ -421,25 +446,43 @@ abstract class Batch_Importer {
 	 * Update the relationship between posts and their parent posts.
 	 */
 	public function update_parent_post_relations() {
-		foreach ( $this->post_diffs as $diff ) {
-			$this->update_parent_post_relation( $diff );
+		foreach ( $this->batch->get_posts() as $post ) {
+			$this->update_parent_post_relation( $post );
 		}
 	}
 
 	/**
 	 * Update the relationship between a post and its parent post.
 	 *
-	 * @param Post_Env_Diff $diff
+	 * @param Post $post
 	 */
-	public function update_parent_post_relation( Post_Env_Diff $diff ) {
-		if ( ! $diff->get_parent_guid() ) {
+	public function update_parent_post_relation( Post $post ) {
+
+		$parent = $post->get_parent();
+
+		if ( ! $parent ) {
 			return;
 		}
 
-		$parent = $this->post_dao->get_by_guid( $diff->get_parent_guid() );
+		// Get production IDs.
+		$prod_id        = $this->post_dao->get_id_by_guid( $post->get_guid() );
+		$parent_prod_id = $this->post_dao->get_id_by_guid( $parent->get_guid() );
+
+		if ( ! $prod_id ) {
+			$msg = sprintf( 'No post with GUID %s found on production.', $post->get_guid() );
+			$this->api->add_deploy_message( $this->batch->get_id(), $msg, 'error' );
+			return;
+		}
+
+		if ( ! $parent_prod_id ) {
+			$msg = sprintf( 'No post with GUID %s found on production.', $parent->get_guid() );
+			$this->api->add_deploy_message( $this->batch->get_id(), $msg, 'error' );
+			return;
+		}
+
 		$this->post_dao->update(
-			array( 'post_parent' => $parent->get_id() ),
-			array( 'ID' => $diff->get_prod_id() ),
+			array( 'post_parent' => $parent_prod_id ),
+			array( 'ID' => $prod_id ),
 			array( '%d' ),
 			array( '%d' )
 		);
@@ -449,8 +492,8 @@ abstract class Batch_Importer {
 	 * Publish multiple posts sent to production.
 	 */
 	public function publish_posts() {
-		foreach ( $this->post_diffs as $diff ) {
-			$this->publish_post( $diff );
+		foreach ( $this->batch->get_posts() as $post ) {
+			$this->publish_post( $post );
 		}
 	}
 
@@ -462,30 +505,30 @@ abstract class Batch_Importer {
 	 * has been synced from content stage, post status has been changed to
 	 * 'draft'. Post status is now changed back to 'publish'.
 	 *
-	 * @param Post_Env_Diff $diff
+	 * @param Post $post
 	 */
-	public function publish_post( Post_Env_Diff $diff ) {
+	public function publish_post( Post $post ) {
+
+		$prod_id = $this->post_dao->get_id_by_guid( $post->get_guid() );
+
+		if ( ! $prod_id ) {
+			$msg = sprintf( 'No post with GUID %s found on production.', $post->get_guid() );
+			$this->api->add_deploy_message( $this->batch->get_id(), $msg, 'error' );
+			return;
+		}
 
 		/*
 		 * Trigger an action before changing the post status to give other plug-ins
 		 * a chance to act before the post goes public (e.g. cache warm-up).
 		 */
-		do_action( 'sme_pre_publish_post', $diff, get_current_blog_id() );
+		do_action( 'sme_pre_publish_post', $prod_id, get_current_blog_id() );
 
 		/*
 		 * Publish the new post if post status from staging environment is set to
 		 * "publish".
 		 */
-		if ( $diff->get_stage_status() == 'publish' ) {
-			$this->post_dao->update_post_status( $diff->get_prod_id(), 'publish' );
-		}
-
-		/*
-		 * Turn the old version of the post into a revision (if an old version
-		 * exists).
-		 */
-		if ( $diff->get_revision_id() ) {
-			$this->post_dao->make_revision( $diff->get_revision_id(), $diff->get_prod_id() );
+		if ( $post->get_post_status() == 'publish' ) {
+			$this->post_dao->update_post_status( $prod_id, 'publish' );
 		}
 	}
 

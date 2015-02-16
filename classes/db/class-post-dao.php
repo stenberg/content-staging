@@ -57,9 +57,9 @@ class Post_DAO extends DAO {
 	 * @return int
 	 */
 	public function get_id_by_guid( $guid ) {
-		$guid  = $this->guid_regex( $guid );
+
 		$query = $this->wpdb->prepare(
-			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid REGEXP %s',
+			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
 			$guid
 		);
 
@@ -319,7 +319,11 @@ class Post_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-		$obj->set_id( $this->wpdb->insert_id );
+
+		if ( $obj->get_guid() ) {
+			$post_id = $this->get_id_by_guid( $obj->get_guid() );
+			$obj->set_id( $post_id );
+		}
 	}
 
 	/**

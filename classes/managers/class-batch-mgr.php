@@ -159,9 +159,14 @@ class Batch_Mgr {
 		do_action( 'sme_prepare_post', $post, $batch );
 		$batch->add_post( $post );
 
-		foreach ( $post->get_meta() as $item ) {
-			$this->add_related_posts( $batch, $item );
+		$post_meta    = $post->get_meta();
+		$record_count = count( $post_meta );
+
+		for ( $i = 0; $i < $record_count; $i++ ) {
+			$post_meta[$i] = $this->add_related_posts( $batch, $post_meta[$i] );
 		}
+
+		$post->set_meta( $post_meta );
 	}
 
 	/**
@@ -220,20 +225,32 @@ class Batch_Mgr {
 	}
 
 	/**
+	 * Add post to the batch that is referenced through the post meta of
+	 * another post.
+	 *
+	 * Scope of this method has been extended to also include changing the ID
+	 * of the referenced post into using the GUID instead.
+	 *
 	 * @param Batch $batch
 	 * @param array $postmeta
+	 *
+	 * @return array
 	 */
 	private function add_related_posts( Batch $batch, $postmeta ) {
 		foreach ( $batch->get_post_rel_keys() as $key ) {
 			if ( $postmeta['meta_key'] === $key ) {
-				// Get post thumbnail.
+
+				// Find post the current post holds a reference to.
 				$post = $this->post_dao->find( $postmeta['meta_value'] );
 
 				if ( isset( $post ) && $post->get_id() !== null ) {
 					$this->add_post( $batch, $post );
+					$postmeta['meta_value'] = $post->get_guid();
 				}
 			}
 		}
+
+		return $postmeta;
 	}
 
 }

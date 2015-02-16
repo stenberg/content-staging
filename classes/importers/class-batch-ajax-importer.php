@@ -133,7 +133,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		if ( $current['method'] == 'import_posts_meta' ) {
 			return array(
 				'method' => 'update_parent_post_relations',
-				'params' => array(),
+				'params' => $posts,
 				'index'  => -1,
 			);
 		}

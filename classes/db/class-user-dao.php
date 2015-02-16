@@ -30,6 +30,21 @@ class User_DAO extends DAO {
 	}
 
 	/**
+	 * @param string $user_login
+	 *
+	 * @return int
+	 */
+	public function get_user_id_by_user_login( $user_login ) {
+
+		$query = $this->wpdb->prepare(
+			'SELECT ID FROM ' . $this->get_table() . ' WHERE user_login = %s',
+			$user_login
+		);
+
+		return $this->wpdb->get_var( $query );
+	}
+
+	/**
 	 * @param User $user
 	 */
 	public function update_user( User $user ) {
@@ -197,7 +212,12 @@ class User_DAO extends DAO {
 		$format = $this->format();
 
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-		$obj->set_id( $this->wpdb->insert_id );
+
+		if ( $obj->get_login() ) {
+			$user_id = $this->get_user_id_by_user_login( $obj->get_login() );
+			$obj->set_id( $user_id );
+		}
+
 		$this->insert_all_user_meta( $obj );
 	}
 

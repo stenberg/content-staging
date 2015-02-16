@@ -17,8 +17,9 @@ class Taxonomy_DAO extends DAO {
 	/**
 	 * Get taxonomy record by term ID and taxonomy.
 	 *
-	 * @param int $term_id
+	 * @param int    $term_id
 	 * @param string $taxonomy
+	 *
 	 * @return object
 	 */
 	public function get_taxonomy_by_term_id_taxonomy( $term_id, $taxonomy ) {
@@ -120,7 +121,18 @@ class Taxonomy_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-		$obj->set_id( $this->wpdb->insert_id );
+
+		$taxonomy = null;
+		$term     = $obj->get_term();
+
+		if ( $term !== null ) {
+			$taxonomy = $this->get_taxonomy_by_term_id_taxonomy( $term->get_id(), $obj->get_taxonomy() );
+		}
+
+		if ( $taxonomy !== null ) {
+			$obj->set_id( $taxonomy->get_id() );
+		}
+
 		$this->update_term_hierarchy( $obj );
 	}
 

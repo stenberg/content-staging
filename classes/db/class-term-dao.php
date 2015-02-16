@@ -37,22 +37,18 @@ class Term_DAO extends DAO {
 	 *
 	 * Useful for comparing a term sent from content staging to production.
 	 *
-	 * @param Term $term
+	 * @param string $slug
+	 *
+	 * @return int
 	 */
-	public function get_term_id_by_slug( Term $term ) {
-		$term_id = null;
-		$query   = $this->wpdb->prepare(
+	public function get_term_id_by_slug( $slug ) {
+
+		$query = $this->wpdb->prepare(
 			'SELECT term_id FROM ' . $this->get_table() . ' WHERE slug = %s',
-			$term->get_slug()
+			$slug
 		);
 
-		$result = $this->wpdb->get_row( $query, ARRAY_A );
-
-		if ( isset( $result['term_id'] ) ) {
-			$term_id = $result['term_id'];
-		}
-
-		$term->set_id( $term_id );
+		return $this->wpdb->get_var( $query );
 	}
 
 	/**
@@ -111,7 +107,11 @@ class Term_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-		$obj->set_id( $this->wpdb->insert_id );
+
+		if ( $obj->get_slug() ) {
+			$term_id = $this->get_term_id_by_slug( $obj->get_slug() );
+			$obj->set_id( $term_id );
+		}
 	}
 
 	/**
