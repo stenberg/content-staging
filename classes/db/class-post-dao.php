@@ -48,12 +48,13 @@ class Post_DAO extends DAO {
 
 	/**
 	 * Find post with the same global unique identifier (GUID) as the one for
-	 * the provided post. If a match is found, update provided post with the
-	 * post ID we got from database.
+	 * the provided post. If a match is found, return the post ID of matching
+	 * post.
 	 *
 	 * Useful for comparing a post sent from content staging to production.
 	 *
 	 * @param string $guid
+	 * 
 	 * @return int
 	 */
 	public function get_id_by_guid( $guid ) {

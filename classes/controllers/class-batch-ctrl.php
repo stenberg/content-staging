@@ -406,6 +406,18 @@ class Batch_Ctrl {
 		// Get batch.
 		$batch = $result['batch'];
 
+		// Check if a production version of this batch exists.
+		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+
+		// Create new batch or update existing one.
+		if ( ! $batch_production_revision_id ) {
+			$this->batch_dao->insert( $batch );
+		} else {
+			$batch->set_id( $batch_production_revision_id );
+			$this->batch_dao->update_batch( $batch );
+			$this->api->delete_preflight_messages( $batch->get_id() );
+		}
+
 		/*
 		 * Let third party developers perform actions before any pre-flight
 		 * checks are done.
@@ -444,7 +456,6 @@ class Batch_Ctrl {
 
 					$this->api->add_preflight_message( $batch->get_id(), $message, 'error' );
 				}
-
 			} catch ( Exception $e ) {
 				$this->api->add_preflight_message( $batch->get_id(), $e->getMessage(), 'error' );
 			}

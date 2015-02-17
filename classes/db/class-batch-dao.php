@@ -111,6 +111,27 @@ class Batch_DAO extends DAO {
 	}
 
 	/**
+	 * Find post with the same global unique identifier (GUID) as the one for
+	 * the provided post. If a match is found, return the post ID of matching
+	 * post.
+	 *
+	 * Useful for comparing a post sent from content staging to production.
+	 *
+	 * @param string $guid
+	 *
+	 * @return int
+	 */
+	public function get_id_by_guid( $guid ) {
+
+		$query = $this->wpdb->prepare(
+			'SELECT ID FROM ' . $this->wpdb->posts . ' WHERE guid = %s',
+			$guid
+		);
+
+		return $this->wpdb->get_var( $query );
+	}
+
+	/**
 	 * Give each batch sharing the same GUID its own GUID.
 	 *
 	 * Every batch should have its own GUID, if that is not the case then
@@ -249,15 +270,19 @@ class Batch_DAO extends DAO {
 		$obj->set_modified( $obj->get_date() );
 		$obj->set_modified_gmt( $obj->get_date_gmt() );
 
-		$array = $this->create_array( $obj );
-		$id    = wp_insert_post( $array );
-		$batch = get_post( $id, ARRAY_A );
-
-		$obj->set_id( $id );
-
-		if ( isset( $batch['guid'] ) ) {
-			$obj->set_guid( $batch['guid'] );
+		// Create GUID.
+		if ( ! $obj->get_guid() ) {
+			$site_url = get_site_url();
+			$hash     = md5( $obj->get_title() . $obj->get_date_gmt() . rand( 0, 10000 ) );
+			$obj->set_guid( $site_url . '/?' . $hash );
 		}
+
+		$array  = $this->create_array( $obj );
+		$format = $this->format();
+		$this->wpdb->insert( $this->get_table(), $array, $format );
+
+		$post_id = $this->get_id_by_guid( $obj->get_guid() );
+		$obj->set_id( $post_id );
 	}
 
 	/**
