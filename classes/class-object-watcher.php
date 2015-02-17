@@ -24,7 +24,7 @@ class Object_Watcher {
 	}
 
 	public function global_key( Model $obj ) {
-		$key = get_class( $obj ) . '.' . $obj->get_id();
+		$key = get_class( $obj ) . '.' . get_current_blog_id() . '.' . $obj->get_id();
 		return $key;
 	}
 
@@ -35,11 +35,35 @@ class Object_Watcher {
 
 	public static function exists( $classname, $id ) {
 		$inst = self::instance();
-		$key  = $classname . '.' . $id;
+		$key  = $classname . '.' . get_current_blog_id() . '.' . $id;
 		if ( isset( $inst->all[$key] ) ) {
 			return $inst->all[$key];
 		}
 		return null;
+	}
+
+	/**
+	 * Remove objects for a specific blog. Useful to avoid memory issues
+	 * in multi-site setup.
+	 *
+	 * @param int $blog_id ID of blog you want to remove objects for. Defaults to current blog.
+	 */
+	public static function delete_by_blog( $blog_id = null ) {
+
+		$inst = self::instance();
+
+		if ( ! $blog_id ) {
+			$blog_id = get_current_blog_id();
+		}
+
+		// Delete all objects for the specified blog.
+		foreach ( $inst->all as $key => $obj ) {
+			$parts = explode( '.', $key );
+			$parts_count = count( $parts );
+			if ( isset( $parts[1] ) && $parts_count == 3 && $blog_id == $parts[1] ) {
+				unset( $inst->all[$key] );
+			}
+		}
 	}
 
 	/**
