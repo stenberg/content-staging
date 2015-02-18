@@ -54,7 +54,7 @@ class Post_DAO extends DAO {
 	 * Useful for comparing a post sent from content staging to production.
 	 *
 	 * @param string $guid
-	 * 
+	 *
 	 * @return int
 	 */
 	public function get_id_by_guid( $guid ) {

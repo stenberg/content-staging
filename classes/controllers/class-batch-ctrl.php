@@ -351,7 +351,7 @@ class Batch_Ctrl {
 
 		$errors = array_filter(
 			$messages, function( $message ) {
-				return ( $message->get_level() == 'error' );
+				return ( $message['level'] == 'error' );
 			}
 		);
 
@@ -361,9 +361,12 @@ class Batch_Ctrl {
 
 		// Add batch data to database if pre-flight was successful.
 		if ( $preflight_passed ) {
-			$msg = new Message();
-			$msg->set_level( 'success' );
-			$msg->set_message( 'Pre-flight successful!' );
+			$msg = array(
+				'message' => 'Pre-flight successful!',
+				'level'   => 'success',
+				'id'      => null,
+				'code'    => null,
+			);
 
 			array_push( $messages, $msg );
 
@@ -475,12 +478,17 @@ class Batch_Ctrl {
 
 		// Get all messages set during verification of this batch.
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
+		$messages_array = array();
+
+		foreach ( $messages as $message ) {
+			array_push( $messages_array, $message->to_array() );
+		}
 
 		// Clear pre-flight messages.
 		$this->api->delete_preflight_messages( $batch->get_id() );
 
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $messages );
+		return $this->xmlrpc_client->prepare_response( $messages_array );
 	}
 
 	/**

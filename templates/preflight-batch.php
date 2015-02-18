@@ -16,8 +16,8 @@ if ( ! $preflight_passed ) {
 	<h2>Pre-Flight</h2>
 
 	<?php foreach ( $messages as $message ) { ?>
-		<div class="sme-cs-message sme-cs-<?php echo $message->get_level(); ?>">
-			<p><?php echo $message->get_message(); ?></p>
+		<div class="sme-cs-message sme-cs-<?php echo $message['level']; ?>">
+			<p><?php echo $message['message']; ?></p>
 		</div>
 	<?php } ?>
 
