@@ -109,6 +109,28 @@ class Common_API {
 	}
 
 	/**
+	 * Send batch to production.
+	 *
+	 * Runs on content stage.
+	 *
+	 * @param Batch $batch
+	 *
+	 * @return array
+	 */
+	public function send( Batch $batch ) {
+
+		$request = array(
+			'batch' => $batch,
+		);
+
+		$this->client->request( 'smeContentStaging.store', $request );
+		$messages = $this->client->get_response_data();
+
+		// Return messages.
+		return $messages;
+	}
+
+	/**
 	 * Perform pre-flight.
 	 *
 	 * @param Batch $batch

@@ -337,50 +337,158 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$this->api->prepare_batch( $batch );
 
-		// Pre-flight batch.
-		$messages = $this->api->preflight( $batch );
+		// Update the now prepared batch.
+		$this->batch_dao->update_batch( $batch );
+
+		// Send batch to production.
+		$messages = $this->api->send( $batch );
 
 		/*
-		 * Let third party developers perform actions after pre-flight has
-		 * completed.
+		 * Let third party developers perform actions after batch has
+		 * been sent to production.
 		 */
 		do_action( 'sme_prepared', $batch );
 
-		// Did pre-flight pass?
-		$preflight_passed = false;
-
-		$errors = array_filter(
-			$messages, function( $message ) {
-				return ( $message['level'] == 'error' );
-			}
-		);
-
-		if ( empty( $errors ) ) {
-			$preflight_passed = true;
-		}
-
-		// Add batch data to database if pre-flight was successful.
-		if ( $preflight_passed ) {
-			$msg = array(
-				'message' => 'Pre-flight successful!',
-				'level'   => 'success',
-				'id'      => null,
-				'code'    => null,
-			);
-
-			array_push( $messages, $msg );
-
-			$this->batch_dao->update_batch( $batch );
-		}
-
 		// Prepare data we want to pass to view.
 		$data = array(
-			'batch'            => $batch,
-			'messages'         => $messages,
-			'preflight_passed' => $preflight_passed,
+			'batch'    => $batch,
+			'messages' => $messages,
 		);
 
-		$this->template->render( 'preflight-batch', $data );
+		$this->template->render( 'store-batch', $data );
+	}
+
+	/**
+	 * Store batch on production. Triggered during pre-flight.
+	 *
+	 * Runs on production.
+	 *
+	 * @param array $args
+	 *
+	 * @return array
+	 */
+	public function store( array $args ) {
+
+		if ( $messages = $this->xmlrpc_client->handle_request( $args ) ) {
+			return $messages;
+		}
+
+		$result = $this->xmlrpc_client->get_request_data();
+
+		// Check if a batch has been provided.
+		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+			return $this->xmlrpc_client->prepare_response(
+				array( array( 'level' => 'error', 'message' => 'Invalid batch!' ) )
+			);
+		}
+
+		// Get batch.
+		$batch = $result['batch'];
+
+		// Allow third party developers to hook in before storing the batch.
+		do_action( 'sme_store', $batch );
+
+		// Check if a production version of this batch exists.
+		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+
+		// Create new batch or update existing one.
+		if ( ! $batch_production_revision_id ) {
+			$this->batch_dao->insert( $batch );
+		} else {
+			$batch->set_id( $batch_production_revision_id );
+			$this->batch_dao->update_batch( $batch );
+			$this->api->delete_preflight_messages( $batch->get_id() );
+		}
+
+		// Clear pre-flight messages.
+		$this->api->delete_preflight_messages( $batch->get_id() );
+
+		$messages = array();
+
+		array_push(
+			$messages, array(
+				'message' => sprintf( 'Batch stored on production with ID %d.', $batch->get_id() ),
+				'level'   => 'info',
+			)
+		);
+
+		// Allow third party developers to hook in after storing the batch.
+		do_action( 'sme_stored', $batch );
+
+		// Prepare and return the XML-RPC response data.
+		return $this->xmlrpc_client->prepare_response( $messages );
+	}
+
+	/**
+	 * Prepare batch for pre-flight.
+	 *
+	 * Send batch from content staging environment to production. Production
+	 * will evaluate the batch and look for any issues that might cause
+	 * trouble when user later on deploys the batch.
+	 *
+	 * Display any pre-flight messages that is returned by production.
+	 */
+//	public function prepare() {
+//
+//		// Make sure a query param ID exists in current URL.
+//		if ( ! isset( $_GET['id'] ) ) {
+//			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
+//		}
+//
+//		// Get batch from database.
+//		$batch = $this->batch_dao->find( $_GET['id'] );
+//
+//		// Populate batch with actual data.
+//		$this->api->prepare_batch( $batch );
+//
+//		// Pre-flight batch.
+//		$messages = $this->api->preflight( $batch );
+//
+//		/*
+//		 * Let third party developers perform actions after pre-flight has
+//		 * completed.
+//		 */
+//		do_action( 'sme_prepared', $batch );
+//
+//		// Did pre-flight pass?
+//		$preflight_passed = false;
+//
+//		$errors = array_filter(
+//			$messages, function( $message ) {
+//				return ( $message['level'] == 'error' );
+//			}
+//		);
+//
+//		if ( empty( $errors ) ) {
+//			$preflight_passed = true;
+//		}
+//
+//		// Add batch data to database if pre-flight was successful.
+//		if ( $preflight_passed ) {
+//			$msg = array(
+//				'message' => 'Pre-flight successful!',
+//				'level'   => 'success',
+//				'id'      => null,
+//				'code'    => null,
+//			);
+//
+//			array_push( $messages, $msg );
+//
+//			$this->batch_dao->update_batch( $batch );
+//		}
+//
+//		// Prepare data we want to pass to view.
+//		$data = array(
+//			'batch'            => $batch,
+//			'messages'         => $messages,
+//			'preflight_passed' => $preflight_passed,
+//		);
+//
+//		$this->template->render( 'preflight-batch', $data );
+//	}
+
+	public function ajax_preflight() {
+
 	}
 
 	/**
