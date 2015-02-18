@@ -27,6 +27,9 @@ jQuery( document ).ready(function($) {
 					case 'admin_page_sme-edit-batch':
 						this.editBatch();
 						break;
+					case 'admin_page_sme-preflight-batch':
+						this.preflightBatch();
+						break;
 					case 'admin_page_sme-send-batch':
 						this.deployBatch();
 						break;
@@ -173,6 +176,48 @@ jQuery( document ).ready(function($) {
 			document.cookie = 'wp-sme-bpl=' + batchId + ':' + postIds.join() + ':' + batchTitle;
 		},
 
+		preflightBatch: function() {
+
+			var data = {
+				action: 'sme_preflight_request',
+				batch_id: $('#sme-batch-id').html()
+			};
+
+			// Check if a batch ID has been found.
+			if (data.batch_id) {
+				this.preflightStatus(data);
+			}
+		},
+
+		preflightStatus: function(data) {
+
+			var self = this;
+
+			$.post(ajaxurl, data, function(response) {
+
+				// Number of messages in this response.
+				var nbrOfMsg = response.messages.length;
+				var reloadLoader = false;
+
+				for (var i = 0; i < nbrOfMsg; i++) {
+					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
+				}
+
+				if (response.status > 1) {
+					$('#sme-importing').remove();
+				}
+
+				if (response.status == 3) {
+					$('#submit').removeAttr('disabled');
+				}
+
+				// If import is not completed, select import method.
+				if (response.status < 2) {
+					self.preflightStatus(data);
+				}
+			});
+		},
+
 		/**
 		 * User is currently on the Deploy Batch page.
 		 */
@@ -183,7 +228,7 @@ jQuery( document ).ready(function($) {
 				batch_id: $('#sme-batch-id').html()
 			};
 
-			// Check if a batch importer ID has been found.
+			// Check if a batch ID has been found.
 			if (data.batch_id) {
 				this.deployStatus(data);
 			}

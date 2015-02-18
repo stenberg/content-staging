@@ -133,21 +133,18 @@ class Common_API {
 	/**
 	 * Perform pre-flight.
 	 *
-	 * @param Batch $batch
+	 * @param int $batch_id
 	 *
 	 * @return array
 	 */
-	public function preflight( Batch $batch ) {
+	public function preflight( $batch_id ) {
 
 		$request = array(
-			'batch' => $batch,
+			'batch_id' => $batch_id,
 		);
 
 		$this->client->request( 'smeContentStaging.verify', $request );
-		$messages = $this->client->get_response_data();
-
-		// Enable third party developers to filter messages.
-		return apply_filters( 'sme_preflight_messages', $messages, $batch );
+		return $this->client->get_response_data();
 	}
 
 	/**

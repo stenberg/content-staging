@@ -407,7 +407,7 @@ class Batch_Ctrl {
 
 		array_push(
 			$messages, array(
-				'message' => sprintf( 'Batch stored on production with ID %d.', $batch->get_id() ),
+				'message' => sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() ),
 				'level'   => 'info',
 			)
 		);
@@ -428,67 +428,65 @@ class Batch_Ctrl {
 	 *
 	 * Display any pre-flight messages that is returned by production.
 	 */
-//	public function prepare() {
-//
-//		// Make sure a query param ID exists in current URL.
-//		if ( ! isset( $_GET['id'] ) ) {
-//			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
-//		}
-//
-//		// Get batch from database.
-//		$batch = $this->batch_dao->find( $_GET['id'] );
-//
-//		// Populate batch with actual data.
-//		$this->api->prepare_batch( $batch );
-//
-//		// Pre-flight batch.
-//		$messages = $this->api->preflight( $batch );
-//
-//		/*
-//		 * Let third party developers perform actions after pre-flight has
-//		 * completed.
-//		 */
-//		do_action( 'sme_prepared', $batch );
-//
-//		// Did pre-flight pass?
-//		$preflight_passed = false;
-//
-//		$errors = array_filter(
-//			$messages, function( $message ) {
-//				return ( $message['level'] == 'error' );
-//			}
-//		);
-//
-//		if ( empty( $errors ) ) {
-//			$preflight_passed = true;
-//		}
-//
-//		// Add batch data to database if pre-flight was successful.
-//		if ( $preflight_passed ) {
-//			$msg = array(
-//				'message' => 'Pre-flight successful!',
-//				'level'   => 'success',
-//				'id'      => null,
-//				'code'    => null,
-//			);
-//
-//			array_push( $messages, $msg );
-//
-//			$this->batch_dao->update_batch( $batch );
-//		}
-//
-//		// Prepare data we want to pass to view.
-//		$data = array(
-//			'batch'            => $batch,
-//			'messages'         => $messages,
-//			'preflight_passed' => $preflight_passed,
-//		);
-//
-//		$this->template->render( 'preflight-batch', $data );
-//	}
+	public function preflight() {
 
-	public function ajax_preflight() {
+		// Status returned from production.
+		$status = 0;
 
+		// Messages returned from production.
+		$messages = array();
+
+		// Whether pre-flight is successful.
+		$preflight_passed = false;
+
+		// Get batch ID.
+		$batch_id = intval( $_POST['batch_id'] );
+
+		// Pre-flight batch.
+		$messages = $this->api->preflight( $batch_id );
+
+		// Filter out error messages.
+		$errors = array_filter(
+			$messages, function( $message ) {
+				return ( $message['level'] == 'error' );
+			}
+		);
+
+		// Check if pre-flight was successful.
+		if ( empty( $errors ) ) {
+			$preflight_passed = true;
+		}
+
+		// Pre-flight successful.
+		if ( $preflight_passed ) {
+
+			// Set pre-flight status to 3 (success).
+			$status = 3;
+
+			// Set success message.
+			array_push(
+				$messages,
+				array(
+					'level'   => 'success',
+					'message' => 'Pre-flight successful!',
+				)
+			);
+		}
+
+		// Pre-flight failed.
+		if ( ! $preflight_passed ) {
+			$status = 2;
+		}
+
+		header( 'Content-Type: application/json' );
+		echo json_encode(
+			array(
+				'status'    => $status,
+				'messages'  => $messages,
+			)
+		);
+
+		die(); // Required to return a proper result.
 	}
 
 	/**
@@ -508,25 +506,23 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 
 		// Check if a batch has been provided.
-		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+		if ( ! isset( $result['batch_id'] ) ) {
 			return $this->xmlrpc_client->prepare_response(
-				array( array( 'level' => 'error', 'message' => 'Invalid batch!' ) )
+				array( array( 'level' => 'error', 'message' => 'No batch ID provided.' ) )
 			);
 		}
 
-		// Get batch.
-		$batch = $result['batch'];
+		// Get batch ID.
+		$batch_id = $result['batch_id'];
 
 		// Check if a production version of this batch exists.
-		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+		$batch = $this->batch_dao->find( $batch_id );
 
-		// Create new batch or update existing one.
-		if ( ! $batch_production_revision_id ) {
-			$this->batch_dao->insert( $batch );
-		} else {
-			$batch->set_id( $batch_production_revision_id );
-			$this->batch_dao->update_batch( $batch );
-			$this->api->delete_preflight_messages( $batch->get_id() );
+		// Batch could not be found.
+		if ( ! $batch ) {
+			return $this->xmlrpc_client->prepare_response(
+				array( array( 'level' => 'error', 'message' => sprintf( 'No batch with ID %d found.', $batch_id ) ) )
+			);
 		}
 
 		/*
@@ -591,9 +587,6 @@ class Batch_Ctrl {
 		foreach ( $messages as $message ) {
 			array_push( $messages_array, $message->to_array() );
 		}
-
-		// Clear pre-flight messages.
-		$this->api->delete_preflight_messages( $batch->get_id() );
 
 		// Prepare and return the XML-RPC response data.
 		return $this->xmlrpc_client->prepare_response( $messages_array );
