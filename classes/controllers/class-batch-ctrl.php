@@ -373,6 +373,9 @@ class Batch_Ctrl {
 			$this->batch_dao->update_batch( $batch );
 		}
 
+		error_log('----- STAGE -----');
+		error_log(print_r($batch->get_post_rel_keys(),true));
+
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'            => $batch,

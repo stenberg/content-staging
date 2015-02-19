@@ -130,6 +130,7 @@ class Batch_Mgr {
 	private function add_posts( Batch $batch, $post_ids ) {
 
 		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
+		$post_ids = array_unique( $post_ids );
 		$posts    = $this->post_dao->find_by_ids( $post_ids );
 
 		foreach ( $posts as $post ) {
@@ -237,17 +238,39 @@ class Batch_Mgr {
 	 * @return array
 	 */
 	private function add_related_posts( Batch $batch, $postmeta ) {
-		foreach ( $batch->get_post_rel_keys() as $key ) {
-			if ( $postmeta['meta_key'] === $key ) {
 
-				// Find post the current post holds a reference to.
-				$post = $this->post_dao->find( $postmeta['meta_value'] );
+		// Check if this post meta key is in the array of post relationship keys.
+		if ( ! in_array( $postmeta['meta_key'], $batch->get_post_rel_keys() ) ) {
+			return $postmeta;
+		}
 
-				if ( isset( $post ) && $post->get_id() !== null ) {
-					$this->add_post( $batch, $post );
-					$postmeta['meta_value'] = $post->get_guid();
+		// Find post the current post holds a reference to.
+		$post = $this->post_dao->find( $postmeta['meta_value'] );
+
+		if ( isset( $post ) && $post->get_id() !== null ) {
+
+			// Is this post already part of the batch?
+			$match_found = false;
+
+			// Check if this post is already part of the batch.
+			foreach ( $batch->get_posts() as $post_in_batch ) {
+				if ( $post_in_batch->get_id() == $post->get_id() ) {
+					$match_found = true;
+					break;
 				}
 			}
+
+			// The post is not already part of the batch, add it.
+			if ( ! $match_found ) {
+				$this->add_post( $batch, $post );
+			}
+
+			/*
+			 * Change meta value to post GUID instead of post ID so we can later find
+			 * the reference on production.
+			 */
+
+			$postmeta['meta_value'] = $post->get_guid();
 		}
 
 		return $postmeta;

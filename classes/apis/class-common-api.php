@@ -172,7 +172,7 @@ class Common_API {
 		 * delete it (not actually deleting the batch, just setting it to draft
 		 * to make it invisible to users).
 		 */
-		$this->batch_dao->delete_batch( $batch );
+//		$this->batch_dao->delete_batch( $batch );
 
 		return $response;
 	}
