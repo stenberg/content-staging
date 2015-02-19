@@ -273,10 +273,6 @@ abstract class Batch_Importer {
 			// Update post ID to point at the post ID on production.
 			$meta[$i]['post_id'] = $prod_id;
 
-			error_log('----- PRODUCTION -----');
-			error_log(print_r($keys,true));
-//			error_log($meta[$i]['meta_key']);
-
 			if ( in_array( $meta[$i]['meta_key'], $keys ) ) {
 
 				// Post ID this meta value is referring to.
