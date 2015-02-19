@@ -443,27 +443,16 @@ class Batch_Ctrl {
 		$batch_id = intval( $_POST['batch_id'] );
 
 		// Pre-flight batch.
-		$messages = $this->api->preflight( $batch_id );
+		$response = $this->api->preflight( $batch_id );
 
-		// Filter out error messages.
-		$errors = array_filter(
-			$messages, function( $message ) {
-				return ( $message['level'] == 'error' );
-			}
-		);
+		// Get status.
+		$status = ( isset( $response['status'] ) ) ? $response['status'] : 0;
 
-		// Check if pre-flight was successful.
-		if ( empty( $errors ) ) {
-			$preflight_passed = true;
-		}
+		// Get messages.
+		$messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
 
-		// Pre-flight successful.
-		if ( $preflight_passed ) {
-
-			// Set pre-flight status to 3 (success).
-			$status = 3;
-
-			// Set success message.
+		// Set success message.
+		if ( $status == 3 ) {
 			array_push(
 				$messages,
 				array(
@@ -471,11 +460,6 @@ class Batch_Ctrl {
 					'message' => 'Pre-flight successful!',
 				)
 			);
-		}
-
-		// Pre-flight failed.
-		if ( ! $preflight_passed ) {
-			$status = 2;
 		}
 
 		header( 'Content-Type: application/json' );
@@ -531,65 +515,110 @@ class Batch_Ctrl {
 		 */
 		do_action( 'sme_verify', $batch );
 
-		// Perform checks for each of the posts in this batch.
-		foreach ( $batch->get_posts() as $post ) {
+		// What different type of data needs verification?
+		$types = array( 'attachments', 'users', 'posts', 'custom_data' );
 
-			/*
-			 * If more then one post is found when searching posts with a specific
-			 * GUID, then add an error message. Two or more posts should never share
-			 * the same GUID.
-			 */
-			try {
+		// Last verified data type in batch.
+		$last_type = $this->batch_dao->get_post_meta( $batch->get_id(), '_sme_preflight_type', true );
 
-				/*
-				 * Check if a revision of this post already exist on production or if it
-				 * is a brand new post.
-				 */
-				$production_revision = $this->post_dao->get_by_guid( $post->get_guid() );
+		// Next data type to verify.
+		$next_type = null;
 
-				// Check if parent post exist on production or in batch.
-				if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-
-					// Admin URL of content stage.
-					$admin_url = $batch->get_custom_data( 'sme_content_stage_admin_url' );
-
-					$message = sprintf(
-						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
-						$admin_url . 'post.php?post=' . $post->get_id() . '&action=edit',
-						$post->get_title(),
-						$admin_url . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
-						$post->get_parent()->get_title()
-					);
-
-					$this->api->add_preflight_message( $batch->get_id(), $message, 'error' );
-				}
-			} catch ( Exception $e ) {
-				$this->api->add_preflight_message( $batch->get_id(), $e->getMessage(), 'error' );
-			}
-
+		// Get next type
+		if ( $last_type ) {
+			$key       = array_search( $last_type, $types );
+			$key       = ( $key !== false ) ? ( $key + 1 ) : 0;
+			$types     = array_splice( $types, $key );
+			$next_type = array_shift( $types );
 		}
 
-		// Pre-flight custom data.
-		foreach ( $batch->get_custom_data() as $addon => $data ) {
-			do_action( 'sme_verify_' . $addon, $data, $batch );
+		// Set default value of next data type to verify.
+		if ( ! $next_type ) {
+			$next_type = array_shift( $types );
+		}
+
+		// Add type currently verified to database.
+		$this->batch_dao->update_post_meta( $batch->get_id(), '_sme_preflight_type', $next_type );
+
+		// The data we want to verify.
+		$batch_chunk = array();
+
+		// Get data we want to verify.
+		switch ( $next_type ) {
+			case 'attachments':
+				$batch_chunk = $batch->get_attachments();
+				break;
+			case 'users':
+				$batch_chunk = $batch->get_users();
+				break;
+			case 'posts':
+				$batch_chunk = $batch->get_posts();
+				break;
+			case 'custom_data':
+				$batch_chunk = $batch->get_custom_data();
+
+				// Pre-flight custom data.
+				foreach ( $batch_chunk as $addon => $data ) {
+					do_action( 'sme_verify_' . $addon, $data, $batch );
+				}
+
+				break;
+		}
+
+		// Verify selected part of batch.
+		foreach ( $batch_chunk as $item ) {
+			do_action( 'sme_verify_' . $next_type, $item, $batch );
 		}
 
 		/*
-		 * Let third party developers perform actions before pre-flight data is
-		 * returned from production to content stage.
+		 * Let third party developers perform actions before pre-flight of
+		 * current batch chunk is completed.
 		 */
-		do_action( 'sme_verified', $batch );
+		do_action( 'sme_verified_' . $next_type, $batch_chunk, $batch );
 
 		// Get all messages set during verification of this batch.
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
+
+		// Filter out error messages.
+		$errors = array_filter(
+			$messages, function( $message ) {
+				return ( $message->get_level() == 'error' );
+			}
+		);
+
+		// Status of pre-flight.
+		$status = 1; // Running
+
+		// Is pre-flight finished?
+		if ( empty( $types ) ) {
+			$status = 3;
+		}
+
+		// Did pre-flight fail?
+		if ( ! empty( $errors ) ) {
+			$status = 2;
+		}
+
+		// Cleanup.
+		if ( $status > 1 ) {
+			$this->batch_dao->delete_post_meta( $batch->get_id(), '_sme_preflight_type' );
+		}
+
+		// Convert message objects into array.
 		$messages_array = array();
 
 		foreach ( $messages as $message ) {
 			array_push( $messages_array, $message->to_array() );
 		}
 
+		// Prepare response data.
+		$response = array(
+			'status'   => $status,
+			'messages' => $messages_array,
+		);
+
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $messages_array );
+		return $this->xmlrpc_client->prepare_response( $response );
 	}
 
 	/**
@@ -920,37 +949,6 @@ class Batch_Ctrl {
 		$this->api->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
 
 		return $batch;
-	}
-
-	/**
-	 * Make sure parent post exist (if post has any) either in production
-	 * database or in batch.
-	 *
-	 * @param array $post
-	 * @param array $posts
-	 * @return bool True if parent post exist (or post does not have a parent), false
-	 *              otherwise.
-	 */
-	private function parent_post_exists( $post, $posts ) {
-
-		// Check if the post has a parent post.
-		if ( $post->get_parent() === null ) {
-			return true;
-		}
-
-		// Check if parent post exist on production server.
-		if ( $this->post_dao->get_by_guid( $post->get_parent()->get_guid() ) ) {
-			return true;
-		}
-
-		// Parent post is not on production, look in this batch for parent post.
-		foreach ( $posts as $item ) {
-			if ( $item->get_id() == $post->get_parent()->get_id() ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 }

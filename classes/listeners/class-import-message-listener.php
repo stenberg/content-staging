@@ -5,7 +5,6 @@ use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
-use Me\Stenberg\Content\Staging\Models\Batch_Import_Job;
 use Me\Stenberg\Content\Staging\Models\Post;
 
 class Import_Message_Listener {
