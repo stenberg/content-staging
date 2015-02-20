@@ -146,6 +146,13 @@ class Batch_Mgr {
 	 */
 	private function add_post( Batch $batch, Post $post ) {
 
+		// Make sure the post is not already in the batch.
+		foreach ( $batch->get_posts() as $post_in_batch ) {
+			if ( $post->get_id() === $post_in_batch->get_id() ) {
+				return;
+			}
+		}
+
 		if ( $post->get_type() === 'attachment' ) {
 			$this->add_attachment( $batch, $post->get_id() );
 		}
@@ -248,28 +255,12 @@ class Batch_Mgr {
 		$post = $this->post_dao->find( $postmeta['meta_value'] );
 
 		if ( isset( $post ) && $post->get_id() !== null ) {
-
-			// Is this post already part of the batch?
-			$match_found = false;
-
-			// Check if this post is already part of the batch.
-			foreach ( $batch->get_posts() as $post_in_batch ) {
-				if ( $post_in_batch->get_id() == $post->get_id() ) {
-					$match_found = true;
-					break;
-				}
-			}
-
-			// The post is not already part of the batch, add it.
-			if ( ! $match_found ) {
-				$this->add_post( $batch, $post );
-			}
+			$this->add_post( $batch, $post );
 
 			/*
 			 * Change meta value to post GUID instead of post ID so we can later find
 			 * the reference on production.
 			 */
-
 			$postmeta['meta_value'] = $post->get_guid();
 		}
 
