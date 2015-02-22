@@ -608,8 +608,8 @@ class Batch_Ctrl {
 
 		if ( isset( $response['status'] ) ) {
 
-			// Deploy hss finished.
-			if ( $response['status'] > 1 ) {
+			// Deploy has finished.
+			if ( $response['status'] == 3 ) {
 				do_action( 'sme_deployed' );
 			}
 
