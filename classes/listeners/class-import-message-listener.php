@@ -58,30 +58,24 @@ class Import_Message_Listener {
 
 		$links  = array();
 		$output = '';
-		$posts  = array();
 		$types  = array( 'page', 'post' );
-
-		// Get diffs from database.
-		$diffs = $this->post_dao->get_post_diffs( $batch );
-
-		// Get all posts.
-		foreach ( $diffs as $diff ) {
-			$posts[] = get_post( $diff->get_prod_id() );
-		}
 
 		// Only keep published posts of type $types.
 		$posts = array_filter(
-			$posts,
-			function( $post ) use ( $types ) {
-				return ( $post->post_status == 'publish' && in_array( $post->post_type, $types ) );
+			$batch->get_posts(),
+			function( Post $post ) use ( $types ) {
+				return ( $post->get_post_status() == 'publish' && in_array( $post->get_type(), $types ) );
 			}
 		);
 
 		// Create links for each of the posts.
 		foreach ( $posts as $post ) {
+
+			$post_id = $this->post_dao->get_id_by_guid( $post->get_guid() );
+
 			$links[] = array(
-				'link'  => get_permalink( $post->ID ),
-				'title' => $post->post_title,
+				'link'  => get_permalink( $post_id ),
+				'title' => $post->get_title(),
 			);
 		}
 
@@ -93,7 +87,7 @@ class Import_Message_Listener {
 
 		if ( $output !== '' ) {
 			$output  = '<ul>' . $output . '</ul>';
-			$message = '<h3>Posts deployed to the live site:</h3>' . $output;
+			$message = '<h3>Posts deployed to ' . get_bloginfo( 'name' ) . ':</h3>' . $output;
 
 			$this->api->add_deploy_message( $batch->get_id(), $message, 'info', 102 );
 		}

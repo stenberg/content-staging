@@ -655,10 +655,8 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 		$batch  = $this->batch_dao->find( intval( $result['batch_id'] ) );
 
-		if ( $this->api->get_deploy_status( $batch->get_id() ) !== 2 ) {
-			$importer = $this->importer_factory->get_importer( $batch );
-			$importer->status();
-		}
+		$importer = $this->importer_factory->get_importer( $batch );
+		$importer->status();
 
 		$response = array(
 			'status'   => $this->api->get_deploy_status( $batch->get_id() ),
