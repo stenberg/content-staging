@@ -253,12 +253,12 @@ jQuery( document ).ready(function($) {
 					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
 				}
 
-				if (response.status > 1) {
+				if (response.status == 3 ) {
 					$('#sme-importing').remove();
 				}
 
 				// If import is not completed, select import method.
-				if (response.status < 2) {
+				if (response.status < 3) {
 					self.deployStatus(data);
 				}
 			});

@@ -35,7 +35,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 	public function status() {
 
 		// Make sure AJAX import has not already finished.
-		if ( $this->api->get_deploy_status( $this->batch->get_id() ) > 1 ) {
+		if ( $this->api->get_deploy_status( $this->batch->get_id() ) == 3 ) {
 			return;
 		}
 
@@ -49,7 +49,7 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		$next = $this->get_next( $next );
 		update_post_meta( $this->batch->get_id(), '_sme_import_next', $next );
 
-		if ( $this->api->get_deploy_status( $this->batch->get_id() ) > 1 ) {
+		if ( $this->api->get_deploy_status( $this->batch->get_id() ) == 3 ) {
 			/*
 			 * Delete batch. Batch is not actually deleted, just set to draft
 			 * mode. This is important since we need to access e.g. meta data telling

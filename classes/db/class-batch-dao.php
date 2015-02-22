@@ -328,6 +328,10 @@ class Batch_DAO extends DAO {
 			$obj->set_custom_data( $content['custom_data'] );
 		}
 
+		if ( isset( $content['post_rel_keys'] ) ) {
+			$obj->set_post_rel_keys( $content['post_rel_keys'] );
+		}
+
 		return $obj;
 	}
 
@@ -345,10 +349,11 @@ class Batch_DAO extends DAO {
 		 * prepare it for being inserted into database.
 		 */
 		$content = array(
-			'attachments' => $obj->get_attachments(),
-			'users'       => $obj->get_users(),
-			'posts'       => $obj->get_posts(),
-			'custom_data' => $obj->get_custom_data(),
+			'attachments'   => $obj->get_attachments(),
+			'users'         => $obj->get_users(),
+			'posts'         => $obj->get_posts(),
+			'custom_data'   => $obj->get_custom_data(),
+			'post_rel_keys' => $obj->get_post_rel_keys(),
 		);
 
 		$content = base64_encode( serialize( $content ) );
