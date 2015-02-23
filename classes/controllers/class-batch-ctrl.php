@@ -337,17 +337,17 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$this->api->prepare_batch( $batch );
 
+		// Generate a hash for this revision of the batch.
+
+
 		// Update the now prepared batch.
 		$this->batch_dao->update_batch( $batch );
 
 		// Send batch to production.
 		$messages = $this->api->send( $batch );
 
-		/*
-		 * Let third party developers perform actions after batch has
-		 * been sent to production.
-		 */
-		do_action( 'sme_prepared', $batch );
+		// Filter preparation messages.
+		$messages = apply_filters( 'sme_prepare_messages', $messages, $batch );
 
 		// Prepare data we want to pass to view.
 		$data = array(
@@ -355,7 +355,7 @@ class Batch_Ctrl {
 			'messages' => $messages,
 		);
 
-		$this->template->render( 'store-batch', $data );
+		$this->template->render( 'preflight-batch', $data );
 	}
 
 	/**
@@ -430,26 +430,17 @@ class Batch_Ctrl {
 	 */
 	public function preflight() {
 
-		// Status returned from production.
-		$status = 0;
-
-		// Messages returned from production.
-		$messages = array();
-
-		// Whether pre-flight is successful.
-		$preflight_passed = false;
-
 		// Get batch ID.
-		$batch_id = intval( $_POST['batch_id'] );
+		$batch_guid = $_POST['batch_guid'];
 
 		// Pre-flight batch.
-		$response = $this->api->preflight( $batch_id );
+		$result = $this->api->preflight( $batch_guid );
 
 		// Get status.
-		$status = ( isset( $response['status'] ) ) ? $response['status'] : 0;
+		$status = ( isset( $result['status'] ) ) ? $result['status'] : 0;
 
 		// Get messages.
-		$messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+		$messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
 
 		// Set success message.
 		if ( $status == 3 ) {
@@ -458,17 +449,22 @@ class Batch_Ctrl {
 				array(
 					'level'   => 'success',
 					'message' => 'Pre-flight successful!',
+					'code'    => 201,
+					'id'      => 0,
 				)
 			);
 		}
 
-		header( 'Content-Type: application/json' );
-		echo json_encode(
-			array(
-				'status'    => $status,
-				'messages'  => $messages,
-			)
+		// Prepare response.
+		$response = array(
+			'status'   => $status,
+			'messages' => $messages,
 		);
+
+		$response = apply_filters( 'sme_preflight_response', $response, $batch_guid );
+
+		header( 'Content-Type: application/json' );
+		echo json_encode( $response );
 
 		die(); // Required to return a proper result.
 	}
@@ -490,22 +486,22 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 
 		// Check if a batch has been provided.
-		if ( ! isset( $result['batch_id'] ) ) {
+		if ( ! isset( $result['batch_guid'] ) ) {
 			return $this->xmlrpc_client->prepare_response(
-				array( array( 'level' => 'error', 'message' => 'No batch ID provided.' ) )
+				array( array( 'level' => 'error', 'message' => 'No batch GUID provided.' ) )
 			);
 		}
 
-		// Get batch ID.
-		$batch_id = $result['batch_id'];
+		// Get batch GUID.
+		$batch_guid = $result['batch_guid'];
 
 		// Check if a production version of this batch exists.
-		$batch = $this->batch_dao->find( $batch_id );
+		$batch = $this->batch_dao->get_by_guid( $batch_guid );
 
 		// Batch could not be found.
 		if ( ! $batch ) {
 			return $this->xmlrpc_client->prepare_response(
-				array( array( 'level' => 'error', 'message' => sprintf( 'No batch with ID %d found.', $batch_id ) ) )
+				array( array( 'level' => 'error', 'message' => sprintf( 'No batch with GUID %s found.', $batch_guid ) ) )
 			);
 		}
 

@@ -133,14 +133,14 @@ class Common_API {
 	/**
 	 * Perform pre-flight.
 	 *
-	 * @param int $batch_id
+	 * @param string $batch_guid
 	 *
 	 * @return array
 	 */
-	public function preflight( $batch_id ) {
+	public function preflight( $batch_guid ) {
 
 		$request = array(
-			'batch_id' => $batch_id,
+			'batch_guid' => $batch_guid,
 		);
 
 		$this->client->request( 'smeContentStaging.verify', $request );
