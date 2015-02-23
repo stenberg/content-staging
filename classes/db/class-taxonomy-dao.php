@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\DB;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
@@ -138,20 +139,36 @@ class Taxonomy_DAO extends DAO {
 
 	/**
 	 * @param array $raw
+	 *
 	 * @return Taxonomy
+	 *
+	 * @throws Exception
 	 */
 	protected function do_create_object( array $raw ) {
 		$obj  = new Taxonomy( $raw['term_taxonomy_id'] );
 		$term = $this->term_dao->find( $raw['term_id'] );
-		$term->set_taxonomy( $obj );
+
+		if ( $term === null ) {
+			$message = sprintf(
+				'No term_id %d found for term_taxonomy_id %d in table %s',
+				$raw['term_id'],
+				$raw['term_taxonomy_id'],
+				$this->wpdb->term_taxonomy
+			);
+
+			throw new Exception( $message );
+		}
+
 		$parent = $this->get_taxonomy_by_term_id_taxonomy( $raw['parent'], $raw['taxonomy'] );
-		$obj->set_term( $term );
-		$obj->set_taxonomy( $raw['taxonomy'] );
-		$obj->set_description( $raw['description'] );
+
 		if ( $parent !== null ) {
 			$obj->set_parent( $parent );
 		}
+
+		$obj->set_taxonomy( $raw['taxonomy'] );
+		$obj->set_description( $raw['description'] );
 		$obj->set_count( $raw['count'] );
+
 		return $obj;
 	}
 

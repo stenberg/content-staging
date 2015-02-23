@@ -349,7 +349,13 @@ class Common_API {
 	 */
 	public function get_messages( $post_id, $new_only = true, $type = null, $group = null, $code = 0 ) {
 		$messages = $this->message_dao->get_by_post_id( $post_id, $new_only, $type, $group, $code );
-		return apply_filters( 'sme_get_messages', $messages );
+		$as_array = array();
+
+		foreach ( $messages as $message ) {
+			array_push( $as_array, $message->to_array() );
+		}
+
+		return apply_filters( 'sme_get_messages', $as_array );
 	}
 
 	/**
