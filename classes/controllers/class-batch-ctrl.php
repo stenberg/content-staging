@@ -337,8 +337,14 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$this->api->prepare_batch( $batch );
 
-		// Pre-flight batch.
+		// Pre-flight batch and get messages from production.
 		$messages = $this->api->preflight( $batch );
+
+		// Get pre-flight messages from content stage.
+		$stage_messages = $this->api->get_preflight_messages( $batch->get_id() );
+
+		// Combine messages.
+		$messages = array_merge( $messages, $stage_messages );
 
 		/*
 		 * Let third party developers perform actions after pre-flight has
@@ -478,17 +484,12 @@ class Batch_Ctrl {
 
 		// Get all messages set during verification of this batch.
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
-		$messages_array = array();
-
-		foreach ( $messages as $message ) {
-			array_push( $messages_array, $message->to_array() );
-		}
 
 		// Clear pre-flight messages.
 		$this->api->delete_preflight_messages( $batch->get_id() );
 
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $messages_array );
+		return $this->xmlrpc_client->prepare_response( $messages );
 	}
 
 	/**
@@ -618,12 +619,7 @@ class Batch_Ctrl {
 		}
 
 		if ( isset( $response['messages'] ) ) {
-
-			// Convert messages to format we can JSON encode.
-			foreach ( $response['messages'] as $message ) {
-				array_push( $messages, $message->to_array() );
-			}
-
+			$messages = $response['messages'];
 			unset( $response['messages'] );
 		}
 

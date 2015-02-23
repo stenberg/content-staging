@@ -1,6 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Managers;
 
+use Exception;
+use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
@@ -19,13 +21,6 @@ use Me\Stenberg\Content\Staging\Models\Post;
  * @package Me\Stenberg\Content\Staging\Managers
  */
 class Batch_Mgr {
-
-	/**
-	 * Batch object managed by this class.
-	 *
-	 * @var Batch
-	 */
-	private $batch;
 
 	/**
 	 * @var Batch_DAO
@@ -53,6 +48,11 @@ class Batch_Mgr {
 	private $user_dao;
 
 	/**
+	 * @var Common_API
+	 */
+	private $api;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -61,6 +61,7 @@ class Batch_Mgr {
 		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
 		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
 		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
+		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
 	}
 
 	/**
@@ -157,7 +158,13 @@ class Batch_Mgr {
 			$this->add_attachment( $batch, $post->get_id() );
 		}
 
-		$this->post_taxonomy_dao->get_post_taxonomy_relationships( $post );
+		// Catch issue with term ID not being set properly.
+		try {
+			$this->post_taxonomy_dao->get_post_taxonomy_relationships( $post );
+		} catch( Exception $e ) {
+			$this->api->add_preflight_message( $batch->get_id(), $e->getMessage(), 'warning' );
+		}
+
 		$post->set_meta( $this->postmeta_dao->get_postmetas_by_post_id( $post->get_id() ) );
 
 		/*
