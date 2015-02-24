@@ -349,6 +349,9 @@ class Batch_Ctrl {
 		// Filter preparation messages.
 		$messages = apply_filters( 'sme_prepare_messages', $messages, $batch );
 
+		// Convert message objects into arrays.
+		$messages = $this->api->convert_messages( $messages );
+
 		// Prepare data we want to pass to view.
 		$data = array(
 			'batch'    => $batch,
@@ -403,14 +406,13 @@ class Batch_Ctrl {
 		// Clear pre-flight messages.
 		$this->api->delete_preflight_messages( $batch->get_id() );
 
-		$messages = array();
-
-		array_push(
-			$messages, array(
-				'message' => sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() ),
-				'level'   => 'info',
-			)
+		$message = new Message();
+		$message->set_level( 'info' );
+		$message->set_message(
+			sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() )
 		);
+
+		$messages = array( $message );
 
 		// Allow third party developers to hook in after storing the batch.
 		do_action( 'sme_stored', $batch );
@@ -442,17 +444,22 @@ class Batch_Ctrl {
 		// Get messages.
 		$messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
 
+		// Filter out error messages.
+		$errors = $this->api->error_messages( $messages );
+
+		// Did pre-flight fail?
+		if ( ! empty( $errors ) ) {
+			$status = 2;
+		}
+
 		// Set success message.
 		if ( $status == 3 ) {
-			array_push(
-				$messages,
-				array(
-					'level'   => 'success',
-					'message' => 'Pre-flight successful!',
-					'code'    => 201,
-					'id'      => 0,
-				)
-			);
+			$message = new Message();
+			$message->set_level( 'success' );
+			$message->set_message( 'Pre-flight successful!' );
+			$message->set_code( 201 );
+
+			array_push( $messages, $message );
 		}
 
 		// Prepare response.
@@ -461,7 +468,11 @@ class Batch_Ctrl {
 			'messages' => $messages,
 		);
 
+		// Filter response.
 		$response = apply_filters( 'sme_preflight_response', $response, $batch_guid );
+
+		// Convert message objects into arrays.
+		$response['messages'] = $this->api->convert_messages( $response['messages'] );
 
 		header( 'Content-Type: application/json' );
 		echo json_encode( $response );
@@ -487,9 +498,11 @@ class Batch_Ctrl {
 
 		// Check if a batch has been provided.
 		if ( ! isset( $result['batch_guid'] ) ) {
-			return $this->xmlrpc_client->prepare_response(
-				array( array( 'level' => 'error', 'message' => 'No batch GUID provided.' ) )
-			);
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( 'No batch GUID provided.' );
+
+			return $this->xmlrpc_client->prepare_response( array( $message ) );
 		}
 
 		// Get batch GUID.
@@ -500,9 +513,11 @@ class Batch_Ctrl {
 
 		// Batch could not be found.
 		if ( ! $batch ) {
-			return $this->xmlrpc_client->prepare_response(
-				array( array( 'level' => 'error', 'message' => sprintf( 'No batch with GUID %s found.', $batch_guid ) ) )
-			);
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( sprintf( 'No batch with GUID %s found.', $batch_guid ) );
+
+			return $this->xmlrpc_client->prepare_response( array( $message ) );
 		}
 
 		/*
@@ -576,11 +591,7 @@ class Batch_Ctrl {
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
 
 		// Filter out error messages.
-		$errors = array_filter(
-			$messages, function( $message ) {
-				return ( $message->get_level() == 'error' );
-			}
-		);
+		$errors = $this->api->error_messages( $messages );
 
 		// Status of pre-flight.
 		$status = 1; // Running
@@ -600,17 +611,10 @@ class Batch_Ctrl {
 			$this->batch_dao->delete_post_meta( $batch->get_id(), '_sme_preflight_type' );
 		}
 
-		// Convert message objects into array.
-		$messages_array = array();
-
-		foreach ( $messages as $message ) {
-			array_push( $messages_array, $message->to_array() );
-		}
-
 		// Prepare response data.
 		$response = array(
 			'status'   => $status,
-			'messages' => $messages_array,
+			'messages' => $messages,
 		);
 
 		// Prepare and return the XML-RPC response data.
@@ -674,10 +678,12 @@ class Batch_Ctrl {
 		// Deploy the batch.
 		$response = $this->api->deploy( $batch );
 
+		// Prepare data for view.
 		$data = array(
 			'messages' => $response['messages'],
 		);
 
+		// Render page.
 		$this->template->render( 'deploy-batch', $data );
 	}
 
@@ -743,13 +749,9 @@ class Batch_Ctrl {
 			unset( $response['status'] );
 		}
 
+		// Convert message objects into arrays.
 		if ( isset( $response['messages'] ) ) {
-
-			// Convert messages to format we can JSON encode.
-			foreach ( $response['messages'] as $message ) {
-				array_push( $messages, $message->to_array() );
-			}
-
+			$messages = $this->api->convert_messages( $response['messages'] );
 			unset( $response['messages'] );
 		}
 

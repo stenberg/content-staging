@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
@@ -394,7 +395,13 @@ abstract class Batch_Importer {
 	 */
 	public function import_taxonomy( Taxonomy $taxonomy ) {
 
-		$this->import_term( $taxonomy->get_term() );
+		// Get the term.
+		$term = $taxonomy->get_term();
+
+		// Import term.
+		if ( $term !== null ) {
+			$this->import_term( $taxonomy->get_term() );
+		}
 
 		// If a parent taxonomy exists, import it.
 		if ( $taxonomy->get_parent() !== null ) {
@@ -402,7 +409,11 @@ abstract class Batch_Importer {
 		}
 
 		// Taxonomy ID on production environment.
-		$this->taxonomy_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
+		try {
+			$this->taxonomy_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
+		} catch ( Exception $e ) {
+			$this->api->add_deploy_message( $this->batch->get_id(), $e->getMessage(), 'warning' );
+		}
 
 		if ( ! $taxonomy->get_id() ) {
 			// This taxonomy does not exist on production, create it.

@@ -10,6 +10,7 @@ use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Message;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
@@ -124,10 +125,7 @@ class Common_API {
 		);
 
 		$this->client->request( 'smeContentStaging.store', $request );
-		$messages = $this->client->get_response_data();
-
-		// Return messages.
-		return $messages;
+		return $this->client->get_response_data();
 	}
 
 	/**
@@ -349,13 +347,7 @@ class Common_API {
 	 */
 	public function get_messages( $post_id, $new_only = true, $type = null, $group = null, $code = 0 ) {
 		$messages = $this->message_dao->get_by_post_id( $post_id, $new_only, $type, $group, $code );
-		$as_array = array();
-
-		foreach ( $messages as $message ) {
-			array_push( $as_array, $message->to_array() );
-		}
-
-		return apply_filters( 'sme_get_messages', $as_array );
+		return apply_filters( 'sme_get_messages', $messages );
 	}
 
 	/**
@@ -442,6 +434,65 @@ class Common_API {
 	 */
 	public function delete_deploy_messages( $post_id, $type = null, $code = 0 ) {
 		return $this->delete_messages( $post_id, $type, 'deploy', $code );
+	}
+
+	/**
+	 * Convert message objects into arrays or from arrays into objects.
+	 *
+	 * @param array $messages
+	 * @param bool  $to_array
+	 *
+	 * @return array
+	 */
+	public function convert_messages( $messages, $to_array = true ) {
+
+		$result = array();
+
+		if ( ! is_array( $messages ) ) {
+			return $result;
+		}
+
+		// Convert message objects into arrays.
+		if ( $to_array ) {
+			foreach ( $messages as $message ) {
+				if ( $message instanceof Message ) {
+					array_push( $result, $message->to_array() );
+				}
+			}
+
+			return $result;
+		}
+
+		// Convert messages into objects.
+		foreach ( $messages as $message ) {
+			$msg = new Message();
+
+			$msg->set_id( ( isset( $message['id'] ) ? $message['id'] : null ) );
+			$msg->set_message( ( isset( $message['message'] ) ? $message['message'] : '' ) );
+			$msg->set_level( ( isset( $message['level'] ) ? $message['level'] : 'info' ) );
+			$msg->set_code( ( isset( $message['code'] ) ? $message['code'] : 0 ) );
+
+			array_push( $result, $msg );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Filter out error messages from array of messages.
+	 *
+	 * @param array $messages
+	 *
+	 * @return array
+	 */
+	public function error_messages( array $messages ) {
+		$errors = array_filter(
+			$messages, function( Message $message ) {
+				return ( $message->get_level() == 'error' );
+			}
+		);
+
+		return $errors;
 	}
 
 	/**

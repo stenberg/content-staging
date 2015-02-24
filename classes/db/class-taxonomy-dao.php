@@ -5,6 +5,7 @@ use Exception;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Model;
 use Me\Stenberg\Content\Staging\Models\Taxonomy;
+use Me\Stenberg\Content\Staging\Models\Term;
 
 class Taxonomy_DAO extends DAO {
 
@@ -47,8 +48,23 @@ class Taxonomy_DAO extends DAO {
 	 * Useful for comparing a post sent from content staging to production.
 	 *
 	 * @param Taxonomy $taxonomy
+	 *
+	 * @throws Exception
 	 */
 	public function get_taxonomy_id_by_taxonomy( Taxonomy $taxonomy ) {
+
+		$term = $taxonomy->get_term();
+
+		// Ensure that the term is set.
+		if ( $term === null ) {
+			$message = sprintf(
+				'No term found for term_taxonomy_id %d in table %s',
+				$taxonomy->get_id(),
+				$this->wpdb->term_taxonomy
+			);
+
+			throw new Exception( $message );
+		}
 
 		$query = $this->wpdb->prepare(
 			'SELECT term_taxonomy_id FROM ' . $this->get_table() . ' WHERE term_id = %d AND taxonomy = %s',
@@ -148,7 +164,7 @@ class Taxonomy_DAO extends DAO {
 		$obj  = new Taxonomy( $raw['term_taxonomy_id'] );
 		$term = $this->term_dao->find( $raw['term_id'] );
 
-		if ( $term === null ) {
+		if ( ! $term instanceof Term ) {
 			$message = sprintf(
 				'No term_id %d found for term_taxonomy_id %d in table %s',
 				$raw['term_id'],
@@ -159,6 +175,7 @@ class Taxonomy_DAO extends DAO {
 			throw new Exception( $message );
 		}
 
+		$obj->set_term( $term );
 		$parent = $this->get_taxonomy_by_term_id_taxonomy( $raw['parent'], $raw['taxonomy'] );
 
 		if ( $parent !== null ) {
@@ -185,8 +202,11 @@ class Taxonomy_DAO extends DAO {
 			}
 		}
 
+		$term    = $obj->get_term();
+		$term_id = ( $term instanceof Term ) ? $term->get_id() : 0;
+
 		return array(
-			'term_id'     => $obj->get_term()->get_id(),
+			'term_id'     => $term_id,
 			'taxonomy'    => $obj->get_taxonomy(),
 			'description' => $obj->get_description(),
 			'parent'      => $parent,
@@ -229,44 +249,59 @@ class Taxonomy_DAO extends DAO {
 			$do_insert = true;
 		}
 
-		// ID of parent term.
-		$parent_id = null;
-		if ( $taxonomy->get_parent() ) {
-			$parent_id = $taxonomy->get_parent()->get_term()->get_id();
+		$term               = $taxonomy->get_term();
+		$term_id            = null;
+		$parent_taxonomy    = $taxonomy->get_parent();
+		$parent_term        = null;
+		$parent_taxonomy_id = null;
+
+		if ( $term instanceof Term ) {
+			$term_id = $term->get_id();
 		}
 
-		if ( array_key_exists( $parent_id, $hierarchy ) &&
-			! in_array( $taxonomy->get_term()->get_id(), $hierarchy[$parent_id] ) ) {
+		if ( $parent_taxonomy instanceof  Taxonomy ) {
+			$parent_term = $parent_taxonomy->get_term();
+		}
+
+		if ( $parent_term instanceof Term ) {
+			$parent_taxonomy_id = $parent_term->get_id();
+		}
+
+		if ( array_key_exists( $parent_taxonomy_id, $hierarchy ) &&
+			! in_array( $term_id, $hierarchy[$parent_taxonomy_id] ) ) {
 			/*
 			 * The parent term exist in the hierarchy, but the term has not been
 			 * added as a child yet. Add the term as a child.
 			 */
-			array_push( $hierarchy[$parent_id], (int) $taxonomy->get_term()->get_id() );
+			array_push( $hierarchy[$parent_taxonomy_id], (int) $term_id );
 			$do_update = true;
 		}
 
-		if ( $parent_id && ! array_key_exists( $parent_id, $hierarchy ) ) {
+		if ( $parent_taxonomy_id && ! array_key_exists( $parent_taxonomy_id, $hierarchy ) ) {
 			/*
 			 * The parent term does not exist in the hierarchy. Add the parent term
 			 * to the hierarchy as an array index and the term as a child.
 			 */
-			$hierarchy[$parent_id] = array();
-			array_push( $hierarchy[$parent_id], (int) $taxonomy->get_term()->get_id() );
+			$hierarchy[$parent_taxonomy_id] = array();
+			array_push( $hierarchy[$parent_taxonomy_id], (int) $term_id );
 			$do_update = true;
 		}
 
-		if ( ! $parent_id ) {
-			foreach ( $hierarchy as $term => $children ) {
-				if ( ( $index = array_search( $taxonomy->get_term()->get_id(), $children ) ) !== false ) {
+		if ( ! $parent_taxonomy_id ) {
+			foreach ( $hierarchy as $term_key => $children ) {
+
+				$index = array_search( $term_id, $children );
+
+				if ( $index ) {
 					/*
 					 * The term used to have a parent term, but that is no longer the case.
 					 * Remove the child term from the hierarchy.
 					 */
-					unset( $hierarchy[$term][$index] );
+					unset( $hierarchy[$term_key][$index] );
 
-					if ( empty( $hierarchy[$term] ) ) {
+					if ( empty( $hierarchy[$term_key] ) ) {
 						// No term children exist anymore, remove this parent term from hierarchy.
-						unset( $hierarchy[$term] );
+						unset( $hierarchy[$term_key] );
 					}
 
 					$do_update = true;
