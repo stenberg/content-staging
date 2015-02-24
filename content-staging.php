@@ -48,7 +48,7 @@ require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/listeners/class-benchmark.php' );
 require_once( 'classes/listeners/class-import-message-listener.php' );
-require_once( 'classes/listeners/class-preflight-listener.php' );
+require_once( 'classes/listeners/class-common-listener.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/managers/class-helper-factory.php' );
 require_once( 'classes/models/class-model.php' );
@@ -76,8 +76,8 @@ require_once( 'functions/helpers.php' );
  */
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
 use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
-use Me\Stenberg\Content\Staging\Listeners\Preflight_Listener;
 use Me\Stenberg\Content\Staging\Router;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\View\Template;
@@ -149,8 +149,8 @@ class Content_Staging {
 		$router = new Router( $batch_ctrl, $batch_history_ctrl );
 
 		// Listeners.
-		$import_messages    = new Import_Message_Listener();
-		$preflight_listener = new Preflight_Listener();
+		$import_messages = new Import_Message_Listener();
+		$common_listener = new Common_Listener();
 
 		// Plugin setup.
 		$setup = new Setup( $router, $plugin_url );

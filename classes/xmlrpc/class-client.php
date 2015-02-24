@@ -177,6 +177,7 @@ class Client extends WP_HTTP_IXR_Client {
 	 * Prepare response data.
 	 *
 	 * @param array $response
+	 *
 	 * @return string
 	 */
 	public function prepare_response( $response ) {

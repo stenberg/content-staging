@@ -8,7 +8,7 @@ use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
 
-class Preflight_Listener {
+class Common_Listener {
 
 	/**
 	 * @var Post_DAO
@@ -29,7 +29,32 @@ class Preflight_Listener {
 		$this->api      = Helper_Factory::get_instance()->get_api( 'Common' );
 
 		// Register listeners.
+		add_action( 'sme_prepare', array( $this, 'prepare_preflight' ) );
+		add_action( 'sme_store', array( $this, 'prepare_preflight' ) );
+		add_action( 'sme_deploy', array( $this, 'prepare_deploy' ) );
+		add_action( 'sme_import', array( $this, 'prepare_deploy' ) );
 		add_action( 'sme_verify_posts', array( $this, 'verify_post' ), 10, 2 );
+	}
+
+	/**
+	 * Prepare for pre-flight. Cleanup old pre-flight messages, pre-flight
+	 * status etc.
+	 *
+	 * @param Batch $batch
+	 */
+	public function prepare_preflight( Batch $batch ) {
+		$this->api->delete_preflight_messages( $batch->get_id() );
+		$this->api->delete_preflight_status( $batch->get_id() );
+	}
+
+	/**
+	 * Prepare for deploy. Cleanup old deploy messages, deploy status etc.
+	 *
+	 * @param Batch $batch
+	 */
+	public function prepare_deploy( Batch $batch ) {
+		$this->api->delete_deploy_messages( $batch->get_id() );
+		$this->api->delete_deploy_status( $batch->get_id() );
 	}
 
 	/**

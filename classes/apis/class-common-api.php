@@ -85,7 +85,7 @@ class Common_API {
 	 *
 	 * @param Batch $batch
 	 */
-	public function prepare_batch( $batch ) {
+	public function prepare( $batch ) {
 
 		$mgr = new Batch_Mgr();
 		$mgr->prepare( $batch );
@@ -96,17 +96,13 @@ class Common_API {
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
 		/*
-		 * Delete any previous pre-flight or deploy messages and deploy status
-		 * just in case this batch has been imported once before.
-		 */
-		$this->delete_messages( $batch->get_id() );
-		$this->delete_deploy_status( $batch->get_id() );
-
-		/*
 		 * Let third party developers perform actions before pre-flight. This is
 		 * most often where third-party developers would add custom data.
 		 */
 		do_action( 'sme_prepare', $batch );
+
+		// Store prepared batch.
+		$this->batch_dao->update_batch( $batch );
 	}
 
 	/**
@@ -126,6 +122,48 @@ class Common_API {
 
 		$this->client->request( 'smeContentStaging.store', $request );
 		return $this->client->get_response_data();
+	}
+
+	/**
+	 * Store batch on production.
+	 *
+	 * @param Batch $batch
+	 *
+	 * @return string
+	 */
+	public function store( Batch $batch ) {
+
+		// Allow third party developers to hook in before storing the batch.
+		do_action( 'sme_store', $batch );
+
+		// Check if a production version of this batch exists.
+		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+
+		// Create new batch or update existing one.
+		if ( ! $batch_production_revision_id ) {
+			$this->batch_dao->insert( $batch );
+		} else {
+			$batch->set_id( $batch_production_revision_id );
+			$this->batch_dao->update_batch( $batch );
+		}
+
+		$message = new Message();
+		$message->set_level( 'info' );
+		$message->set_message(
+			sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() )
+		);
+
+		// Response to send back to content stage.
+		$response = array(
+			'status'   => 0,
+			'messages' => array( $message ),
+		);
+
+		// Allow third party developers to hook in after storing the batch.
+		do_action( 'sme_stored', $batch );
+
+		// Prepare and return the XML-RPC response data.
+		return $this->client->prepare_response( $response );
 	}
 
 	/**
@@ -172,6 +210,9 @@ class Common_API {
 			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
 		);
 
+		// Hook in before deploy.
+		do_action( 'sme_deploy', $batch );
+
 		// Start building request to send to production.
 		$request = array(
 			'batch'       => $batch,
@@ -195,14 +236,27 @@ class Common_API {
 	}
 
 	/**
-	 * Trigger batch import on production.
+	 * Trigger batch import.
+	 *
+	 * Runs on production.
 	 *
 	 * @param Batch $batch
 	 */
 	public function import( Batch $batch ) {
+
+		do_action( 'sme_import', $batch );
+
+		$message = sprintf(
+			'Prepare import on %s (ID: <span id="sme-batch-id">%s</span>)',
+			get_bloginfo( 'name' ),
+			$batch->get_id()
+		);
+
+		$this->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
+
 		$factory  = new Batch_Importer_Factory( $this, $this->batch_dao );
 		$importer = $factory->get_importer( $batch );
-		do_action( 'sme_import', $batch );
+
 		$importer->run();
 	}
 
@@ -239,6 +293,18 @@ class Common_API {
 	}
 
 	/**
+	 * Set status for pre-flight.
+	 *
+	 * @param int $batch_id
+	 * @param int $status
+	 */
+	public function set_preflight_status( $batch_id, $status = 0 ) {
+		update_post_meta( $batch_id, '_sme_preflight_status', $status );
+	}
+
+	/**
+	 * Set status for deploy.
+	 *
 	 * @param int $batch_id
 	 * @param int $status
 	 */
@@ -247,6 +313,19 @@ class Common_API {
 	}
 
 	/**
+	 * Get pre-flight status.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return int
+	 */
+	public function get_preflight_status( $batch_id ) {
+		return get_post_meta( $batch_id, '_sme_preflight_status', true );
+	}
+
+	/**
+	 * Get deploy status.
+	 *
 	 * @param int $batch_id
 	 *
 	 * @return int
@@ -256,9 +335,20 @@ class Common_API {
 	}
 
 	/**
+	 * Delete pre-flight status for a specific batch.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return bool
+	 */
+	public function delete_preflight_status( $batch_id ) {
+		return delete_post_meta( $batch_id, '_sme_preflight_status' );
+	}
+
+	/**
 	 * Delete deploy status for a specific batch.
 	 *
-	 * @param int    $batch_id
+	 * @param int $batch_id
 	 *
 	 * @return bool
 	 */
