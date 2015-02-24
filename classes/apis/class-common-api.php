@@ -95,14 +95,14 @@ class Common_API {
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
-		/*
-		 * Let third party developers perform actions before pre-flight. This is
-		 * most often where third-party developers would add custom data.
-		 */
+		// Hook in before batch is stored.
 		do_action( 'sme_prepare', $batch );
 
 		// Store prepared batch.
 		$this->batch_dao->update_batch( $batch );
+
+		// Hook in after batch has been prepared and stored.
+		do_action( 'sme_prepared', $batch );
 	}
 
 	/**
@@ -116,12 +116,30 @@ class Common_API {
 	 */
 	public function send( Batch $batch ) {
 
+		// Hook in before batch is sent.
+		do_action( 'sme_send', $batch );
+
 		$request = array(
 			'batch' => $batch,
 		);
 
 		$this->client->request( 'smeContentStaging.store', $request );
-		return $this->client->get_response_data();
+		$response = $this->client->get_response_data();
+
+		// Hook in after batch is sent.
+		$response = apply_filters( 'sme_sent', $response, $batch );
+
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Return status and messages.
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 	}
 
 	/**

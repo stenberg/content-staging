@@ -345,9 +345,6 @@ class Batch_Ctrl {
 		// Get messages received from production.
 		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
 
-		// Filter preparation messages.
-		$messages = apply_filters( 'sme_prepare_messages', $messages, $batch );
-
 		// Convert message objects into arrays.
 		$messages = $this->api->convert_messages( $messages );
 
@@ -384,7 +381,13 @@ class Batch_Ctrl {
 			$message = new Message();
 			$message->set_level( 'error' );
 			$message->set_message( 'Invalid batch.' );
-			return $this->xmlrpc_client->prepare_response( array( $message ) );
+
+			return $this->xmlrpc_client->prepare_response(
+				array(
+					'status'   => 2,
+					'messages' => array( $message ),
+				)
+			);
 		}
 
 		// Get batch.
@@ -455,7 +458,7 @@ class Batch_Ctrl {
 		);
 
 		// Filter response.
-		$response = apply_filters( 'sme_preflight_response', $response, $batch_guid );
+		$response = apply_filters( 'sme_preflighted', $response, $batch_guid );
 
 		// Convert message objects into arrays.
 		$response['messages'] = $this->api->convert_messages( $response['messages'] );
@@ -489,7 +492,12 @@ class Batch_Ctrl {
 			$message->set_level( 'error' );
 			$message->set_message( 'No batch GUID provided.' );
 
-			return $this->xmlrpc_client->prepare_response( array( $message ) );
+			return $this->xmlrpc_client->prepare_response(
+				array(
+					'status' => 2,
+					'messages' => array( $message ),
+				)
+			);
 		}
 
 		// Get batch GUID.
@@ -504,7 +512,12 @@ class Batch_Ctrl {
 			$message->set_level( 'error' );
 			$message->set_message( sprintf( 'No batch with GUID %s found.', $batch_guid ) );
 
-			return $this->xmlrpc_client->prepare_response( array( $message ) );
+			return $this->xmlrpc_client->prepare_response(
+				array(
+					'status' => 2,
+					'messages' => array( $message ),
+				)
+			);
 		}
 
 		/*
