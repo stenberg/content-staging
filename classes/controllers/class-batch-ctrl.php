@@ -678,42 +678,46 @@ class Batch_Ctrl {
 	 */
 	public function import_status_request() {
 
+		$batch_id = intval( $_POST['batch_id'] );
+
 		$request = array(
-			'batch_id' => intval( $_POST['batch_id'] ),
+			'batch_id' => $batch_id,
 		);
-
-		// Status returned from production.
-		$status = 0;
-
-		// Messages returned from production.
-		$messages = array();
 
 		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
-
 		$response = apply_filters( 'sme_deploy_status', $response );
 
-		if ( isset( $response['status'] ) ) {
+		// Deploy status.
+		$status = 2;
 
-			// Deploy has finished.
-			if ( $response['status'] == 3 ) {
-				do_action( 'sme_deployed' );
-			}
+		// Get status from production.
+		$prod_status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
 
-			$status = $response['status'];
-			unset( $response['status'] );
+		// Get status from content stage.
+		$stage_status = $this->api->get_deploy_status( $batch_id );
+
+		// Ensure no pre-flight status is not set to failed.
+		if ( $prod_status != 2 && $stage_status != 2 ) {
+			$status = $prod_status;
+		}
+
+		// Get production messages.
+		$prod_messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
+		// Get content stage messages.
+		$stage_messages = $this->api->get_deploy_messages( $batch_id );
+
+		// All pre-flight messages.
+		$messages = array_merge( $prod_messages, $stage_messages );
+
+		// Deploy has finished.
+		if ( $status == 3 ) {
+			do_action( 'sme_deployed' );
 		}
 
 		// Convert message objects into arrays.
-		if ( isset( $response['messages'] ) ) {
-			$messages = $this->api->convert_messages( $response['messages'] );
-			unset( $response['messages'] );
-		}
-
-		// Ensure that the production response did not contain any unexpected data.
-		if ( ! empty( $response ) ) {
-			throw new Exception( 'Response from production contained unexpected data (JSON encoded): ' . json_encode( $response ) );
-		}
+		$messages = $this->api->convert_messages( $messages );
 
 		header( 'Content-Type: application/json' );
 		echo json_encode(
