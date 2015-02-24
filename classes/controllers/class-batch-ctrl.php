@@ -339,8 +339,11 @@ class Batch_Ctrl {
 		// Send batch to production.
 		$response = $this->api->send( $batch );
 
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+
 		// Get messages received from production.
-		$messages = ( isset( $response['messages'] ) ? $response['messages'] : 0 );
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
 
 		// Filter preparation messages.
 		$messages = apply_filters( 'sme_prepare_messages', $messages, $batch );
@@ -353,6 +356,7 @@ class Batch_Ctrl {
 			'preflight-batch',
 			array(
 				'batch'    => $batch,
+				'status'   => $status,
 				'messages' => $messages,
 			)
 		);
@@ -403,16 +407,36 @@ class Batch_Ctrl {
 	public function preflight() {
 
 		// Get batch ID.
+		$batch_id = $_POST['batch_id'];
+
+		// Get batch GUID.
 		$batch_guid = $_POST['batch_guid'];
 
 		// Pre-flight batch.
 		$result = $this->api->preflight( $batch_guid );
 
-		// Get status.
-		$status = ( isset( $result['status'] ) ) ? $result['status'] : 2;
+		// Pre-flight status.
+		$status = 2;
 
-		// Get messages.
-		$messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
+		// Get status from production.
+		$prod_status = ( isset( $result['status'] ) ) ? $result['status'] : 2;
+
+		// Get status from content stage.
+		$stage_status = $this->api->get_preflight_status( $batch_id );
+
+		// Ensure no pre-flight status is not set to failed.
+		if ( $prod_status != 2 && $stage_status != 2 ) {
+			$status = 3;
+		}
+
+		// Get production messages.
+		$prod_messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
+
+		// Get content stage messages.
+		$stage_messages = $this->api->get_preflight_messages( $batch_id );
+
+		// All pre-flight messages.
+		$messages = array_merge( $prod_messages, $stage_messages );
 
 		// Set success message.
 		if ( $status == 3 ) {
