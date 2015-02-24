@@ -31,9 +31,9 @@ class Common_Listener {
 		// Register listeners.
 		add_action( 'sme_prepare', array( $this, 'prepare_preflight' ) );
 		add_action( 'sme_store', array( $this, 'prepare_preflight' ) );
+		add_action( 'sme_verify_posts', array( $this, 'verify_post' ), 10, 2 );
 		add_action( 'sme_deploy', array( $this, 'prepare_deploy' ) );
 		add_action( 'sme_import', array( $this, 'prepare_deploy' ) );
-		add_action( 'sme_verify_posts', array( $this, 'verify_post' ), 10, 2 );
 	}
 
 	/**
@@ -43,8 +43,8 @@ class Common_Listener {
 	 * @param Batch $batch
 	 */
 	public function prepare_preflight( Batch $batch ) {
-		$this->api->delete_preflight_messages( $batch->get_id() );
 		$this->api->delete_preflight_status( $batch->get_id() );
+		$this->api->delete_preflight_messages( $batch->get_id() );
 	}
 
 	/**
@@ -53,8 +53,8 @@ class Common_Listener {
 	 * @param Batch $batch
 	 */
 	public function prepare_deploy( Batch $batch ) {
-		$this->api->delete_deploy_messages( $batch->get_id() );
 		$this->api->delete_deploy_status( $batch->get_id() );
+		$this->api->delete_deploy_messages( $batch->get_id() );
 	}
 
 	/**
@@ -64,37 +64,39 @@ class Common_Listener {
 	 * @param Batch $batch
 	 */
 	public function verify_post( Post $post, Batch $batch ) {
+
 		/*
 		 * If more then one post is found when searching posts with a specific
 		 * GUID, then add an error message. Two or more posts should never share
 		 * the same GUID.
 		 */
 		try {
-
-			/*
-			 * Check if a revision of this post already exist on production or if it
-			 * is a brand new post.
-			 */
-			$production_revision = $this->post_dao->get_by_guid( $post->get_guid() );
-
-			// Check if parent post exist on production or in batch.
-			if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-
-				// Admin URL of content stage.
-				$admin_url = $batch->get_custom_data( 'sme_content_stage_admin_url' );
-
-				$message = sprintf(
-					'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
-					$admin_url . 'post.php?post=' . $post->get_id() . '&action=edit',
-					$post->get_title(),
-					$admin_url . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
-					$post->get_parent()->get_title()
-				);
-
-				$this->api->add_preflight_message( $batch->get_id(), $message, 'error' );
-			}
+			$revision = $this->post_dao->get_by_guid( $post->get_guid() );
 		} catch ( Exception $e ) {
+			$this->api->set_preflight_status( $batch->get_id(), 2 );
 			$this->api->add_preflight_message( $batch->get_id(), $e->getMessage(), 'error' );
+			return;
+		}
+
+		// Check if parent post exist on production or in batch.
+		if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
+
+			// Fail pre-flight.
+			$this->api->set_preflight_status( $batch->get_id(), 2 );
+
+			// Admin URL of content stage.
+			$admin_url = $batch->get_custom_data( 'sme_content_stage_admin_url' );
+
+			$message = sprintf(
+				'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
+				$admin_url . 'post.php?post=' . $post->get_id() . '&action=edit',
+				$post->get_title(),
+				$admin_url . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
+				$post->get_parent()->get_title()
+			);
+
+			$this->api->add_preflight_message( $batch->get_id(), $message, 'error' );
+			return;
 		}
 	}
 

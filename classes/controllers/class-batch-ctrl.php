@@ -409,18 +409,10 @@ class Batch_Ctrl {
 		$result = $this->api->preflight( $batch_guid );
 
 		// Get status.
-		$status = ( isset( $result['status'] ) ) ? $result['status'] : 0;
+		$status = ( isset( $result['status'] ) ) ? $result['status'] : 2;
 
 		// Get messages.
 		$messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
-
-		// Filter out error messages.
-		$errors = $this->api->error_messages( $messages );
-
-		// Did pre-flight fail?
-		if ( ! empty( $errors ) ) {
-			$status = 2;
-		}
 
 		// Set success message.
 		if ( $status == 3 ) {
@@ -498,93 +490,27 @@ class Batch_Ctrl {
 		do_action( 'sme_verify', $batch );
 
 		// What different type of data needs verification?
-		$types = array( 'attachments', 'users', 'posts', 'custom_data' );
+		$types = array( 'attachments', 'users', 'posts' );
 
-		// Last verified data type in batch.
-		$last_type = $this->batch_dao->get_post_meta( $batch->get_id(), '_sme_preflight_type', true );
-
-		// Next data type to verify.
-		$next_type = null;
-
-		// Get next type
-		if ( $last_type ) {
-			$key       = array_search( $last_type, $types );
-			$key       = ( $key !== false ) ? ( $key + 1 ) : 0;
-			$types     = array_splice( $types, $key );
-			$next_type = array_shift( $types );
+		// Go through each data type.
+		foreach ( $types as $type ) {
+			$this->verify_by_type( $batch, $type );
 		}
 
-		// Set default value of next data type to verify.
-		if ( ! $next_type ) {
-			$next_type = array_shift( $types );
+		// Verify custom data.
+		foreach ( $batch->get_custom_data() as $addon => $data ) {
+			do_action( 'sme_verify_' . $addon, $data, $batch );
 		}
 
-		// Add type currently verified to database.
-		$this->batch_dao->update_post_meta( $batch->get_id(), '_sme_preflight_type', $next_type );
-
-		// The data we want to verify.
-		$batch_chunk = array();
-
-		// Get data we want to verify.
-		switch ( $next_type ) {
-			case 'attachments':
-				$batch_chunk = $batch->get_attachments();
-				break;
-			case 'users':
-				$batch_chunk = $batch->get_users();
-				break;
-			case 'posts':
-				$batch_chunk = $batch->get_posts();
-				break;
-			case 'custom_data':
-				$batch_chunk = $batch->get_custom_data();
-
-				// Pre-flight custom data.
-				foreach ( $batch_chunk as $addon => $data ) {
-					do_action( 'sme_verify_' . $addon, $data, $batch );
-				}
-
-				break;
-		}
-
-		// Verify selected part of batch.
-		foreach ( $batch_chunk as $item ) {
-			do_action( 'sme_verify_' . $next_type, $item, $batch );
-		}
-
-		/*
-		 * Let third party developers perform actions before pre-flight of
-		 * current batch chunk is completed.
-		 */
-		do_action( 'sme_verified_' . $next_type, $batch_chunk, $batch );
+		// Get pre-flight status.
+		$status = $this->api->get_preflight_status( $batch->get_id() );
 
 		// Get all messages set during verification of this batch.
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
 
-		// Filter out error messages.
-		$errors = $this->api->error_messages( $messages );
-
-		// Status of pre-flight.
-		$status = 1; // Running
-
-		// Is pre-flight finished?
-		if ( empty( $types ) ) {
-			$status = 3;
-		}
-
-		// Did pre-flight fail?
-		if ( ! empty( $errors ) ) {
-			$status = 2;
-		}
-
-		// Cleanup.
-		if ( $status > 1 ) {
-			$this->batch_dao->delete_post_meta( $batch->get_id(), '_sme_preflight_type' );
-		}
-
 		// Prepare response data.
 		$response = array(
-			'status'   => $status,
+			'status'   => ( $status != 2 ) ? 3 : 2,
 			'messages' => $messages,
 		);
 
@@ -899,6 +825,36 @@ class Batch_Ctrl {
 
 		// Update batch meta with IDs of posts user selected to include in batch.
 		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
+	}
+
+	/**
+	 * Pre-flight checks for a specific part of a batch.
+	 *
+	 * @param Batch $batch
+	 * @param string $type
+	 */
+	private function verify_by_type( Batch $batch, $type ) {
+
+		// The data we want to verify.
+		$batch_chunk = array();
+
+		// Get data we want to verify.
+		switch ( $type ) {
+			case 'attachments':
+				$batch_chunk = $batch->get_attachments();
+				break;
+			case 'users':
+				$batch_chunk = $batch->get_users();
+				break;
+			case 'posts':
+				$batch_chunk = $batch->get_posts();
+				break;
+		}
+
+		// Verify selected part of batch.
+		foreach ( $batch_chunk as $item ) {
+			do_action( 'sme_verify_' . $type, $item, $batch );
+		}
 	}
 
 }

@@ -133,9 +133,6 @@ class Common_API {
 	 */
 	public function store( Batch $batch ) {
 
-		// Allow third party developers to hook in before storing the batch.
-		do_action( 'sme_store', $batch );
-
 		// Check if a production version of this batch exists.
 		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
 
@@ -146,6 +143,9 @@ class Common_API {
 			$batch->set_id( $batch_production_revision_id );
 			$this->batch_dao->update_batch( $batch );
 		}
+
+		// Hook in after batch has gotten its production ID.
+		do_action( 'sme_store', $batch );
 
 		$message = new Message();
 		$message->set_level( 'info' );
