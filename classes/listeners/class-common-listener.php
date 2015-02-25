@@ -29,8 +29,8 @@ class Common_Listener {
 		$this->api      = Helper_Factory::get_instance()->get_api( 'Common' );
 
 		// Register listeners.
-		add_action( 'sme_prepare', array( $this, 'prepare_preflight' ), 9 );
-		add_action( 'sme_store', array( $this, 'prepare_preflight' ), 9 );
+		add_action( 'sme_prepare', array( $this, 'prepare_preflight' ) );
+		add_action( 'sme_store', array( $this, 'prepare_preflight' ) );
 		add_action( 'sme_verify_posts', array( $this, 'verify_post' ), 10, 2 );
 		add_action( 'sme_deploy', array( $this, 'prepare_deploy' ), 9 );
 		add_action( 'sme_import', array( $this, 'prepare_deploy' ), 9 );

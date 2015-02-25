@@ -85,7 +85,14 @@ class Taxonomy_DAO extends DAO {
 	 * @param Taxonomy $taxonomy
 	 */
 	public function update_taxonomy( Taxonomy $taxonomy ) {
-		$data         = $this->create_array( $taxonomy );
+
+		try {
+			$data = $this->create_array( $taxonomy );
+		} catch ( Exception $e ) {
+			error_log( $e->getMessage() . ' (term_taxonomy_id: ' . $taxonomy->get_id() . ')' );
+			return;
+		}
+
 		$where        = array( 'term_taxonomy_id' => $taxonomy->get_id() );
 		$format       = $this->format();
 		$where_format = array( '%d' );
@@ -135,7 +142,14 @@ class Taxonomy_DAO extends DAO {
 	 * @param Model $obj
 	 */
 	protected function do_insert( Model $obj ) {
-		$data   = $this->create_array( $obj );
+
+		try {
+			$data = $this->create_array( $obj );
+		} catch ( Exception $e ) {
+			error_log( $e->getMessage() );
+			return;
+		}
+
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $data, $format );
 
@@ -192,6 +206,7 @@ class Taxonomy_DAO extends DAO {
 	/**
 	 * @param Model $obj
 	 * @return array
+	 * @throws Exception
 	 */
 	protected function do_create_array( Model $obj ) {
 		$parent = 0;
@@ -202,11 +217,14 @@ class Taxonomy_DAO extends DAO {
 			}
 		}
 
-		$term    = $obj->get_term();
-		$term_id = ( $term instanceof Term ) ? $term->get_id() : 0;
+		$term = $obj->get_term();
+
+		if ( ! $term instanceof Term ) {
+			throw new Exception( 'Taxonomy is missing a valid term.' );
+		}
 
 		return array(
-			'term_id'     => $term_id,
+			'term_id'     => $term->get_id(),
 			'taxonomy'    => $obj->get_taxonomy(),
 			'description' => $obj->get_description(),
 			'parent'      => $parent,

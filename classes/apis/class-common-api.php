@@ -84,10 +84,11 @@ class Common_API {
 	 * Runs on content stage.
 	 *
 	 * @param Batch $batch
-	 *
-	 * @return array
 	 */
 	public function prepare( $batch ) {
+
+		// Hook in before batch is built
+		do_action( 'sme_prepare', $batch );
 
 		$mgr = new Batch_Mgr();
 		$mgr->prepare( $batch );
@@ -97,8 +98,26 @@ class Common_API {
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
-		// Hook in before batch is sent to production.
-		do_action( 'sme_prepare', $batch );
+		// Hook in after batch has been built.
+		do_action( 'sme_prepared', $batch );
+
+		// Store prepared batch.
+		$this->batch_dao->update_batch( $batch );
+	}
+
+	/**
+	 * Transfer the batch from content stage to production.
+	 *
+	 * Runs on content stage.
+	 *
+	 * @param Batch $batch
+	 *
+	 * @return array
+	 */
+	public function transfer( Batch $batch ) {
+
+		// Hook in before batch is sent
+		do_action( 'sme_transfer', $batch );
 
 		// Request to send to production.
 		$request = array(
@@ -108,14 +127,11 @@ class Common_API {
 		$this->client->request( 'smeContentStaging.store', $request );
 		$response = $this->client->get_response_data();
 
-		// Hook in before batch is stored.
-		$response = apply_filters( 'sme_prepared', $response, $batch );
-
-		// Store prepared batch.
-		$this->batch_dao->update_batch( $batch );
+		// Hook in after batch has been transferred.
+		$response = apply_filters( 'sme_transferred', $response, $batch );
 
 		// Get status received from production.
-		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
 
 		// Get messages received from production.
 		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
@@ -128,21 +144,9 @@ class Common_API {
 	}
 
 	/**
-	 * Send batch to production.
-	 *
-	 * Runs on content stage.
-	 *
-	 * @param Batch $batch
-	 *
-	 * @return array
-	 */
-	public function send( Batch $batch ) {
-
-
-	}
-
-	/**
 	 * Store batch on production.
+	 *
+	 * Runs on production.
 	 *
 	 * @param Batch $batch
 	 *
@@ -151,18 +155,20 @@ class Common_API {
 	public function store( Batch $batch ) {
 
 		// Check if a production version of this batch exists.
-		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+		$batch_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+
+		// Replace batch content stage ID with production ID.
+		$batch->set_id( $batch_id );
+
+		// Hook in before batch is stored.
+		do_action( 'sme_store', $batch );
 
 		// Create new batch or update existing one.
-		if ( ! $batch_production_revision_id ) {
+		if ( ! $batch_id ) {
 			$this->batch_dao->insert( $batch );
 		} else {
-			$batch->set_id( $batch_production_revision_id );
 			$this->batch_dao->update_batch( $batch );
 		}
-
-		// Hook in after batch has gotten its production ID.
-		do_action( 'sme_store', $batch );
 
 		$message = new Message();
 		$message->set_level( 'info' );
@@ -177,8 +183,20 @@ class Common_API {
 			'messages' => array( $message ),
 		);
 
-		// Allow third party developers to hook in after storing the batch.
-		do_action( 'sme_stored', $batch );
+		// Hook in after storing the batch.
+		$response = apply_filters( 'sme_stored', $response, $batch );
+
+		// Get messages received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Prepare response.
+		$response = array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 
 		// Prepare and return the XML-RPC response data.
 		return $this->client->prepare_response( $response );

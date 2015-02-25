@@ -333,14 +333,29 @@ class Batch_Ctrl {
 		// Get batch from database.
 		$batch = $this->batch_dao->find( $_GET['id'] );
 
-		// Populate batch with actual data and send it to production.
-		$response = $this->api->prepare( $batch );
+		// Populate batch with actual data.
+		$this->api->prepare( $batch );
+
+		// Send batch to production.
+		$response = $this->api->transfer( $batch );
 
 		// Get status received from production.
-		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+		$prod_status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+
+		// Get status from content stage.
+		$stage_status = $this->api->get_preflight_status( $batch->get_id() );
+
+		// Final status.
+		$status = ( $stage_status != 2 ) ? $prod_status : $stage_status;
 
 		// Get messages received from production.
-		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+		$prod_messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Get messages from content stage.
+		$stage_messages = $this->api->get_preflight_messages( $batch->get_id() );
+
+		// Merge messages from content stage and production.
+		$messages = array_merge( $prod_messages, $stage_messages );
 
 		// Convert message objects into arrays.
 		$messages = $this->api->convert_messages( $messages );
@@ -407,10 +422,13 @@ class Batch_Ctrl {
 	public function preflight() {
 
 		// Get batch ID.
-		$batch_id = $_POST['batch_id'];
+		$batch_id = intval( $_POST['batch_id'] );
 
 		// Get batch GUID.
 		$batch_guid = $_POST['batch_guid'];
+
+		// Hook in before pre-flight is carried out on production.
+		do_action( 'sme_preflight', $batch_guid );
 
 		// Pre-flight batch.
 		$result = $this->api->preflight( $batch_guid );
@@ -517,10 +535,7 @@ class Batch_Ctrl {
 			);
 		}
 
-		/*
-		 * Let third party developers perform actions before any pre-flight
-		 * checks are done.
-		 */
+		// Hook in when batch is ready for pre-flight.
 		do_action( 'sme_verify', $batch );
 
 		// What different type of data needs verification?
@@ -542,9 +557,24 @@ class Batch_Ctrl {
 		// Get all messages set during verification of this batch.
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
 
-		// Prepare response data.
+		// Prepare response.
 		$response = array(
-			'status'   => ( $status != 2 ) ? 3 : 2,
+			'status'   => ( $status ) ? $status : 3,
+			'messages' => $messages,
+		);
+
+		// Hook in when batch is ready for pre-flight.
+		$response = apply_filters( 'sme_verified', $response, $batch );
+
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Prepare response.
+		$response = array(
+			'status'   => $status,
 			'messages' => $messages,
 		);
 
