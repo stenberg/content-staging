@@ -333,11 +333,8 @@ class Batch_Ctrl {
 		// Get batch from database.
 		$batch = $this->batch_dao->find( $_GET['id'] );
 
-		// Populate batch with actual data.
-		$this->api->prepare( $batch );
-
-		// Send batch to production.
-		$response = $this->api->send( $batch );
+		// Populate batch with actual data and send it to production.
+		$response = $this->api->prepare( $batch );
 
 		// Get status received from production.
 		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
@@ -765,8 +762,19 @@ class Batch_Ctrl {
 
 		$response = apply_filters( 'sme_import_status_response', $response, $batch );
 
+		// Get status.
+		$status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+
+		// Get messages.
+		$messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $response );
+		return $this->xmlrpc_client->prepare_response(
+			array(
+				'status'   => $status,
+				'messages' => $messages,
+			)
+		);
 	}
 
 	/**

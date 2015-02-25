@@ -254,7 +254,7 @@ jQuery( document ).ready(function($) {
 					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
 				}
 
-				if (response.status == 3 ) {
+				if (response.status > 2 ) {
 					$('#sme-importing').remove();
 				}
 

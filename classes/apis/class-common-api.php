@@ -84,6 +84,8 @@ class Common_API {
 	 * Runs on content stage.
 	 *
 	 * @param Batch $batch
+	 *
+	 * @return array
 	 */
 	public function prepare( $batch ) {
 
@@ -95,14 +97,34 @@ class Common_API {
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
-		// Hook in before batch is stored.
+		// Hook in before batch is sent to production.
 		do_action( 'sme_prepare', $batch );
+
+		// Request to send to production.
+		$request = array(
+			'batch' => $batch,
+		);
+
+		$this->client->request( 'smeContentStaging.store', $request );
+		$response = $this->client->get_response_data();
+
+		// Hook in before batch is stored.
+		$response = apply_filters( 'sme_prepared', $response, $batch );
 
 		// Store prepared batch.
 		$this->batch_dao->update_batch( $batch );
 
-		// Hook in after batch has been prepared and stored.
-		do_action( 'sme_prepared', $batch );
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Return status and messages.
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 	}
 
 	/**
@@ -116,30 +138,7 @@ class Common_API {
 	 */
 	public function send( Batch $batch ) {
 
-		// Hook in before batch is sent.
-		do_action( 'sme_send', $batch );
 
-		$request = array(
-			'batch' => $batch,
-		);
-
-		$this->client->request( 'smeContentStaging.store', $request );
-		$response = $this->client->get_response_data();
-
-		// Hook in after batch is sent.
-		$response = apply_filters( 'sme_sent', $response, $batch );
-
-		// Get status received from production.
-		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
-
-		// Get messages received from production.
-		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
-
-		// Return status and messages.
-		return array(
-			'status'   => $status,
-			'messages' => $messages,
-		);
 	}
 
 	/**
@@ -167,6 +166,7 @@ class Common_API {
 
 		$message = new Message();
 		$message->set_level( 'info' );
+		$message->set_code( 200 );
 		$message->set_message(
 			sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() )
 		);
@@ -241,7 +241,13 @@ class Common_API {
 		$response = $this->client->get_response_data();
 
 		// Batch deploy in progress.
-		do_action( 'sme_deploying', $batch );
+		$response = apply_filters( 'sme_deploying', $response, $batch );
+
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
 
 		/*
 		 * Batch has been deployed and should no longer be accessible by user,
@@ -250,7 +256,11 @@ class Common_API {
 		 */
 		$this->batch_dao->delete_batch( $batch );
 
-		return $response;
+		// Return status and messages.
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 	}
 
 	/**
