@@ -374,14 +374,12 @@ class Batch_Ctrl {
 
 		// Deploy button.
 		$deploy_btn = array(
-			'id'       => 'sme-cs-deploy-batch-btn',
 			'disabled' => 'disabled',
 		);
 
 		// Enable deploy button.
 		if ( $status == 3 ) {
 			unset( $deploy_btn['disabled'] );
-			unset( $deploy_btn['bla'] );
 		}
 
 		// Render page.
