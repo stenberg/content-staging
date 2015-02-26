@@ -141,65 +141,6 @@ class Common_API {
 	}
 
 	/**
-	 * Store batch on production.
-	 *
-	 * Runs on production.
-	 *
-	 * @param Batch $batch
-	 *
-	 * @return string
-	 */
-	public function store( Batch $batch ) {
-
-		// Check if a production version of this batch exists.
-		$batch_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
-
-		// Replace batch content stage ID with production ID.
-		$batch->set_id( $batch_id );
-
-		// Hook in before batch is stored.
-		do_action( 'sme_store', $batch );
-
-		// Create new batch or update existing one.
-		if ( ! $batch_id ) {
-			$this->batch_dao->insert( $batch );
-		} else {
-			$this->batch_dao->update_batch( $batch );
-		}
-
-		$message = new Message();
-		$message->set_level( 'info' );
-		$message->set_code( 200 );
-		$message->set_message(
-			sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() )
-		);
-
-		// Response to send back to content stage.
-		$response = array(
-			'status'   => 0,
-			'messages' => array( $message ),
-		);
-
-		// Hook in after storing the batch.
-		$response = apply_filters( 'sme_stored', $response, $batch );
-
-		// Get messages received from production.
-		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
-
-		// Get messages received from production.
-		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
-
-		// Prepare response.
-		$response = array(
-			'status'   => $status,
-			'messages' => $messages,
-		);
-
-		// Prepare and return the XML-RPC response data.
-		return $this->client->prepare_response( $response );
-	}
-
-	/**
 	 * Deploy a batch from content stage to production.
 	 *
 	 * Runs on content stage when a deploy request has been received.

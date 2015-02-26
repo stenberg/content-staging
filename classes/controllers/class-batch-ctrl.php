@@ -369,9 +369,6 @@ class Batch_Ctrl {
 		// Pre-flight batch.
 		$result = $this->api->preflight( $batch );
 
-		// Pre-flight status.
-		$status = 2;
-
 		// Get status from production.
 		$prod_status = ( isset( $result['status'] ) ) ? $result['status'] : 2;
 
@@ -382,9 +379,7 @@ class Batch_Ctrl {
 		$stage_status = $this->api->get_preflight_status( $batch_id );
 
 		// Ensure no pre-flight status is not set to failed.
-		if ( $prod_status != 2 && $stage_status != 2 ) {
-			$status = 3;
-		}
+		$status = ( $prod_status != 2 && $stage_status != 2 ) ? $prod_status : 2;
 
 		// Get content stage messages.
 		$stage_messages = $this->api->get_preflight_messages( $batch_id );
@@ -462,23 +457,6 @@ class Batch_Ctrl {
 			$this->batch_dao->insert( $batch );
 		} else {
 			$this->batch_dao->update_batch( $batch );
-		}
-
-		$message = sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() );
-		$this->api->add_preflight_message( $batch->get_id(), $message, 'info', 200 );
-
-		// Batch could not be found.
-		if ( ! $batch ) {
-			$message = new Message();
-			$message->set_level( 'error' );
-			$message->set_message( sprintf( 'No batch with GUID %s found.', $batch_guid ) );
-
-			return $this->xmlrpc_client->prepare_response(
-				array(
-					'status' => 2,
-					'messages' => array( $message ),
-				)
-			);
 		}
 
 		// Hook in when batch is ready to be verified.
