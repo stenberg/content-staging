@@ -330,83 +330,22 @@ class Batch_Ctrl {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
+		// Get batch ID.
+		$batch_id = $_GET['id'];
+
 		// Get batch from database.
-		$batch = $this->batch_dao->find( $_GET['id'] );
+		$batch = $this->batch_dao->find( $batch_id );
 
 		// Populate batch with actual data.
 		$this->api->prepare( $batch );
-
-		// Send batch to production.
-		$response = $this->api->transfer( $batch );
-
-		// Get status received from production.
-		$prod_status = ( isset( $response['status'] ) ? $response['status'] : 1 );
-
-		// Get status from content stage.
-		$stage_status = $this->api->get_preflight_status( $batch->get_id() );
-
-		// Final status.
-		$status = ( $stage_status != 2 ) ? $prod_status : $stage_status;
-
-		// Get messages received from production.
-		$prod_messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
-
-		// Get messages from content stage.
-		$stage_messages = $this->api->get_preflight_messages( $batch->get_id() );
-
-		// Merge messages from content stage and production.
-		$messages = array_merge( $prod_messages, $stage_messages );
-
-		// Convert message objects into arrays.
-		$messages = $this->api->convert_messages( $messages );
 
 		// Render page.
 		$this->template->render(
 			'preflight-batch',
 			array(
-				'batch'    => $batch,
-				'status'   => $status,
-				'messages' => $messages,
+				'batch' => $batch,
 			)
 		);
-	}
-
-	/**
-	 * Store batch on production. Triggered during pre-flight.
-	 *
-	 * Runs on production.
-	 *
-	 * @param array $args
-	 *
-	 * @return array
-	 */
-	public function store( array $args ) {
-
-		if ( $messages = $this->xmlrpc_client->handle_request( $args ) ) {
-			return $messages;
-		}
-
-		$result = $this->xmlrpc_client->get_request_data();
-
-		// Check if a batch has been provided.
-		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			$message = new Message();
-			$message->set_level( 'error' );
-			$message->set_message( 'Invalid batch.' );
-
-			return $this->xmlrpc_client->prepare_response(
-				array(
-					'status'   => 2,
-					'messages' => array( $message ),
-				)
-			);
-		}
-
-		// Get batch.
-		$batch = $result['batch'];
-
-		// Store batch on production.
-		return $this->api->store( $batch );
 	}
 
 	/**
@@ -424,20 +363,20 @@ class Batch_Ctrl {
 		// Get batch ID.
 		$batch_id = intval( $_POST['batch_id'] );
 
-		// Get batch GUID.
-		$batch_guid = $_POST['batch_guid'];
-
-		// Hook in before pre-flight is carried out on production.
-		do_action( 'sme_preflight', $batch_guid );
+		// Get batch from database.
+		$batch = $this->batch_dao->find( $batch_id );
 
 		// Pre-flight batch.
-		$result = $this->api->preflight( $batch_guid );
+		$result = $this->api->preflight( $batch );
 
 		// Pre-flight status.
 		$status = 2;
 
 		// Get status from production.
 		$prod_status = ( isset( $result['status'] ) ) ? $result['status'] : 2;
+
+		// Get production messages.
+		$prod_messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
 
 		// Get status from content stage.
 		$stage_status = $this->api->get_preflight_status( $batch_id );
@@ -446,9 +385,6 @@ class Batch_Ctrl {
 		if ( $prod_status != 2 && $stage_status != 2 ) {
 			$status = 3;
 		}
-
-		// Get production messages.
-		$prod_messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
 
 		// Get content stage messages.
 		$stage_messages = $this->api->get_preflight_messages( $batch_id );
@@ -469,14 +405,8 @@ class Batch_Ctrl {
 		// Prepare response.
 		$response = array(
 			'status'   => $status,
-			'messages' => $messages,
+			'messages' => $this->api->convert_messages( $messages ),
 		);
-
-		// Filter response.
-		$response = apply_filters( 'sme_preflighted', $response, $batch_guid );
-
-		// Convert message objects into arrays.
-		$response['messages'] = $this->api->convert_messages( $response['messages'] );
 
 		header( 'Content-Type: application/json' );
 		echo json_encode( $response );
@@ -502,24 +432,40 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 
 		// Check if a batch has been provided.
-		if ( ! isset( $result['batch_guid'] ) ) {
+		if ( ! isset( $result['batch'] ) || ! $result['batch'] instanceof Batch ) {
 			$message = new Message();
 			$message->set_level( 'error' );
-			$message->set_message( 'No batch GUID provided.' );
+			$message->set_message( 'Invalid batch.' );
 
 			return $this->xmlrpc_client->prepare_response(
 				array(
-					'status' => 2,
+					'status'   => 2,
 					'messages' => array( $message ),
 				)
 			);
 		}
 
-		// Get batch GUID.
-		$batch_guid = $result['batch_guid'];
+		// Get batch.
+		$batch = $result['batch'];
 
 		// Check if a production version of this batch exists.
-		$batch = $this->batch_dao->get_by_guid( $batch_guid );
+		$batch_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+
+		// Replace batch content stage ID with production ID.
+		$batch->set_id( $batch_id );
+
+		// Hook in before batch is stored.
+		do_action( 'sme_store', $batch );
+
+		// Create new batch or update existing one.
+		if ( ! $batch_id ) {
+			$this->batch_dao->insert( $batch );
+		} else {
+			$this->batch_dao->update_batch( $batch );
+		}
+
+		$message = sprintf( 'Batch stored on production with ID <span id="sme-batch-id">%d</span>.', $batch->get_id() );
+		$this->api->add_preflight_message( $batch->get_id(), $message, 'info', 200 );
 
 		// Batch could not be found.
 		if ( ! $batch ) {
@@ -535,7 +481,7 @@ class Batch_Ctrl {
 			);
 		}
 
-		// Hook in when batch is ready for pre-flight.
+		// Hook in when batch is ready to be verified.
 		do_action( 'sme_verify', $batch );
 
 		// What different type of data needs verification?

@@ -42,10 +42,6 @@ class Router {
 		$this->batch_ctrl->prepare( $batch );
 	}
 
-	public function batch_store( array $args ) {
-		return $this->batch_ctrl->store( $args );
-	}
-
 	public function batch_verify( array $args ) {
 		return $this->batch_ctrl->verify( $args );
 	}

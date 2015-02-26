@@ -99,7 +99,6 @@ class Setup {
 	 */
 	public function register_xmlrpc_methods( $methods ) {
 
-		$methods['smeContentStaging.store'] = array( $this->router, 'batch_store' );
 		$methods['smeContentStaging.verify'] = array( $this->router, 'batch_verify' );
 		$methods['smeContentStaging.import'] = array( $this->router, 'batch_import' );
 		$methods['smeContentStaging.importStatus'] = array( $this->router, 'batch_import_status' );

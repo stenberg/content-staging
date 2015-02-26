@@ -106,29 +106,26 @@ class Common_API {
 	}
 
 	/**
-	 * Transfer the batch from content stage to production.
-	 *
-	 * Runs on content stage.
+	 * Perform pre-flight.
 	 *
 	 * @param Batch $batch
 	 *
 	 * @return array
 	 */
-	public function transfer( Batch $batch ) {
+	public function preflight( $batch ) {
 
 		// Hook in before batch is sent
-		do_action( 'sme_transfer', $batch );
+		do_action( 'sme_preflight', $batch );
 
-		// Request to send to production.
 		$request = array(
 			'batch' => $batch,
 		);
 
-		$this->client->request( 'smeContentStaging.store', $request );
+		$this->client->request( 'smeContentStaging.verify', $request );
 		$response = $this->client->get_response_data();
 
 		// Hook in after batch has been transferred.
-		$response = apply_filters( 'sme_transferred', $response, $batch );
+		$response = apply_filters( 'sme_preflighted', $response, $batch );
 
 		// Get status received from production.
 		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
@@ -200,23 +197,6 @@ class Common_API {
 
 		// Prepare and return the XML-RPC response data.
 		return $this->client->prepare_response( $response );
-	}
-
-	/**
-	 * Perform pre-flight.
-	 *
-	 * @param string $batch_guid
-	 *
-	 * @return array
-	 */
-	public function preflight( $batch_guid ) {
-
-		$request = array(
-			'batch_guid' => $batch_guid,
-		);
-
-		$this->client->request( 'smeContentStaging.verify', $request );
-		return $this->client->get_response_data();
 	}
 
 	/**
