@@ -180,11 +180,12 @@ jQuery( document ).ready(function($) {
 
 			var data = {
 				action: 'sme_preflight_request',
-				batch_id: $('#sme-batch-id').html()
+				batch_id: $('#sme-batch-id').html(),
+				batch_guid: $('#sme-batch-guid').html()
 			};
 
 			// Check if a batch ID has been found.
-			if (data.batch_id) {
+			if (data.batch_guid && data.batch_id) {
 				this.preflightStatus(data);
 			}
 		},

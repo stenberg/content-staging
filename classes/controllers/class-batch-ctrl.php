@@ -316,10 +316,12 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Prepare batch for pre-flight.
+	 * Pre-flight batch.
 	 *
-	 * Batch will be sent from content stage to production.
-	 * Display messages returned by production.
+	 * Production will evaluate the batch and look for any issues that might
+	 * cause trouble when user later on deploys the batch.
+	 *
+	 * Display any pre-flight messages that is returned by production.
 	 *
 	 * Runs on content stage.
 	 */
@@ -339,33 +341,6 @@ class Batch_Ctrl {
 		// Populate batch with actual data.
 		$this->api->prepare( $batch );
 
-		// Render page.
-		$this->template->render(
-			'preflight-batch',
-			array(
-				'batch' => $batch,
-			)
-		);
-	}
-
-	/**
-	 * Pre-flight batch.
-	 *
-	 * Production will evaluate the batch and look for any issues that might
-	 * cause trouble when user later on deploys the batch.
-	 *
-	 * Display any pre-flight messages that is returned by production.
-	 *
-	 * Runs on content stage.
-	 */
-	public function preflight() {
-
-		// Get batch ID.
-		$batch_id = intval( $_POST['batch_id'] );
-
-		// Get batch from database.
-		$batch = $this->batch_dao->find( $batch_id );
-
 		// Pre-flight batch.
 		$result = $this->api->preflight( $batch );
 
@@ -374,6 +349,83 @@ class Batch_Ctrl {
 
 		// Get production messages.
 		$prod_messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
+
+		// Get status from content stage.
+		$stage_status = $this->api->get_preflight_status( $batch->get_id() );
+
+		// Ensure no pre-flight status is not set to failed.
+		$status = ( $prod_status != 2 && $stage_status != 2 ) ? $prod_status : 2;
+
+		// Get content stage messages.
+		$stage_messages = $this->api->get_preflight_messages( $batch->get_id() );
+
+		// All pre-flight messages.
+		$messages = array_merge( $prod_messages, $stage_messages );
+
+		// Set success message.
+		if ( $status == 3 ) {
+			$message = new Message();
+			$message->set_level( 'success' );
+			$message->set_message( 'Pre-flight successful!' );
+			$message->set_code( 201 );
+
+			array_push( $messages, $message );
+		}
+
+		// Deploy button.
+		$deploy_btn = array(
+			'id'       => 'sme-cs-deploy-batch-btn',
+			'disabled' => 'disabled',
+		);
+
+		// Enable deploy button.
+		if ( $status == 3 ) {
+			unset( $deploy_btn['disabled'] );
+			unset( $deploy_btn['bla'] );
+		}
+
+		// Render page.
+		$this->template->render(
+			'preflight-batch',
+			array(
+				'batch'      => $batch,
+				'status'     => $status,
+				'messages'   => $messages,
+				'deploy_btn' => $deploy_btn,
+			)
+		);
+	}
+
+	/**
+	 * Get pre-flight status for a batch.
+	 *
+	 * Production will evaluate the batch and look for any issues that might
+	 * cause trouble when user later on deploys the batch.
+	 *
+	 * Display any pre-flight messages that is returned by production.
+	 *
+	 * Runs on content stage.
+	 */
+	public function preflight_status() {
+
+		// Get batch ID.
+		$batch_id = ( isset( $_POST['batch_id'] ) ) ? intval( $_POST['batch_id'] ) : null;
+
+		// Get batch GUID.
+		$batch_guid = ( isset( $_POST['batch_guid'] ) ) ? $_POST['batch_guid'] : null;
+
+		$response = array(
+			'status'   => 0,
+			'messages' => array(),
+		);
+
+		$response = apply_filters( 'sme_preflight_status', $response, $batch_id );
+
+		// Get status from production.
+		$prod_status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+
+		// Get production messages.
+		$prod_messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
 
 		// Get status from content stage.
 		$stage_status = $this->api->get_preflight_status( $batch_id );
