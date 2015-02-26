@@ -212,11 +212,7 @@ class User_DAO extends DAO {
 		$format = $this->format();
 
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-
-		if ( $obj->get_login() ) {
-			$user_id = $this->get_user_id_by_user_login( $obj->get_login() );
-			$obj->set_id( $user_id );
-		}
+		$obj->set_id( $this->wpdb->insert_id );
 
 		$this->insert_all_user_meta( $obj );
 	}
