@@ -48,6 +48,7 @@ require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/listeners/class-benchmark.php' );
 require_once( 'classes/listeners/class-import-message-listener.php' );
+require_once( 'classes/listeners/class-common-listener.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
 require_once( 'classes/managers/class-helper-factory.php' );
 require_once( 'classes/models/class-model.php' );
@@ -75,6 +76,7 @@ require_once( 'functions/helpers.php' );
  */
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
 use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Router;
 use Me\Stenberg\Content\Staging\Setup;
@@ -148,6 +150,7 @@ class Content_Staging {
 
 		// Listeners.
 		$import_messages = new Import_Message_Listener();
+		$common_listener = new Common_Listener();
 
 		// Plugin setup.
 		$setup = new Setup( $router, $plugin_url );
@@ -162,6 +165,7 @@ class Content_Staging {
 		add_action( 'admin_post_sme-quick-deploy-batch', array( $router, 'batch_deploy_quick' ) );
 		add_action( 'admin_post_sme-delete-batch', array( $router, 'batch_delete' ) );
 		add_action( 'wp_ajax_sme_include_post', array( $router, 'ajax_batch_add_post' ) );
+		add_action( 'wp_ajax_sme_preflight_request', array( $router, 'ajax_preflight' ) );
 		add_action( 'wp_ajax_sme_import_status_request', array( $router, 'ajax_batch_import' ) );
 
 		// Filters.

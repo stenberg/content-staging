@@ -107,11 +107,7 @@ class Term_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-
-		if ( $obj->get_slug() ) {
-			$term_id = $this->get_term_id_by_slug( $obj->get_slug() );
-			$obj->set_id( $term_id );
-		}
+		$obj->set_id( $this->wpdb->insert_id );
 	}
 
 	/**

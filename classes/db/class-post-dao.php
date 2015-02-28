@@ -320,11 +320,7 @@ class Post_DAO extends DAO {
 		$data   = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $data, $format );
-
-		if ( $obj->get_guid() ) {
-			$post_id = $this->get_id_by_guid( $obj->get_guid() );
-			$obj->set_id( $post_id );
-		}
+		$obj->set_id( $this->wpdb->insert_id );
 	}
 
 	/**

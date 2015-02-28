@@ -316,13 +316,14 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Prepare batch for pre-flight.
+	 * Pre-flight batch.
 	 *
-	 * Send batch from content staging environment to production. Production
-	 * will evaluate the batch and look for any issues that might cause
-	 * trouble when user later on deploys the batch.
+	 * Production will evaluate the batch and look for any issues that might
+	 * cause trouble when user later on deploys the batch.
 	 *
 	 * Display any pre-flight messages that is returned by production.
+	 *
+	 * Runs on content stage.
 	 */
 	public function prepare() {
 
@@ -331,62 +332,131 @@ class Batch_Ctrl {
 			wp_die( __( 'No batch ID has been provided.', 'sme-content-staging' ) );
 		}
 
+		// Get batch ID.
+		$batch_id = $_GET['id'];
+
 		// Get batch from database.
-		$batch = $this->batch_dao->find( $_GET['id'] );
+		$batch = $this->batch_dao->find( $batch_id );
 
 		// Populate batch with actual data.
-		$this->api->prepare_batch( $batch );
+		$this->api->prepare( $batch );
 
-		// Pre-flight batch and get messages from production.
-		$messages = $this->api->preflight( $batch );
+		// Pre-flight batch.
+		$result = $this->api->preflight( $batch );
 
-		// Get pre-flight messages from content stage.
+		// Get status from production.
+		$prod_status = ( isset( $result['status'] ) ) ? $result['status'] : 2;
+
+		// Get production messages.
+		$prod_messages = ( isset( $result['messages'] ) ) ? $result['messages'] : array();
+
+		// Get status from content stage.
+		$stage_status = $this->api->get_preflight_status( $batch->get_id() );
+
+		// Ensure no pre-flight status is not set to failed.
+		$status = ( $prod_status != 2 && $stage_status != 2 ) ? $prod_status : 2;
+
+		// Get content stage messages.
 		$stage_messages = $this->api->get_preflight_messages( $batch->get_id() );
 
-		// Combine messages.
-		$messages = array_merge( $messages, $stage_messages );
+		// All pre-flight messages.
+		$messages = array_merge( $prod_messages, $stage_messages );
 
-		/*
-		 * Let third party developers perform actions after pre-flight has
-		 * completed.
-		 */
-		do_action( 'sme_prepared', $batch );
+		// Set success message.
+		if ( $status == 3 ) {
+			$message = new Message();
+			$message->set_level( 'success' );
+			$message->set_message( 'Pre-flight successful!' );
+			$message->set_code( 201 );
 
-		// Did pre-flight pass?
-		$preflight_passed = false;
-
-		$errors = array_filter(
-			$messages, function( $message ) {
-				return ( $message['level'] == 'error' );
-			}
-		);
-
-		if ( empty( $errors ) ) {
-			$preflight_passed = true;
+			array_push( $messages, $message );
 		}
 
-		// Add batch data to database if pre-flight was successful.
-		if ( $preflight_passed ) {
-			$msg = array(
-				'message' => 'Pre-flight successful!',
-				'level'   => 'success',
-				'id'      => null,
-				'code'    => null,
-			);
-
-			array_push( $messages, $msg );
-
-			$this->batch_dao->update_batch( $batch );
-		}
-
-		// Prepare data we want to pass to view.
-		$data = array(
-			'batch'            => $batch,
-			'messages'         => $messages,
-			'preflight_passed' => $preflight_passed,
+		// Deploy button.
+		$deploy_btn = array(
+			'disabled' => 'disabled',
 		);
 
-		$this->template->render( 'preflight-batch', $data );
+		// Enable deploy button.
+		if ( $status == 3 ) {
+			unset( $deploy_btn['disabled'] );
+		}
+
+		// Render page.
+		$this->template->render(
+			'preflight-batch',
+			array(
+				'batch'      => $batch,
+				'status'     => $status,
+				'messages'   => $messages,
+				'deploy_btn' => $deploy_btn,
+			)
+		);
+	}
+
+	/**
+	 * Get pre-flight status for a batch.
+	 *
+	 * Production will evaluate the batch and look for any issues that might
+	 * cause trouble when user later on deploys the batch.
+	 *
+	 * Display any pre-flight messages that is returned by production.
+	 *
+	 * Runs on content stage.
+	 */
+	public function preflight_status() {
+
+		// Get batch ID.
+		$batch_id = ( isset( $_POST['batch_id'] ) ) ? intval( $_POST['batch_id'] ) : null;
+
+		// Get batch GUID.
+		$batch_guid = ( isset( $_POST['batch_guid'] ) ) ? $_POST['batch_guid'] : null;
+
+		$response = array(
+			'status'   => 0,
+			'messages' => array(),
+		);
+
+		$response = apply_filters( 'sme_preflight_status', $response, $batch_id );
+
+		// Get status from production.
+		$prod_status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+
+		// Get production messages.
+		$prod_messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
+		// Get status from content stage.
+		$stage_status = $this->api->get_preflight_status( $batch_id );
+
+		// Ensure no pre-flight status is not set to failed.
+		$status = ( $prod_status != 2 && $stage_status != 2 ) ? $prod_status : 2;
+
+		// Get content stage messages.
+		$stage_messages = $this->api->get_preflight_messages( $batch_id );
+
+		// All pre-flight messages.
+		$messages = array_merge( $prod_messages, $stage_messages );
+
+		// Set success message.
+		if ( $status == 3 ) {
+			$message = new Message();
+			$message->set_level( 'success' );
+			$message->set_message( 'Pre-flight successful!' );
+			$message->set_code( 201 );
+
+			array_push( $messages, $message );
+		}
+
+		// Prepare response.
+		$response = array(
+			'status'   => $status,
+			'messages' => $this->api->convert_messages( $messages ),
+		);
+
+		header( 'Content-Type: application/json' );
+		echo json_encode( $response );
+
+		die(); // Required to return a proper result.
 	}
 
 	/**
@@ -395,6 +465,7 @@ class Batch_Ctrl {
 	 * Runs on production when a pre-flight request has been received.
 	 *
 	 * @param array $args
+	 *
 	 * @return string
 	 */
 	public function verify( array $args ) {
@@ -406,9 +477,16 @@ class Batch_Ctrl {
 		$result = $this->xmlrpc_client->get_request_data();
 
 		// Check if a batch has been provided.
-		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
+		if ( ! isset( $result['batch'] ) || ! $result['batch'] instanceof Batch ) {
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( 'Invalid batch.' );
+
 			return $this->xmlrpc_client->prepare_response(
-				array( array( 'level' => 'error', 'message' => 'Invalid batch!' ) )
+				array(
+					'status'   => 2,
+					'messages' => array( $message ),
+				)
 			);
 		}
 
@@ -416,80 +494,66 @@ class Batch_Ctrl {
 		$batch = $result['batch'];
 
 		// Check if a production version of this batch exists.
-		$batch_production_revision_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+		$batch_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+
+		// Replace batch content stage ID with production ID.
+		$batch->set_id( $batch_id );
+
+		// Hook in before batch is stored.
+		do_action( 'sme_store', $batch );
 
 		// Create new batch or update existing one.
-		if ( ! $batch_production_revision_id ) {
+		if ( ! $batch_id ) {
 			$this->batch_dao->insert( $batch );
 		} else {
-			$batch->set_id( $batch_production_revision_id );
 			$this->batch_dao->update_batch( $batch );
-			$this->api->delete_preflight_messages( $batch->get_id() );
 		}
 
-		/*
-		 * Let third party developers perform actions before any pre-flight
-		 * checks are done.
-		 */
+		// Hook in when batch is ready to be verified.
 		do_action( 'sme_verify', $batch );
 
-		// Perform checks for each of the posts in this batch.
-		foreach ( $batch->get_posts() as $post ) {
+		// What different type of data needs verification?
+		$types = array( 'attachments', 'users', 'posts' );
 
-			/*
-			 * If more then one post is found when searching posts with a specific
-			 * GUID, then add an error message. Two or more posts should never share
-			 * the same GUID.
-			 */
-			try {
-
-				/*
-				 * Check if a revision of this post already exist on production or if it
-				 * is a brand new post.
-				 */
-				$production_revision = $this->post_dao->get_by_guid( $post->get_guid() );
-
-				// Check if parent post exist on production or in batch.
-				if ( ! $this->parent_post_exists( $post, $batch->get_posts() ) ) {
-
-					// Admin URL of content stage.
-					$admin_url = $batch->get_custom_data( 'sme_content_stage_admin_url' );
-
-					$message = sprintf(
-						'Post <a href="%s" target="_blank">%s</a> has a parent post that does not exist on production and is not part of this batch. Include post <a href="%s" target="_blank">%s</a> in this batch to resolve this issue.',
-						$admin_url . 'post.php?post=' . $post->get_id() . '&action=edit',
-						$post->get_title(),
-						$admin_url . 'post.php?post=' . $post->get_parent()->get_id() . '&action=edit',
-						$post->get_parent()->get_title()
-					);
-
-					$this->api->add_preflight_message( $batch->get_id(), $message, 'error' );
-				}
-			} catch ( Exception $e ) {
-				$this->api->add_preflight_message( $batch->get_id(), $e->getMessage(), 'error' );
-			}
-
+		// Go through each data type.
+		foreach ( $types as $type ) {
+			$this->verify_by_type( $batch, $type );
 		}
 
-		// Pre-flight custom data.
+		// Verify custom data.
 		foreach ( $batch->get_custom_data() as $addon => $data ) {
 			do_action( 'sme_verify_' . $addon, $data, $batch );
 		}
 
-		/*
-		 * Let third party developers perform actions before pre-flight data is
-		 * returned from production to content stage.
-		 */
-		do_action( 'sme_verified', $batch );
+		// Get pre-flight status.
+		$status = $this->api->get_preflight_status( $batch->get_id() );
 
 		// Get all messages set during verification of this batch.
 		$messages = $this->api->get_preflight_messages( $batch->get_id() );
 
-		// Clear pre-flight messages.
-		$this->api->delete_preflight_messages( $batch->get_id() );
+		// Prepare response.
+		$response = array(
+			'status'   => ( $status ) ? $status : 3,
+			'messages' => $messages,
+		);
+
+		// Hook in when batch is ready for pre-flight.
+		$response = apply_filters( 'sme_verified', $response, $batch );
+
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Prepare response.
+		$response = array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $messages );
+		return $this->xmlrpc_client->prepare_response( $response );
 	}
 
 	/**
@@ -524,11 +588,6 @@ class Batch_Ctrl {
 	 * stored on the production environment.
 	 *
 	 * Display any messages that is returned by production.
-	 *
-	 * @todo Consider sending form data to a different method responsible for
-	 * saving the pre-flighted batch data. When data has been saved, redirect
-	 * user here, fetch data from database and send it to production. This
-	 * would more closely resemble how we handle e.g. editing a batch.
 	 */
 	public function deploy() {
 
@@ -536,37 +595,78 @@ class Batch_Ctrl {
 		check_admin_referer( 'sme-deploy-batch', 'sme_deploy_batch_nonce' );
 		$batch = null;
 
-		/*
-		 * Batch data is sent through a form on the pre-flight page and picked up
-		 * here. Decode data.
-		 */
-		if ( ! isset( $_GET['id'] )
-			|| ! ( $batch = $this->batch_dao->find( $_GET['id'] ) )
-			|| $batch->get_status() != 'publish' ) {
+		// Requested batch ID.
+		$batch_id = intval( $_GET['id'] );
+
+		// Get batch.
+		$batch = $this->batch_dao->find( $batch_id );
+
+		// Make sure a valid batch has been requested.
+		if ( ! $batch instanceof Batch || $batch->get_status() !== 'publish' ) {
 			wp_die( __( 'No batch found.', 'sme-content-staging' ) );
 		}
 
 		// Deploy the batch.
 		$response = $this->api->deploy( $batch );
 
-		$data = array(
-			'messages' => $response['messages'],
-		);
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : 0 );
 
-		$this->template->render( 'deploy-batch', $data );
+		// Render page.
+		$this->template->render(
+			'deploy-batch',
+			array(
+				'messages' => $messages,
+			)
+		);
 	}
 
 	/**
 	 * Runs on production when an import request is received.
 	 *
 	 * @param array $args
+	 *
 	 * @return string
 	 */
 	public function import( array $args ) {
-		$this->xmlrpc_client->handle_request( $args );
 
+		$this->xmlrpc_client->handle_request( $args );
 		$result = $this->xmlrpc_client->get_request_data();
-		$batch  = $this->extract_batch( $result );
+
+		// Get batch.
+		$batch = ( isset( $result['batch'] ) ) ? $result['batch'] : null;
+
+		// Check if a batch has been provided.
+		if ( ! $batch instanceof Batch ) {
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( 'No batch has been sent from content stage to production.' );
+
+			$response = array(
+				'status' => 2,
+				'messages' => array( $message ),
+			);
+
+			return $this->xmlrpc_client->prepare_response( $response );
+		}
+
+		$batch->set_id( null );
+		$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
+
+		if ( $revision !== null ) {
+			/*
+			 * Updating existing batch on production.
+			 */
+			$batch->set_id( $revision->get_id() );
+			$this->batch_dao->update_batch( $batch );
+
+			unset( $revision );
+		} else {
+			/*
+			 * Creating new batch on production.
+			 */
+			$this->batch_dao->insert( $batch );
+		}
 
 		// If auto import is set to true, then start the batch import immediately.
 		if ( ! isset( $result['auto_import'] ) || $result['auto_import'] ) {
@@ -592,41 +692,46 @@ class Batch_Ctrl {
 	 */
 	public function import_status_request() {
 
+		$batch_id = intval( $_POST['batch_id'] );
+
 		$request = array(
-			'batch_id' => intval( $_POST['batch_id'] ),
+			'batch_id' => $batch_id,
 		);
-
-		// Status returned from production.
-		$status = 0;
-
-		// Messages returned from production.
-		$messages = array();
 
 		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
 		$response = $this->xmlrpc_client->get_response_data();
-
 		$response = apply_filters( 'sme_deploy_status', $response );
 
-		if ( isset( $response['status'] ) ) {
+		// Deploy status.
+		$status = 2;
 
-			// Deploy has finished.
-			if ( $response['status'] == 3 ) {
-				do_action( 'sme_deployed' );
-			}
+		// Get status from production.
+		$prod_status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
 
-			$status = $response['status'];
-			unset( $response['status'] );
+		// Get status from content stage.
+		$stage_status = $this->api->get_deploy_status( $batch_id );
+
+		// Ensure no pre-flight status is not set to failed.
+		if ( $prod_status != 2 && $stage_status != 2 ) {
+			$status = $prod_status;
 		}
 
-		if ( isset( $response['messages'] ) ) {
-			$messages = $response['messages'];
-			unset( $response['messages'] );
+		// Get production messages.
+		$prod_messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
+		// Get content stage messages.
+		$stage_messages = $this->api->get_deploy_messages( $batch_id );
+
+		// All pre-flight messages.
+		$messages = array_merge( $prod_messages, $stage_messages );
+
+		// Deploy has finished.
+		if ( $status == 3 ) {
+			do_action( 'sme_deployed' );
 		}
 
-		// Ensure that the production response did not contain any unexpected data.
-		if ( ! empty( $response ) ) {
-			throw new Exception( 'Response from production contained unexpected data (JSON encoded): ' . json_encode( $response ) );
-		}
+		// Convert message objects into arrays.
+		$messages = $this->api->convert_messages( $messages );
 
 		header( 'Content-Type: application/json' );
 		echo json_encode(
@@ -661,8 +766,19 @@ class Batch_Ctrl {
 
 		$response = apply_filters( 'sme_import_status_response', $response, $batch );
 
+		// Get status.
+		$status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+
+		// Get messages.
+		$messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
 		// Prepare and return the XML-RPC response data.
-		return $this->xmlrpc_client->prepare_response( $response );
+		return $this->xmlrpc_client->prepare_response(
+			array(
+				'status'   => $status,
+				'messages' => $messages,
+			)
+		);
 	}
 
 	/**
@@ -765,85 +881,33 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Runs on production when an import request has been received.
+	 * Pre-flight checks for a specific part of a batch.
 	 *
-	 * @param array $result
-	 *
-	 * @return Batch
-	 *
-	 * @throws Exception
+	 * @param Batch $batch
+	 * @param string $type
 	 */
-	private function extract_batch( $result ) {
+	private function verify_by_type( Batch $batch, $type ) {
 
-		// Check if a batch has been provided.
-		if ( ! isset( $result['batch'] ) || ! ( $result['batch'] instanceof Batch ) ) {
-			// Error: Failed to create batch on production.
-			// How to pass error message to user?
-			throw new Exception( 'No batch has been sent from content stage to production.' );
+		// The data we want to verify.
+		$batch_chunk = array();
+
+		// Get data we want to verify.
+		switch ( $type ) {
+			case 'attachments':
+				$batch_chunk = $batch->get_attachments();
+				break;
+			case 'users':
+				$batch_chunk = $batch->get_users();
+				break;
+			case 'posts':
+				$batch_chunk = $batch->get_posts();
+				break;
 		}
 
-		$batch = $result['batch'];
-		$batch->set_id( null );
-
-		$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
-
-		if ( $revision !== null ) {
-			/*
-			 * Updating existing batch on production.
-			 */
-			$batch->set_id( $revision->get_id() );
-			$this->batch_dao->update_batch( $batch );
-
-			unset( $revision );
-		} else {
-			/*
-			 * Creating new batch on production.
-			 */
-			$this->batch_dao->insert( $batch );
+		// Verify selected part of batch.
+		foreach ( $batch_chunk as $item ) {
+			do_action( 'sme_verify_' . $type, $item, $batch );
 		}
-
-		$message = sprintf(
-			'Preparing batch import (ID: <span id="sme-batch-id">%s</span>)',
-			$batch->get_id()
-		);
-
-		$this->api->delete_deploy_status( $batch->get_id() );
-		$this->api->delete_deploy_messages( $batch->get_id() );
-		$this->api->set_deploy_status( $batch->get_id(), 0 );
-		$this->api->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
-
-		return $batch;
-	}
-
-	/**
-	 * Make sure parent post exist (if post has any) either in production
-	 * database or in batch.
-	 *
-	 * @param array $post
-	 * @param array $posts
-	 * @return bool True if parent post exist (or post does not have a parent), false
-	 *              otherwise.
-	 */
-	private function parent_post_exists( $post, $posts ) {
-
-		// Check if the post has a parent post.
-		if ( $post->get_parent() === null ) {
-			return true;
-		}
-
-		// Check if parent post exist on production server.
-		if ( $this->post_dao->get_by_guid( $post->get_parent()->get_guid() ) ) {
-			return true;
-		}
-
-		// Parent post is not on production, look in this batch for parent post.
-		foreach ( $posts as $item ) {
-			if ( $item->get_id() == $post->get_parent()->get_id() ) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 
 }

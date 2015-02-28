@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\XMLRPC;
 
+use Me\Stenberg\Content\Staging\Models\Message;
 use \WP_HTTP_IXR_Client;
 
 class Client extends WP_HTTP_IXR_Client {
@@ -53,32 +54,53 @@ class Client extends WP_HTTP_IXR_Client {
 		$this->enable_ssl_verification();
 
 		if ( ! $status ) {
+
 			if ( strpos( $this->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
-				$this->filtered_response = array(
-					array(
-						'level'   => 'error',
-						'message' => 'Content Staging plugin not activated on host <strong>' . $this->server . '</strong>',
-					),
+				$message = new Message();
+				$message->set_level( 'error' );
+				$message->set_message(
+					sprintf( 'Content Staging plugin not activated on host <strong>%s</strong>', $this->server )
 				);
+
+				$this->filtered_response = array(
+					'status'   => 2,
+					'messages' => array( $message ),
+				);
+
 				return;
 			}
 
 			if ( strpos( $this->getErrorMessage(), 'Could not resolve host' ) !== false ) {
-				$this->filtered_response = array(
-					array(
-						'level'   => 'error',
-						'message' => 'Could not connect to host <strong>' . $this->server . '</strong>',
-					),
+				$message = new Message();
+				$message->set_level( 'error' );
+				$message->set_message(
+					sprintf( 'Could not connect to host <strong>%s</strong>', $this->server )
 				);
+
+				$this->filtered_response = array(
+					'status'   => 2,
+					'messages' => array( $message ),
+				);
+
 				return;
 			}
 
-			$this->filtered_response = array(
-				array(
-					'level'   => 'error',
-					'message' => $this->getErrorMessage() . ' - on host: ' . $this->server . ' (error code ' . $this->getErrorCode() . ')',
-				),
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message(
+				sprintf(
+					'%s - on host: %s (error code %s)',
+					$this->getErrorMessage(),
+					$this->server,
+					$this->getErrorCode()
+				)
 			);
+
+			$this->filtered_response = array(
+				'status'   => 2,
+				'messages' => array( $message ),
+			);
+
 		} else {
 
 			// Get the XML-RPC response data.
@@ -95,22 +117,31 @@ class Client extends WP_HTTP_IXR_Client {
 	 * @return array
 	 */
 	public function handle_request( $args ) {
-		$messages = array();
 
 		if ( ! isset( $args[0] ) ) {
-			$messages[] = array(
-				'level'   => 'error',
-				'message' => 'No access token has been provided. Request failed.',
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( 'No access token has been provided. Request failed.' );
+
+			$response = array(
+				'status'   => 2,
+				'messages' => array( $message ),
 			);
-			return $this->prepare_response( $messages );
+
+			return $this->prepare_response( $response );
 		}
 
 		if ( ! isset( $args[1] ) ) {
-			$messages[] = array(
-				'level'   => 'error',
-				'message' => 'No data has been provided. Request failed.',
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( 'No data has been provided. Request failed.' );
+
+			$response = array(
+				'status'   => 2,
+				'messages' => array( $message ),
 			);
-			return $this->prepare_response( $messages );
+
+			return $this->prepare_response( $response );
 		}
 
 		$access_token = $args[0];
@@ -124,15 +155,20 @@ class Client extends WP_HTTP_IXR_Client {
 
 			// Invalid access token, construct an error message.
 			$msg  = 'Authentication failed. ';
-			$msg .= '<strong>' . $_SERVER['HTTP_HOST'] . '</strong> did not accept the provided access token. <br/>';
+			$msg .= sprintf( '<strong>%s</strong> did not accept the provided access token. <br/>', $_SERVER['HTTP_HOST'] );
 			$msg .= 'Check that your content staging environment and your production environment is using the same secret key.';
 
 			// Respond with error message.
-			$messages[] = array(
-				'level'   => 'error',
-				'message' => $msg,
+			$message = new Message();
+			$message->set_level( 'error' );
+			$message->set_message( $msg );
+
+			$response = array(
+				'status'   => 2,
+				'messages' => array( $message ),
 			);
-			return $this->prepare_response( $messages );
+
+			return $this->prepare_response( $response );
 		}
 
 		// Get the request data.
@@ -169,6 +205,7 @@ class Client extends WP_HTTP_IXR_Client {
 	 * Prepare response data.
 	 *
 	 * @param array $response
+	 *
 	 * @return string
 	 */
 	public function prepare_response( $response ) {

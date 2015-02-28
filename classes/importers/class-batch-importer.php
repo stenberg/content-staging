@@ -1,6 +1,7 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Importers;
 
+use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
@@ -273,7 +274,8 @@ abstract class Batch_Importer {
 			// Update post ID to point at the post ID on production.
 			$meta[$i]['post_id'] = $prod_id;
 
-			if ( in_array( $meta[$i]['meta_key'], $keys ) ) {
+			// TODO Remove check for "master"
+			if ( in_array( $meta[$i]['meta_key'], $keys ) && ! empty( $meta[$i]['meta_value'] ) && $meta[$i]['meta_value'] !== 'master' ) {
 
 				// Post ID this meta value is referring to.
 				$referenced_post_id = $this->post_dao->get_id_by_guid( $meta[$i]['meta_value'] );
@@ -283,7 +285,7 @@ abstract class Batch_Importer {
 
 					$referenced_post_id = 0;
 
-					$message  = 'Failed updating relationship between posts. The relationship is defined in the postmeta table. ';
+					$message  = 'Failed updating relationship between posts (blog ID %d). The relationship is defined in the postmeta table. ';
 					$message .= '<ul>';
 					$message .= '<li>Stage ID referencing post: %d</li>';
 					$message .= '<li>Production ID referencing post: %d</li>';
@@ -291,9 +293,9 @@ abstract class Batch_Importer {
 					$message .= '<li>GUID referenced post: %s</li>';
 					$message .= '</ul>';
 
-					$message = sprintf( $message, $stage_id, $prod_id, $meta[$i]['meta_key'], $meta[$i]['meta_value'] );
+					$message = sprintf( $message, get_current_blog_id(), $stage_id, $prod_id, $meta[$i]['meta_key'], $meta[$i]['meta_value'] );
 
-					$this->api->add_deploy_message( $this->batch->get_id(), $message, 'error' );
+					$this->api->add_deploy_message( $this->batch->get_id(), $message, 'warning' );
 				}
 
 				// Update meta value to point at the post ID on production.
@@ -394,7 +396,13 @@ abstract class Batch_Importer {
 	 */
 	public function import_taxonomy( Taxonomy $taxonomy ) {
 
-		$this->import_term( $taxonomy->get_term() );
+		// Get the term.
+		$term = $taxonomy->get_term();
+
+		// Import term.
+		if ( $term !== null ) {
+			$this->import_term( $taxonomy->get_term() );
+		}
 
 		// If a parent taxonomy exists, import it.
 		if ( $taxonomy->get_parent() !== null ) {
@@ -402,7 +410,11 @@ abstract class Batch_Importer {
 		}
 
 		// Taxonomy ID on production environment.
-		$this->taxonomy_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
+		try {
+			$this->taxonomy_dao->get_taxonomy_id_by_taxonomy( $taxonomy );
+		} catch ( Exception $e ) {
+			$this->api->add_deploy_message( $this->batch->get_id(), $e->getMessage(), 'warning' );
+		}
 
 		if ( ! $taxonomy->get_id() ) {
 			// This taxonomy does not exist on production, create it.

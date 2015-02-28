@@ -61,10 +61,11 @@ class Postmeta_DAO extends DAO {
 	 * @param int    $post_id
 	 * @param string $key
 	 * @param string $value
+	 * @param bool   $unique
 	 *
 	 * @return int
 	 */
-	public function add_post_meta( $post_id, $key, $value ) {
+	public function add_post_meta( $post_id, $key, $value, $unique = false ) {
 
 		if ( is_array( $value ) ) {
 			$value = serialize( $value );

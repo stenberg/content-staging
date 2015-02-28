@@ -110,6 +110,22 @@ abstract class DAO {
 	}
 
 	/**
+	 * Wrapper for WordPress function add_post_meta.
+	 *
+	 * @see http://codex.wordpress.org/Function_Reference/add_post_meta
+	 *
+	 * @param int    $post_id
+	 * @param string $key
+	 * @param mixed  $value
+	 * @param bool   $unique
+	 *
+	 * @return mixed
+	 */
+	public function add_post_meta( $post_id, $key, $value, $unique = false ) {
+		return add_post_meta( $post_id, $key, $value, $unique );
+	}
+
+	/**
 	 * Wrapper for WordPress function get_post_meta.
 	 *
 	 * @see http://codex.wordpress.org/Function_Reference/get_post_meta
@@ -136,6 +152,19 @@ abstract class DAO {
 	 */
 	public function update_post_meta( $post_id, $meta_key, $meta_value, $prev_value = null ) {
 		return update_post_meta( $post_id, $meta_key, $meta_value, $prev_value );
+	}
+
+	/**
+	 * Wrapper for WordPress function delete_post_meta.
+	 *
+	 * @see http://codex.wordpress.org/Function_Reference/delete_post_meta
+	 *
+	 * @param int    $post_id
+	 * @param string $key
+	 * @param mixed  $value
+	 */
+	public function delete_post_meta( $post_id, $key, $value = null ) {
+		delete_post_meta( $post_id, $key, $value );
 	}
 
 	protected abstract function get_table();

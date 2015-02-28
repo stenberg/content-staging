@@ -10,6 +10,7 @@ use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Message;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
@@ -84,7 +85,10 @@ class Common_API {
 	 *
 	 * @param Batch $batch
 	 */
-	public function prepare_batch( $batch ) {
+	public function prepare( $batch ) {
+
+		// Hook in before batch is built
+		do_action( 'sme_prepare', $batch );
 
 		$mgr = new Batch_Mgr();
 		$mgr->prepare( $batch );
@@ -94,18 +98,11 @@ class Common_API {
 		$batch->set_attachments( apply_filters( 'sme_prepare_attachments', $batch->get_attachments() ) );
 		$batch->set_users( apply_filters( 'sme_prepare_users', $batch->get_users() ) );
 
-		/*
-		 * Delete any previous pre-flight or deploy messages and deploy status
-		 * just in case this batch has been imported once before.
-		 */
-		$this->delete_messages( $batch->get_id() );
-		$this->delete_deploy_status( $batch->get_id() );
+		// Hook in after batch has been built.
+		do_action( 'sme_prepared', $batch );
 
-		/*
-		 * Let third party developers perform actions before pre-flight. This is
-		 * most often where third-party developers would add custom data.
-		 */
-		do_action( 'sme_prepare', $batch );
+		// Store prepared batch.
+		$this->batch_dao->update_batch( $batch );
 	}
 
 	/**
@@ -115,17 +112,32 @@ class Common_API {
 	 *
 	 * @return array
 	 */
-	public function preflight( Batch $batch ) {
+	public function preflight( $batch ) {
+
+		// Hook in before batch is sent
+		do_action( 'sme_preflight', $batch );
 
 		$request = array(
 			'batch' => $batch,
 		);
 
 		$this->client->request( 'smeContentStaging.verify', $request );
-		$messages = $this->client->get_response_data();
+		$response = $this->client->get_response_data();
 
-		// Enable third party developers to filter messages.
-		return apply_filters( 'sme_preflight_messages', $messages, $batch );
+		// Hook in after batch has been transferred.
+		$response = apply_filters( 'sme_preflighted', $response, $batch );
+
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 2 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
+
+		// Return status and messages.
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 	}
 
 	/**
@@ -155,6 +167,9 @@ class Common_API {
 			apply_filters( 'sme_deploy_attachments', $batch->get_attachments(), $batch )
 		);
 
+		// Hook in before deploy.
+		do_action( 'sme_deploy', $batch );
+
 		// Start building request to send to production.
 		$request = array(
 			'batch'       => $batch,
@@ -165,7 +180,13 @@ class Common_API {
 		$response = $this->client->get_response_data();
 
 		// Batch deploy in progress.
-		do_action( 'sme_deploying', $batch );
+		$response = apply_filters( 'sme_deploying', $response, $batch );
+
+		// Get status received from production.
+		$status = ( isset( $response['status'] ) ? $response['status'] : 1 );
+
+		// Get messages received from production.
+		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
 
 		/*
 		 * Batch has been deployed and should no longer be accessible by user,
@@ -174,18 +195,35 @@ class Common_API {
 		 */
 		$this->batch_dao->delete_batch( $batch );
 
-		return $response;
+		// Return status and messages.
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
 	}
 
 	/**
-	 * Trigger batch import on production.
+	 * Trigger batch import.
+	 *
+	 * Runs on production.
 	 *
 	 * @param Batch $batch
 	 */
 	public function import( Batch $batch ) {
+
+		do_action( 'sme_import', $batch );
+
+		$message = sprintf(
+			'Prepare import on %s (ID: <span id="sme-batch-id">%s</span>)',
+			get_bloginfo( 'name' ),
+			$batch->get_id()
+		);
+
+		$this->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
+
 		$factory  = new Batch_Importer_Factory( $this, $this->batch_dao );
 		$importer = $factory->get_importer( $batch );
-		do_action( 'sme_import', $batch );
+
 		$importer->run();
 	}
 
@@ -222,6 +260,18 @@ class Common_API {
 	}
 
 	/**
+	 * Set status for pre-flight.
+	 *
+	 * @param int $batch_id
+	 * @param int $status
+	 */
+	public function set_preflight_status( $batch_id, $status = 0 ) {
+		update_post_meta( $batch_id, '_sme_preflight_status', $status );
+	}
+
+	/**
+	 * Set status for deploy.
+	 *
 	 * @param int $batch_id
 	 * @param int $status
 	 */
@@ -230,6 +280,19 @@ class Common_API {
 	}
 
 	/**
+	 * Get pre-flight status.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return int
+	 */
+	public function get_preflight_status( $batch_id ) {
+		return get_post_meta( $batch_id, '_sme_preflight_status', true );
+	}
+
+	/**
+	 * Get deploy status.
+	 *
 	 * @param int $batch_id
 	 *
 	 * @return int
@@ -239,9 +302,20 @@ class Common_API {
 	}
 
 	/**
+	 * Delete pre-flight status for a specific batch.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return bool
+	 */
+	public function delete_preflight_status( $batch_id ) {
+		return delete_post_meta( $batch_id, '_sme_preflight_status' );
+	}
+
+	/**
 	 * Delete deploy status for a specific batch.
 	 *
-	 * @param int    $batch_id
+	 * @param int $batch_id
 	 *
 	 * @return bool
 	 */
@@ -330,13 +404,7 @@ class Common_API {
 	 */
 	public function get_messages( $post_id, $new_only = true, $type = null, $group = null, $code = 0 ) {
 		$messages = $this->message_dao->get_by_post_id( $post_id, $new_only, $type, $group, $code );
-		$as_array = array();
-
-		foreach ( $messages as $message ) {
-			array_push( $as_array, $message->to_array() );
-		}
-
-		return apply_filters( 'sme_get_messages', $as_array );
+		return apply_filters( 'sme_get_messages', $messages );
 	}
 
 	/**
@@ -423,6 +491,65 @@ class Common_API {
 	 */
 	public function delete_deploy_messages( $post_id, $type = null, $code = 0 ) {
 		return $this->delete_messages( $post_id, $type, 'deploy', $code );
+	}
+
+	/**
+	 * Convert message objects into arrays or from arrays into objects.
+	 *
+	 * @param array $messages
+	 * @param bool  $to_array
+	 *
+	 * @return array
+	 */
+	public function convert_messages( $messages, $to_array = true ) {
+
+		$result = array();
+
+		if ( ! is_array( $messages ) ) {
+			return $result;
+		}
+
+		// Convert message objects into arrays.
+		if ( $to_array ) {
+			foreach ( $messages as $message ) {
+				if ( $message instanceof Message ) {
+					array_push( $result, $message->to_array() );
+				}
+			}
+
+			return $result;
+		}
+
+		// Convert messages into objects.
+		foreach ( $messages as $message ) {
+			$msg = new Message();
+
+			$msg->set_id( ( isset( $message['id'] ) ? $message['id'] : null ) );
+			$msg->set_message( ( isset( $message['message'] ) ? $message['message'] : '' ) );
+			$msg->set_level( ( isset( $message['level'] ) ? $message['level'] : 'info' ) );
+			$msg->set_code( ( isset( $message['code'] ) ? $message['code'] : 0 ) );
+
+			array_push( $result, $msg );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Filter out error messages from array of messages.
+	 *
+	 * @param array $messages
+	 *
+	 * @return array
+	 */
+	public function error_messages( array $messages ) {
+		$errors = array_filter(
+			$messages, function( Message $message ) {
+				return ( $message->get_level() == 'error' );
+			}
+		);
+
+		return $errors;
 	}
 
 	/**

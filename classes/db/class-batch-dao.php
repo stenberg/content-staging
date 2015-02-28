@@ -280,8 +280,7 @@ class Batch_DAO extends DAO {
 		$array  = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $array, $format );
-
-		$post_id = $this->get_id_by_guid( $obj->get_guid() );
+		$post_id = $this->wpdb->insert_id;
 		$obj->set_id( $post_id );
 	}
 

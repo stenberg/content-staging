@@ -335,8 +335,8 @@ class Batch extends Model {
 	 * will be returned.
 	 *
 	 * @param string $key
+	 *
 	 * @return mixed
-	 * @throws Exception
 	 */
 	public function get_custom_data( $key = null ) {
 
@@ -347,10 +347,20 @@ class Batch extends Model {
 
 		// Make sure provided key exists in our custom data array.
 		if ( ! array_key_exists( $key, $this->custom_data ) ) {
-			throw new Exception( 'Could not find custom data with key ' . $key . ' in batch with ID ' . $this->get_id() );
+			return null;
 		}
 
 		return $this->custom_data[$key];
+	}
+
+	/**
+	 * Get a signature for this batch. Useful for testing if a batch has been
+	 * modified.
+	 *
+	 * @return string
+	 */
+	public function get_signature() {
+		return md5( serialize( $this ) );
 	}
 
 }
