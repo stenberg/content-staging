@@ -100,7 +100,7 @@ class Post_DAO extends DAO {
 			$order = 'desc';
 		}
 
-		$where  = 'post_type != "sma_content_batch" AND post_type != "sme_batch_import_job"';
+		$where  = 'post_type != "sme_content_batch" AND post_type != "sme_batch_import_job"';
 		$where  = $this->where_statuses( $where, $statuses, $values );
 		$where  = apply_filters( 'sme_query_posts_where', $where );
 		$values = apply_filters( 'sme_values_posts_where', $values );
@@ -141,7 +141,7 @@ class Post_DAO extends DAO {
 	 */
 	public function get_posts_count( $statuses = array() ) {
 		$values = array();
-		$where  = 'post_type != "sma_content_batch" AND post_type != "sme_batch_import_job"';
+		$where  = 'post_type != "sme_content_batch" AND post_type != "sme_batch_import_job"';
 		$where  = $this->where_statuses( $where, $statuses, $values );
 		$where  = apply_filters( 'sme_query_posts_where', $where );
 		$values = apply_filters( 'sme_values_posts_where', $values );
