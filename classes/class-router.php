@@ -66,10 +66,6 @@ class Router {
 		$this->batch_ctrl->preflight_status();
 	}
 
-	public function ajax_batch_add_post() {
-		$this->batch_ctrl->include_post();
-	}
-
 	public function ajax_batch_import() {
 		$this->batch_ctrl->import_status_request();
 	}
