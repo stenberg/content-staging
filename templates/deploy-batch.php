@@ -3,9 +3,9 @@
 
 	<div class="sme-deploy-messages">
 		<?php foreach ( $messages as $message ) { ?>
-			<div class="sme-cs-message sme-cs-<?php echo $message['level']; ?>">
+			<div class="sme-cs-message sme-cs-<?php echo $message->get_level(); ?>">
 				<ul>
-					<li><?php echo $message['message']; ?></li>
+					<li><?php echo $message->get_message(); ?></li>
 				</ul>
 			</div>
 		<?php } ?>
