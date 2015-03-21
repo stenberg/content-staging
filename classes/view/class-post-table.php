@@ -96,7 +96,8 @@ class Post_Table extends WP_List_Table {
 	 */
 	public function column_cb( Post $post ) {
 		return sprintf(
-			'<input type="checkbox" class="sme-select-post" name="%s[]" value="%s"/>',
+			'<input type="checkbox" id="sme_select_post_%s" class="sme-select-post" name="%s[]" value="%s"/>',
+			$post->get_id(),
 			$this->_args['plural'],
 			$post->get_id()
 		);
