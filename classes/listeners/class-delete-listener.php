@@ -18,8 +18,6 @@ class Delete_Listener {
 
 		// Register listeners.
 		if ( current_user_can( 'delete_posts' ) ) {
-			add_action( 'untrashed_post', array( $this, 'untrash_post' ) );
-			add_action( 'wp_trash_post', array( $this, 'trash_post' ) );
 			add_action( 'delete_post', array( $this, 'delete_post' ) );
 		}
 	}
