@@ -35,6 +35,7 @@ require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/controllers/class-batch-history-ctrl.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
+require_once( 'classes/db/class-custom-dao.php' );
 require_once( 'classes/db/class-message-dao.php' );
 require_once( 'classes/db/class-post-dao.php' );
 require_once( 'classes/db/class-post-taxonomy-dao.php' );

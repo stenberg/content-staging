@@ -66,6 +66,17 @@ class Common_API {
 		return $this->post_dao->get_by_guid( $guid );
 	}
 
+	/**
+	 * Find post ID by providing GUID.
+	 *
+	 * @param string $guid
+	 *
+	 * @return int
+	 */
+	public function get_post_id_by_guid( $guid ) {
+		return $this->post_dao->get_id_by_guid( $guid );
+	}
+
 	/* **********************************************************************
 	 * Batch API
 	 * **********************************************************************/
