@@ -54,16 +54,20 @@ Hooks
 
 Many of the hooks follow a naming schema that indicates at what point in the deployment process they are triggered:
 
-| Environment   | When              | Hook Prefix  |
-| ------------- | ----------------- | ------------ |
-| Content Stage | Before pre-flight | sme_prepare  |
-| Production    | During pre-flight | sme_verify   |
-| Production    | After pre-flight  | sme_verified |
-| Content Stage | After pre-flight  | sme_prepared |
-| Content Stage | Before deploy     | sme_deploy   |
-| Production    | During deploy     | sme_import   |
-| Production    | After deploy      | sme_imported |
-| Content Stage | After deploy      | sme_deployed |
+| Environment   | When                      | Hook Prefix     |
+| ------------- | ------------------------- | --------------- |
+| Content Stage | Before batch is populated | sme_prepare     |
+| Content Stage | After batch is populated  | sme_prepared    |
+| Content Stage | Before pre-flight         | sme_preflight   |
+| Production    | During pre-flight         | sme_store       |
+| Production    | During pre-flight         | sme_verify      |
+| Production    | After pre-flight          | sme_verified    |
+| Content Stage | After pre-flight          | sme_preflighted |
+| Content Stage | Before deploy             | sme_deploy      |
+| Content Stage | During deploy             | sme_deploying   |
+| Production    | During deploy             | sme_import      |
+| Production    | After deploy              | sme_imported    |
+| Content Stage | After deploy              | sme_deployed    |
 
 For a complete list of hooks, search the content-staging directory for *do_action* and *apply_filters*.
 
