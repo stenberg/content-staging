@@ -64,7 +64,7 @@ class Batch_History_Ctrl {
 
 		foreach ( $batches as $batch ) {
 			// Get IDs of posts user selected to include in this batch.
-			$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
+			$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
 
 			if ( ! is_array( $post_ids ) ) {
 				$post_ids = array();

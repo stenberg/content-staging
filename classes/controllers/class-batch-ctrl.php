@@ -158,7 +158,7 @@ class Batch_Ctrl {
 		}
 
 		// Get IDs of posts user has selected to include in this batch.
-		$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
+		$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
 
 		/*
 		 * When fetching post IDs an empty string could be returned if no
@@ -574,7 +574,7 @@ class Batch_Ctrl {
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
 		$this->batch_dao->insert( $batch );
 
-		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', array( $post_id ) );
+		$this->batch_dao->add_post_meta( $batch->get_id(), 'sme_selected_post', $post_id );
 
 		// Redirect user to pre-flight page.
 		wp_redirect( admin_url( 'admin.php?page=sme-preflight-batch&id=' . $batch->get_id() ) );
@@ -782,65 +782,6 @@ class Batch_Ctrl {
 	}
 
 	/**
-	 * Add a post ID to batch.
-	 *
-	 * Triggered by an AJAX call.
-	 */
-	public function include_post() {
-
-		if ( ! isset( $_POST['include'] ) || ! isset( $_POST['batch_id'] ) || ! isset( $_POST['post_id'] ) ) {
-			die();
-		}
-
-		$batch_id    = null;
-		$post_id     = intval( $_POST['post_id'] );
-		$is_selected = false;
-
-		if ( $_POST['batch_id'] ) {
-			$batch_id = intval( $_POST['batch_id'] );
-		}
-
-		if ( $_POST['include'] === 'true' ) {
-			$is_selected = true;
-		}
-
-		// Get batch.
-		$batch = $this->batch_mgr->get( $batch_id );
-
-		// Create new batch if needed.
-		if ( ! $batch->get_id() ) {
-			$this->batch_dao->insert( $batch );
-		}
-
-		// Get IDs of posts already included in the batch.
-		$post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post_ids', true );
-
-		if ( ! $post_ids ) {
-			$post_ids = array();
-		}
-
-		if ( $is_selected ) {
-			// Add post ID.
-			$post_ids[] = $post_id;
-		} else {
-			// Remove post ID.
-			if ( ( $key = array_search( $post_id, $post_ids ) ) !== false ) {
-				unset( $post_ids[$key] );
-			}
-		}
-
-		$post_ids = array_unique( $post_ids );
-
-		// Update batch meta with IDs of posts user selected to include in batch.
-		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
-
-		header( 'Content-Type: application/json' );
-		echo json_encode( array( 'batchId' => $batch->get_id() ) );
-
-		die(); // Required to return a proper result.
-	}
-
-	/**
 	 * Create/update a batch based on input data submitted by user from the
 	 * Edit Batch page.
 	 *
@@ -869,15 +810,31 @@ class Batch_Ctrl {
 		}
 
 		// IDs of posts user has selected to include in this batch.
-		$post_ids = array();
+		$selected_post_ids = array();
 
 		// Check if any posts to include in batch has been selected.
 		if ( isset( $request_data['post_ids'] ) && $request_data['post_ids'] ) {
-			$post_ids = array_map( 'intval', explode( ',', $request_data['post_ids'] ) );
+			$selected_post_ids = array_map( 'intval', explode( ',', $request_data['post_ids'] ) );
 		}
 
-		// Update batch meta with IDs of posts user selected to include in batch.
-		$this->batch_dao->update_post_meta( $batch->get_id(), 'sme_selected_post_ids', $post_ids );
+		// Posts that was previously in this batch.
+		$old_post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
+
+		// Post IDs to add to this batch.
+		$add_post_ids = array_diff( $selected_post_ids, $old_post_ids );
+
+		// Post IDs to remove from this batch.
+		$remove_post_ids = array_diff( $old_post_ids, $selected_post_ids );
+
+		// Add post IDs to batch.
+		foreach ( $add_post_ids as $post_id ) {
+			$this->batch_dao->add_post_meta( $batch->get_id(), 'sme_selected_post', $post_id );
+		}
+
+		// Remove post IDs from batch.
+		foreach ( $remove_post_ids as $post_id ) {
+			$this->batch_dao->delete_post_meta( $batch->get_id(), 'sme_selected_post', $post_id );
+		}
 	}
 
 	/**

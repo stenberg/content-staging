@@ -178,7 +178,6 @@ class Content_Staging {
 		add_action( 'admin_post_sme-save-batch', array( $router, 'batch_save' ) );
 		add_action( 'admin_post_sme-quick-deploy-batch', array( $router, 'batch_deploy_quick' ) );
 		add_action( 'admin_post_sme-delete-batch', array( $router, 'batch_delete' ) );
-		add_action( 'wp_ajax_sme_include_post', array( $router, 'ajax_batch_add_post' ) );
 		add_action( 'wp_ajax_sme_preflight_request', array( $router, 'ajax_preflight' ) );
 		add_action( 'wp_ajax_sme_import_status_request', array( $router, 'ajax_batch_import' ) );
 		add_action( 'wp_ajax_sme_generate_key', array( $router, 'ajax_generate_key' ) );
