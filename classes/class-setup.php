@@ -28,6 +28,9 @@ class Setup {
 		// Register CSS stylesheet files for later use with wp_enqueue_style().
 		wp_register_style( 'content-staging', $this->plugin_url . '/assets/css/content-staging.css', array(), '1.0.3' );
 
+		// Register Font Awesome for later use with wp_enqueue_style().
+		wp_register_style( 'content-staging-fontawesome', $this->plugin_url . '/assets/vendor/font-awesome/css/font-awesome.min.css', array(), '4.3.0' );
+		
 		/*
 		 * Link script files to the generated page at the right time according to
 		 * the script dependencies.
@@ -36,6 +39,7 @@ class Setup {
 
 		// Add/enqueue CSS stylesheet files to the WordPress generated page.
 		wp_enqueue_style( 'content-staging' );
+		wp_enqueue_style( 'content-staging-fontawesome' );
 	}
 
 	/**
@@ -71,6 +75,7 @@ class Setup {
 	public function register_menu_pages() {
 		add_menu_page( 'Content Staging', 'Content Staging', 'manage_options', 'sme-list-batches', array( $this->router, 'batch_list' ) );
 		add_submenu_page( 'sme-list-batches', 'History', 'History', 'manage_options', 'sme-batch-history', array( $this->router, 'batch_history' ) );
+		add_submenu_page( 'sme-list-batches', 'Settings', 'Settings', 'manage_options', 'sme-settings', array( $this->router, 'settings_view' ) );
 		add_submenu_page( null, 'Edit Batch', 'Edit', 'manage_options', 'sme-edit-batch', array( $this->router, 'batch_edit' ) );
 		add_submenu_page( null, 'Delete Batch', 'Delete', 'manage_options', 'sme-delete-batch', array( $this->router, 'batch_confirm_delete' ) );
 		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->router, 'batch_prepare' ) );

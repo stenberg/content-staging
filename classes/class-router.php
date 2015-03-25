@@ -3,15 +3,18 @@ namespace Me\Stenberg\Content\Staging;
 
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
+use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 
 class Router {
 
 	private $batch_ctrl;
 	private $batch_history_ctrl;
+	private $settings_ctrl;
 
-	public function __construct( Batch_Ctrl $batch_ctrl, Batch_History_Ctrl $batch_history_ctrl ) {
+	public function __construct( Batch_Ctrl $batch_ctrl, Batch_History_Ctrl $batch_history_ctrl, Settings_Ctrl $settings_ctrl ) {
 		$this->batch_ctrl         = $batch_ctrl;
 		$this->batch_history_ctrl = $batch_history_ctrl;
+		$this->settings_ctrl 	  = $settings_ctrl;
 	}
 
 	public function batch_history() {
@@ -60,6 +63,18 @@ class Router {
 
 	public function batch_import_status( array $args ) {
 		return $this->batch_ctrl->import_status( $args );
+	}
+
+	public function settings_view() {
+		$this->settings_ctrl->init();
+	}
+
+	public function settings_save() {
+		$this->settings_ctrl->save_settings();
+	}
+
+	public function ajax_generate_key() {
+		return $this->settings_ctrl->generate_key();
 	}
 
 	public function ajax_preflight() {

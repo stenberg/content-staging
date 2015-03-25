@@ -3,14 +3,14 @@
 
 	<div class="sme-deploy-messages">
 		<?php foreach ( $messages as $message ) { ?>
-			<div class="sme-cs-message sme-cs-<?php echo $message['level']; ?>">
+			<div class="sme-cs-message sme-cs-<?php echo $message->get_level(); ?>">
 				<ul>
-					<li><?php echo $message['message']; ?></li>
+					<li><?php echo $message->get_message(); ?></li>
 				</ul>
 			</div>
 		<?php } ?>
 	</div>
 	<div id="sme-importing" class="sme-cs-message sme-cs-info">
-		<p><div class="sme-loader-gif"></div> Importing...</p>
+		<p><i class="fa fa-fw fa-refresh fa-spin"></i></div> Importing...</p>
 	</div>
 </div>

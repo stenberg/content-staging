@@ -123,7 +123,7 @@ class Common_API {
 
 		$this->client->request( 'smeContentStaging.verify', $request );
 		$response = $this->client->get_response_data();
-
+		
 		// Hook in after batch has been transferred.
 		$response = apply_filters( 'sme_preflighted', $response, $batch );
 
