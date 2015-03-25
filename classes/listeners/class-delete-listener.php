@@ -1,6 +1,8 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Listeners;
 
+use DOMDocument;
+use DOMElement;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Custom_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
@@ -129,18 +131,18 @@ class Delete_Listener {
 		// String of deleted content staging IDs.
 		$str = implode( ',', $stage_post_ids );
 
-		$common_api->add_deploy_message(
-			$batch->get_id(),
-			'Posts deleted on Content Stage has been removed from Production. <span class="hidden">' . $str . '</span>',
-			'info',
-			104
+		// Current blog ID.
+		$blog_id = get_current_blog_id();
+
+		$message = sprintf(
+			'Posts deleted on Content Stage has been removed from Production. <span class="hidden" data-blog-id="%d">%s</span>',
+			$blog_id, $str
 		);
+
+		$common_api->add_deploy_message( $batch->get_id(), $message, 'info', 104 );
 	}
 
 	public function deploy_status( $response ) {
-
-		// Post IDs to remove from log of deleted posts.
-		$post_ids = array();
 
 		if ( ! isset( $response['messages'] ) ) {
 			return $response;
@@ -156,24 +158,48 @@ class Delete_Listener {
 				continue;
 			}
 
-			$post_ids_str = $this->extract_text_between_tags( $message->get_message(), '<span class="hidden">', '</span>' );
-			$new_post_ids = explode( ',', $post_ids_str );
-			$new_post_ids = array_map( 'intval', $new_post_ids );
+			$blog_id  = null;
+			$post_ids = array();
 
-			if ( ! empty( $new_post_ids ) ) {
-				$post_ids = array_merge( $post_ids, $new_post_ids );
-			}
-		}
-
-		if ( ! empty( $post_ids ) ) {
+			$dom = new DOMDocument;
+			$dom->loadHTML( $message->get_message() );
+			$elements = $dom->getElementsByTagName( 'span' );
 
 			/**
-			 * @var Custom_DAO $custom_dao
+			 * @var DOMElement $element
 			 */
-			$custom_dao = Helper_Factory::get_instance()->get_dao( 'Custom' );
+			foreach ( $elements as $element ) {
 
-			// Cleanup WP options.
-			$custom_dao->remove_from_deleted_posts_log( $post_ids );
+				if ( ! ( $attr = $element->getAttribute( 'data-blog-id' ) ) ) {
+					continue;
+				}
+
+				$blog_id  = intval( $attr );
+				$post_ids = array_map( 'intval', explode( ',', $element->nodeValue ) );
+			}
+
+			if ( $blog_id && ! empty( $post_ids ) ) {
+
+				/**
+				 * @var Custom_DAO $custom_dao
+				 */
+				$custom_dao = Helper_Factory::get_instance()->get_dao( 'Custom' );
+
+				$current_blog_id = get_current_blog_id();
+
+				// Switch blog if we are not on the correct one.
+				if ( $current_blog_id !== $blog_id ) {
+					switch_to_blog( $blog_id );
+				}
+
+				// Cleanup WP options.
+				$custom_dao->remove_from_deleted_posts_log( $post_ids );
+
+				// Restore blog if we switched before.
+				if ( $current_blog_id !== $blog_id ) {
+					restore_current_blog();
+				}
+			}
 		}
 
 		return $response;
@@ -189,24 +215,6 @@ class Delete_Listener {
 	 */
 	private function get_option_name( $post_id, $key ) {
 		return sprintf( '_sme_%s_post_%d', $key, $post_id );
-	}
-
-	/**
-	 * Extract text between two tags from a string.
-	 */
-	private function extract_text_between_tags( $str, $start_tag, $end_tag ) {
-
-		$substr    = '';
-		$start_pos = strpos( $str, $start_tag ) + strlen( $start_tag );
-
-		if ( false !== $start_pos ) {
-			$end_pos = strpos( $str, $end_tag, $start_pos );
-			if ( false !== $end_pos ) {
-				$substr = substr( $str, $start_pos, $end_pos - $start_pos );
-			}
-		}
-
-		return $substr;
 	}
 
 }
