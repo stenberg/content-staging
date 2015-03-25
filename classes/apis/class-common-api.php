@@ -298,7 +298,8 @@ class Common_API {
 	 * @return int
 	 */
 	public function get_preflight_status( $batch_id ) {
-		return get_post_meta( $batch_id, '_sme_preflight_status', true );
+		$status = get_post_meta( $batch_id, '_sme_preflight_status', true );
+		return intval( $status );
 	}
 
 	/**
@@ -309,7 +310,8 @@ class Common_API {
 	 * @return int
 	 */
 	public function get_deploy_status( $batch_id ) {
-		return get_post_meta( $batch_id, '_sme_deploy_status', true );
+		$status = get_post_meta( $batch_id, '_sme_deploy_status', true );
+		return intval( $status );
 	}
 
 	/**
