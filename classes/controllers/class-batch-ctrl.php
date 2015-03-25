@@ -693,37 +693,24 @@ class Batch_Ctrl {
 	public function import_status_request() {
 
 		$batch_id = intval( $_POST['batch_id'] );
-
-		$request = array(
-			'batch_id' => $batch_id,
-		);
-
-		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
-		$response = $this->xmlrpc_client->get_response_data();
-		$response = apply_filters( 'sme_deploy_status', $response );
+		$response = $this->api->import_status_request( $batch_id );
 
 		// Deploy status.
 		$status = 2;
-
-		// Get status from production.
-		$prod_status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
 
 		// Get status from content stage.
 		$stage_status = $this->api->get_deploy_status( $batch_id );
 
 		// Ensure no pre-flight status is not set to failed.
-		if ( $prod_status != 2 && $stage_status != 2 ) {
-			$status = $prod_status;
+		if ( $response['status'] != 2 && $stage_status != 2 ) {
+			$status = $response['status'];
 		}
-
-		// Get production messages.
-		$prod_messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
 
 		// Get content stage messages.
 		$stage_messages = $this->api->get_deploy_messages( $batch_id );
 
 		// All pre-flight messages.
-		$messages = array_merge( $prod_messages, $stage_messages );
+		$messages = array_merge( $response['messages'], $stage_messages );
 
 		// Deploy has finished.
 		if ( $status == 3 ) {

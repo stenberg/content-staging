@@ -588,6 +588,37 @@ class Common_API {
 	 * **********************************************************************/
 
 	/**
+	 * Ask Production for current deploy status and messages.
+	 *
+	 * Runs on Content Stage.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return array
+	 */
+	public function import_status_request( $batch_id ) {
+
+		$request = array(
+			'batch_id' => $batch_id,
+		);
+
+		$this->client->request( 'smeContentStaging.importStatus', $request );
+		$response = $this->client->get_response_data();
+		$response = apply_filters( 'sme_deploy_status', $response );
+
+		// Get production deploy status.
+		$status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+
+		// Get production deploy messages.
+		$messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
+	}
+
+	/**
 	 * Generate an import key that can be used in background imports.
 	 *
 	 * @param Batch $batch
