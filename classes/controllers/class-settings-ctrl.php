@@ -28,17 +28,6 @@ class Settings_Ctrl {
     {
         register_setting( 'content-staging-settings', 'remote_site_url' );
         register_setting( 'content-staging-settings', 'remote_site_secret_key' );
-        register_setting( 'content-staging-settings', 'current_site_secret_key' );
-    }
-
-    public function generate_key()
-    {
-        $private_key = bin2hex( openssl_random_pseudo_bytes( 40 ) );
-        
-        header( 'Content-Type: application/json' );
-        echo json_encode( array( 'key' => $private_key ) );
-
-        die(); // Required to return a proper result.
     }
 
 }

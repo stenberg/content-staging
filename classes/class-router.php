@@ -73,10 +73,6 @@ class Router {
 		$this->settings_ctrl->save_settings();
 	}
 
-	public function ajax_generate_key() {
-		return $this->settings_ctrl->generate_key();
-	}
-
 	public function ajax_preflight() {
 		$this->batch_ctrl->preflight_status();
 	}

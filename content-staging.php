@@ -180,7 +180,6 @@ class Content_Staging {
 		add_action( 'admin_post_sme-delete-batch', array( $router, 'batch_delete' ) );
 		add_action( 'wp_ajax_sme_preflight_request', array( $router, 'ajax_preflight' ) );
 		add_action( 'wp_ajax_sme_import_status_request', array( $router, 'ajax_batch_import' ) );
-		add_action( 'wp_ajax_sme_generate_key', array( $router, 'ajax_generate_key' ) );
 
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );

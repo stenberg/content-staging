@@ -27,9 +27,6 @@ class Setup {
 
 		// Register CSS stylesheet files for later use with wp_enqueue_style().
 		wp_register_style( 'content-staging', $this->plugin_url . '/assets/css/content-staging.css', array(), '1.0.3' );
-
-		// Register Font Awesome for later use with wp_enqueue_style().
-		wp_register_style( 'content-staging-fontawesome', $this->plugin_url . '/assets/vendor/font-awesome/css/font-awesome.min.css', array(), '4.3.0' );
 		
 		/*
 		 * Link script files to the generated page at the right time according to
@@ -39,7 +36,6 @@ class Setup {
 
 		// Add/enqueue CSS stylesheet files to the WordPress generated page.
 		wp_enqueue_style( 'content-staging' );
-		wp_enqueue_style( 'content-staging-fontawesome' );
 	}
 
 	/**

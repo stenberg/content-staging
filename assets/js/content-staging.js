@@ -4,7 +4,7 @@ jQuery( document ).ready(function($) {
 	 * Since WordPress 2.8 'ajaxurl' is always defined in the admin header
 	 * and points to admin-ajax.php.
 	 */
-	app = {
+	var app = {
 
 		/**
 		 * Init method of this application. Contains a simple router.
@@ -35,6 +35,21 @@ jQuery( document ).ready(function($) {
 						break;
 				}
 			}
+			
+			// Bind this anonymous function to create a random 25
+			// character string, for the "secret key"
+			$( "#generate_key" ).click(function(event) {
+			    event.preventDefault();
+			    
+			    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXWZabcdefghijklmnopqrstuvwxyz0123456789";
+				var text = [];
+				
+				for(var i = 0; i < 36; i++) {
+					text.push(possible.charAt(Math.floor(Math.random() * possible.length)));	
+				}
+				
+			    $( '#secret_key' ).val(text.join(""));
+			});
 		},
 
 		/**
@@ -262,19 +277,6 @@ jQuery( document ).ready(function($) {
 				if (response.status < 3) {
 					self.deployStatus(data);
 				}
-			});
-		},
-
-		/**
-		 * Generate a secure key to be shared across sites.
-		 *
-		 * @param {string} fieldName
-		 */
-		generateKey: function(fieldName) {
-			$.post(ajaxurl, {
-				action: 'sme_generate_key',
-			}, function(response) {
-				$('input[name=' + fieldName + ']').val(response.key);
 			});
 		},
 

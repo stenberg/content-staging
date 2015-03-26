@@ -13,11 +13,11 @@
         <table class="form-table">
             <tr valign="top">
             <th scope="row">Remote URL:</th>
-            <td><input type="text" name="remote_site_url" size="20" value="<?php echo esc_attr( get_option('remote_site_url') ); ?>" /></td>
+            <td><input type="text" name="remote_site_url" size="60" value="<?php echo esc_attr( get_option('remote_site_url') ); ?>" /></td>
             </tr>
             <tr valign="top">
             <th scope="row">Remote Secret Key:</th>
-            <td><input type="text" name="remote_site_secret_key" size="20" value="<?php echo esc_attr( get_option('remote_site_secret_key') ); ?>" /> <button onclick="event.preventDefault(); app.generateKey('remote_site_secret_key');">Generate Key</button><p><small>This must be the same on both environments.</small></td>
+            <td><input type="text" id="secret_key" name="remote_site_secret_key" size="60" value="<?php echo esc_attr( get_option('remote_site_secret_key') ); ?>" /> <button id="generate_key">Generate Key</button><p><small>This must be the same on both environments.</small></td>
             </tr>
         </table>
         
