@@ -105,7 +105,6 @@ class Batch_Mgr {
 		$batch->set_attachments( array() );
 		$batch->set_users( array() );
 		$batch->set_posts( array() );
-		$batch->set_custom_data( array() );
 
 		// Get IDs of posts user has selected to include in this batch.
 		$meta = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );

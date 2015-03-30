@@ -1,7 +1,6 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
-use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
