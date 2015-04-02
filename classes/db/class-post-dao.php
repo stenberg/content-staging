@@ -46,6 +46,57 @@ class Post_DAO extends DAO {
 	}
 
 	/**
+	 * Get post by permalink components.
+	 *
+	 * @param Post $post
+	 *
+	 * @return Post
+	 *
+	 * @throws Exception
+	 */
+	public function get_by_permalink( Post $post ) {
+
+		// Parent post ID.
+		$parent_id = ( $post->get_parent() !== null ) ? $post->get_parent()->get_id() : 0;
+
+		// Select post with a specific GUID ending.
+		$query = $this->wpdb->prepare(
+			'SELECT * FROM ' . $this->wpdb->posts . ' WHERE post_parent = %s AND post_name = %s AND post_type = %s',
+			$parent_id, $post->get_name(), $post->get_type()
+		);
+
+		$result = $this->wpdb->get_results( $query, ARRAY_A );
+
+		if ( empty( $result ) ) {
+			return null;
+		}
+
+		if ( ( $count = count( $result ) ) > 1 ) {
+
+			// Get all post IDs.
+			$ids = array_map( function( $row ) {
+				return $row['ID'];
+			}, $result );
+
+			// Turn array of IDs into string of IDs.
+			$ids = implode( ', ', $ids );
+
+			throw new Exception(
+				sprintf(
+					'Permalink components not unique (post_parent: %d, post_name: %s, post_type: %s). Set unique permalink for the following post IDs: %s',
+					$parent_id, $post->get_name(), $post->get_type(), $ids
+				)
+			);
+		}
+
+		if ( isset( $result[0] ) && isset( $result[0]['ID'] ) ) {
+			return $this->create_object( $result[0] );
+		}
+
+		return null;
+	}
+
+	/**
 	 * Find post with the same global unique identifier (GUID) as the one for
 	 * the provided post. If a match is found, return the post ID of matching
 	 * post.
