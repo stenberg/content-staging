@@ -65,6 +65,9 @@ class Batch_Ctrl {
 		$this->xmlrpc_client    = Helper_Factory::get_instance()->get_client();
 		$this->batch_dao        = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao         = Helper_Factory::get_instance()->get_dao( 'Post' );
+
+		// Action hooks.
+		add_action( 'admin_post_sme_delete_batches', array( $this, 'delete_batches' ) );
 	}
 
 	/**
@@ -74,7 +77,7 @@ class Batch_Ctrl {
 
 		$order_by = 'post_modified';
 		$order    = 'desc';
-		$per_page = 10;
+		$per_page = 3;
 		$paged    = 1;
 
 		if ( isset( $_GET['orderby'] ) ) {
@@ -100,7 +103,7 @@ class Batch_Ctrl {
 		// Prepare table of batches.
 		$table        = new Batch_Table();
 		$table->items = $batches;
-		$table->set_bulk_actions( array( 'delete' => 'Delete' ) );
+		$table->set_bulk_actions( array( 'sme_delete_batches' => 'Delete' ) );
 		$table->set_pagination_args(
 			array(
 				'total_items' => $count,
@@ -280,18 +283,35 @@ class Batch_Ctrl {
 			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
 		}
 
-		// Check that the current request carries a valid nonce.
-		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
-
 		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get( $_GET['id'] );
+		$batch_id = $_GET['id'];
 
 		// Delete batch.
-		$this->batch_dao->delete_batch( $batch );
+		$this->batch_dao->delete_by_id( $batch_id );
 
 		// Redirect user.
 		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
 		exit();
+	}
+
+	/**
+	 * Delete multiple batches.
+	 */
+	public function delete_batches() {
+
+		if ( ! current_user_can( 'delete_posts' ) ) {
+			wp_die();
+		}
+
+		if ( isset( $_POST['batches'] ) && ! empty( $_POST['batches'] ) ) {
+			$batches = array_map( 'intval', $_POST['batches'] );
+
+			// Delete batches.
+			array_walk( $batches, array( $this->batch_dao, 'delete_by_id' ) );
+		}
+
+		wp_redirect( $_POST['_wp_http_referer'] );
+		exit;
 	}
 
 	/**
