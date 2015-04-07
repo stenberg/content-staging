@@ -304,6 +304,14 @@ class Batch_Ctrl {
 			wp_die();
 		}
 
+		// Check that referring URL has been provided.
+		if ( ! isset( $_POST['_wp_http_referer'] ) ) {
+			wp_die();
+		}
+
+		// Get referring URL.
+		$url = $_POST['_wp_http_referer'];
+
 		if ( isset( $_POST['batches'] ) && ! empty( $_POST['batches'] ) ) {
 			$batches = array_map( 'intval', $_POST['batches'] );
 
@@ -311,9 +319,10 @@ class Batch_Ctrl {
 			array_walk( $batches, array( $this->batch_dao, 'delete_by_id' ) );
 		}
 
-		$url   = $_POST['_wp_http_referer'];
-		$query = parse_url( $_POST['_wp_http_referer'], PHP_URL_QUERY );
+		// Get query params from URL.
+		$query = parse_url( $url, PHP_URL_QUERY );
 
+		// Add query param 'deleted' to referring URL.
 		if ( $query ) {
 			$url .= '&deleted';
 		} else {
@@ -349,13 +358,8 @@ class Batch_Ctrl {
 	 */
 	public function delete_batches_notice() {
 
-		if ( ! isset( $_GET['deleted'] ) ) {
-			return;
-		}
-
-		$screen = get_current_screen();
-
-		if ( $screen->parent_base !== 'sme-list-batches' ) {
+		// Look for query params in URL.
+		if ( ! isset( $_GET['deleted'] ) || ! isset( $_GET['page'] ) || $_GET['page'] !== 'sme-list-batches' ) {
 			return;
 		}
 
