@@ -23,20 +23,30 @@ Activate the plugin on both environments.
 Configuration
 -------------
 
-Add the following to your config file (e.g. wp-config.php) on your *Content Staging* environment:
+### Alternative 1 - WP Admin
+
+Go into **Content Staging** > **Settings** to add your staging key (one can be generated from the page) as well as your production site endpoint URL.'
+
+**Important** - Make sure you copy your staging key to your production site.
+
+### Alternative 2 - WP Config File
+
+You can override settings done in WP Admin by defining specific constants in your config file (e.g. your wp-config.php file).
+
+Add the following to your config file on your *Content Staging* environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', '_SAME_RANDOM_KEY_ON_BOTH_ENVIRONMENTS_' );
 	define( 'CONTENT_STAGING_ENDPOINT', 'https://www.YOUR-PRODUCTION-SITE.com' );
 	define( 'CONTENT_STAGING_TRANSFER_TIMEOUT', 60 );
 
-Add the following to your config file (e.g. wp-config.php) on your *Production* environment:
+Add the following to your config file on your *Production* environment:
 
 	define( 'CONTENT_STAGING_SECRET_KEY', '_SAME_RANDOM_KEY_ON_BOTH_ENVIRONMENTS_' );
 	define( 'CONTENT_STAGING_ENDPOINT', 'https://www.YOUR-CONTENT-STAGE.com' );
 
 *Important!* Make sure to add these configuration values *before* any *require* statements, e.g. before:
 
-    require_once( ABSPATH . 'wp-settings.php' );
+	require_once( ABSPATH . 'wp-settings.php' );
 
 Deploy Process
 --------------

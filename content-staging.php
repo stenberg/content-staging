@@ -33,6 +33,7 @@ require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 require_once( 'classes/apis/class-common-api.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/controllers/class-batch-history-ctrl.php' );
+require_once( 'classes/controllers/class-settings-ctrl.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
 require_once( 'classes/db/class-custom-dao.php' );
@@ -81,9 +82,11 @@ use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Router;
 use Me\Stenberg\Content\Staging\Setup;
+use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
+use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
  * Class Content_Staging
@@ -145,9 +148,10 @@ class Content_Staging {
 		// Controllers.
 		$batch_ctrl         = new Batch_Ctrl( $template, $importer_factory );
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
+		$settings_ctrl 		= new Settings_Ctrl( $template );
 
 		// Direct requests to the correct entry point.
-		$router = new Router( $batch_ctrl, $batch_history_ctrl );
+		$router = new Router( $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
 
 		// Listeners.
 		$import_messages = new Import_Message_Listener();

@@ -13,10 +13,26 @@ class Client extends WP_HTTP_IXR_Client {
 	public function __construct() {
 
 		// Set endpoint.
-		$endpoint = apply_filters( 'sme_endpoint', CONTENT_STAGING_ENDPOINT );
+		if ( ! defined( 'CONTENT_STAGING_ENDPOINT' ) || ! CONTENT_STAGING_ENDPOINT ) {
+			$endpoint = get_option( 'sme_cs_endpoint' );
+		} else {
+			$endpoint = CONTENT_STAGING_ENDPOINT;
+		}
+
+		// Set secret key.
+		if ( ! defined( 'CONTENT_STAGING_SECRET_KEY' ) || ! CONTENT_STAGING_SECRET_KEY ) {
+			$secret_key = get_option( 'sme_cs_secret_key' );
+		} else {
+			$secret_key = CONTENT_STAGING_SECRET_KEY;
+		}
+
+		// Allow filtering of endpoint and secret key.
+		$endpoint   = apply_filters( 'sme_endpoint', $endpoint );
+		$secret_key = apply_filters( 'sme_secret_key', $secret_key );
+
+		$this->secret_key = $secret_key;
 
 		parent::__construct( trailingslashit( $endpoint ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
-		$this->secret_key = CONTENT_STAGING_SECRET_KEY;
 	}
 
 	/**

@@ -288,6 +288,21 @@ jQuery( document ).ready(function($) {
 		}
 	};
 
+	// Bind this anonymous function to create a random 25
+	// character string, for the "secret key".
+	$( '#sme-generate-key' ).click(function(event) {
+		event.preventDefault();
+
+		var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXWZabcdefghijklmnopqrstuvwxyz0123456789';
+		var text = [];
+
+		for(var i = 0; i < 36; i++) {
+			text.push(possible.charAt(Math.floor(Math.random() * possible.length)));
+		}
+
+		$( '#sme-secret-key' ).val(text.join(""));
+	});
+
 	// Initialize application.
 	app.init();
 
