@@ -85,6 +85,7 @@ use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
+use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
  * Class Content_Staging
@@ -125,18 +126,6 @@ class Content_Staging {
 			closedir( $handle );
 		}
 
-		// Backwards compatibility
-		// Move CONTENT_STAGING_SECRET_KEY to options
-		if ( get_option( 'remote_site_secret_key' ) === FALSE ) {
-			update_option( 'remote_site_secret_key', CONTENT_STAGING_SECRET_KEY );
-		}
-
-		// Backwards compatibility
-		// Move CONTENT_STAGING_ENDPOINT to options
-		if ( get_option( 'remote_site_url' ) === FALSE ) {
-			update_option( 'remote_site_url', CONTENT_STAGING_ENDPOINT);
-		}
-		
 		/*
 		 * Content Staging API.
 		 *
@@ -159,6 +148,7 @@ class Content_Staging {
 		$batch_ctrl         = new Batch_Ctrl( $template, $importer_factory );
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 		$settings_ctrl 		= new Settings_Ctrl( $template );
+
 		// Direct requests to the correct entry point.
 		$router = new Router( $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
 

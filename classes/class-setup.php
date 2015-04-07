@@ -23,11 +23,11 @@ class Setup {
 		 * wp_enqueue_script() function, which safely handles any script
 		 * dependencies.
 		 */
-		wp_register_script( 'content-staging', $this->plugin_url . '/assets/js/content-staging.js', array( 'jquery' ), '1.2.5', false );
+		wp_register_script( 'content-staging', $this->plugin_url . '/assets/js/content-staging.js', array( 'jquery' ), '1.2.6', false );
 
 		// Register CSS stylesheet files for later use with wp_enqueue_style().
-		wp_register_style( 'content-staging', $this->plugin_url . '/assets/css/content-staging.css', array(), '1.0.3' );
-		
+		wp_register_style( 'content-staging', $this->plugin_url . '/assets/css/content-staging.css', array(), '1.0.4' );
+
 		/*
 		 * Link script files to the generated page at the right time according to
 		 * the script dependencies.

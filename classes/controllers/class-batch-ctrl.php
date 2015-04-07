@@ -55,15 +55,14 @@ class Batch_Ctrl {
 	/**
 	 * Constructor.
 	 *
-	 * @param Template $template
+	 * @param Template               $template
 	 * @param Batch_Importer_Factory $importer_factory
 	 */
 	public function __construct( Template $template, Batch_Importer_Factory $importer_factory ) {
-		$this->template         = $template;
 		$this->batch_mgr        = new Batch_Mgr();
+		$this->template         = $template;
 		$this->importer_factory = $importer_factory;
 		$this->api              = Helper_Factory::get_instance()->get_api( 'Common' );
-		$this->xmlrpc_client    = Helper_Factory::get_instance()->get_client();
 		$this->batch_dao        = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao         = Helper_Factory::get_instance()->get_dao( 'Post' );
 	}
