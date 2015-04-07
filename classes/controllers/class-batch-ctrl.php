@@ -68,6 +68,7 @@ class Batch_Ctrl {
 
 		// Action hooks.
 		add_action( 'admin_post_sme_delete_batches', array( $this, 'delete_batches' ) );
+		add_action( 'admin_notices', array( $this, 'delete_batches_notice' ) );
 	}
 
 	/**
@@ -310,7 +311,16 @@ class Batch_Ctrl {
 			array_walk( $batches, array( $this->batch_dao, 'delete_by_id' ) );
 		}
 
-		wp_redirect( $_POST['_wp_http_referer'] );
+		$url   = $_POST['_wp_http_referer'];
+		$query = parse_url( $_POST['_wp_http_referer'], PHP_URL_QUERY );
+
+		if ( $query ) {
+			$url .= '&deleted';
+		} else {
+			$url .= '?deleted';
+		}
+
+		wp_redirect( $url );
 		exit;
 	}
 
@@ -332,6 +342,24 @@ class Batch_Ctrl {
 
 		// Render view.
 		$this->template->render( 'delete-batch', $data );
+	}
+
+	/**
+	 * Render admin notice confirming that batches has been deleted.
+	 */
+	public function delete_batches_notice() {
+
+		if ( ! isset( $_GET['deleted'] ) ) {
+			return;
+		}
+
+		$screen = get_current_screen();
+
+		if ( $screen->parent_base !== 'sme-list-batches' ) {
+			return;
+		}
+
+		$this->template->render( 'delete-batches-notice' );
 	}
 
 	/**
