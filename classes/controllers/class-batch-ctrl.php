@@ -61,6 +61,7 @@ class Batch_Ctrl {
 		$this->batch_mgr        = new Batch_Mgr();
 		$this->template         = $template;
 		$this->importer_factory = $importer_factory;
+		$this->xmlrpc_client    = Helper_Factory::get_instance()->get_client();
 		$this->api              = Helper_Factory::get_instance()->get_api( 'Common' );
 		$this->batch_dao        = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->post_dao         = Helper_Factory::get_instance()->get_dao( 'Post' );

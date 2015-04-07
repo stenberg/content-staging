@@ -12,18 +12,20 @@ class Client extends WP_HTTP_IXR_Client {
 
 	public function __construct() {
 
-		// Set endpoint.
-		if ( ! defined( 'CONTENT_STAGING_ENDPOINT' ) || ! CONTENT_STAGING_ENDPOINT ) {
-			$endpoint = get_option( 'sme_cs_endpoint' );
-		} else {
+		$endpoint   = 'http://[YOUR_ENDPOINT_HERE]';
+		$secret_key = 'YOUR_SECRET_KEY';
+
+		if ( defined( 'CONTENT_STAGING_ENDPOINT' ) && CONTENT_STAGING_ENDPOINT ) {
 			$endpoint = CONTENT_STAGING_ENDPOINT;
+		} else if ( $endpoint_opt = get_option( 'sme_cs_endpoint' ) ) {
+			$endpoint = $endpoint_opt;
 		}
 
 		// Set secret key.
-		if ( ! defined( 'CONTENT_STAGING_SECRET_KEY' ) || ! CONTENT_STAGING_SECRET_KEY ) {
-			$secret_key = get_option( 'sme_cs_secret_key' );
-		} else {
+		if ( defined( 'CONTENT_STAGING_SECRET_KEY' ) && CONTENT_STAGING_SECRET_KEY ) {
 			$secret_key = CONTENT_STAGING_SECRET_KEY;
+		} else if ( $secret_key_opt = get_option( 'sme_cs_secret_key' ) ) {
+			$secret_key = $secret_key_opt;
 		}
 
 		// Allow filtering of endpoint and secret key.
