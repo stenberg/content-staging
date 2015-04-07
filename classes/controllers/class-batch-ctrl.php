@@ -77,7 +77,7 @@ class Batch_Ctrl {
 
 		$order_by = 'post_modified';
 		$order    = 'desc';
-		$per_page = 3;
+		$per_page = 20;
 		$paged    = 1;
 
 		if ( isset( $_GET['orderby'] ) ) {
