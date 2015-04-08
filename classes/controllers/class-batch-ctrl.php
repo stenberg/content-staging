@@ -323,9 +323,9 @@ class Batch_Ctrl {
 		$query = parse_url( $url, PHP_URL_QUERY );
 
 		// Add query param 'deleted' to referring URL.
-		if ( $query ) {
+		if ( $query && ! strpos( $query, 'deleted' ) ) {
 			$url .= '&deleted';
-		} else {
+		} else if ( ! $query ) {
 			$url .= '?deleted';
 		}
 
