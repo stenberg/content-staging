@@ -71,7 +71,7 @@ class Post_DAO extends DAO {
 			return null;
 		}
 
-		if ( ( $count = count( $result ) ) > 1 ) {
+		if ( count( $result ) > 1 ) {
 
 			// Get all post IDs.
 			$ids = array_map( function( $row ) {
