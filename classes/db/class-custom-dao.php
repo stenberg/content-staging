@@ -73,4 +73,13 @@ class Custom_DAO {
 		}
 	}
 
+	/**
+	 * Get base prefix of database tables.
+	 *
+	 * @return string
+	 */
+	public function get_table_base_prefix() {
+		return $this->wpdb->base_prefix;
+	}
+
 }

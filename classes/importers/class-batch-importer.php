@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Importers;
 use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Custom_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -45,6 +46,11 @@ abstract class Batch_Importer {
 	protected $batch_dao;
 
 	/**
+	 * @var Custom_DAO
+	 */
+	protected $custom_dao;
+
+	/**
 	 * @var Post_DAO
 	 */
 	protected $post_dao;
@@ -83,6 +89,7 @@ abstract class Batch_Importer {
 		$this->batch             = $batch;
 		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
 		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->custom_dao        = Helper_Factory::get_instance()->get_dao( 'Custom' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
 		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
@@ -127,6 +134,25 @@ abstract class Batch_Importer {
 	 * @see http://codex.wordpress.org/Function_Reference/get_user_by
 	 */
 	public function import_user( User $user ) {
+
+		// Database table base prefix for production and content stage.
+		$prod_prefix  = $this->custom_dao->get_table_base_prefix();
+		$stage_prefix = $this->batch->get_custom_data( 'sme_table_base_prefix' );
+
+		// Change database table base prefix from content staging prefix to
+		// production prefix.
+		$meta = array_map(
+			function( $record ) use ( $stage_prefix, $prod_prefix ) {
+				if ( isset( $record['meta_key'] ) && strpos( $record['meta_key'], $stage_prefix) === 0 ) {
+					$record['meta_key'] = substr_replace( $record['meta_key'], $prod_prefix, 0, strlen( $stage_prefix ) );
+				}
+				return $record;
+			},
+			$user->get_meta()
+		);
+
+		// Update user with new meta.
+		$user->set_meta( $meta );
 
 		// See if user exists in database.
 		$existing = $this->user_dao->get_user_by_user_login( $user->get_login() );

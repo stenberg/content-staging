@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Managers;
 use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Custom_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -26,6 +27,11 @@ class Batch_Mgr {
 	 * @var Batch_DAO
 	 */
 	private $batch_dao;
+
+	/**
+	 * @var Custom_DAO
+	 */
+	private $custom_dao;
 
 	/**
 	 * @var Post_DAO
@@ -57,6 +63,7 @@ class Batch_Mgr {
 	 */
 	public function __construct() {
 		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->custom_dao        = Helper_Factory::get_instance()->get_dao( 'Custom' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
 		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
@@ -114,6 +121,7 @@ class Batch_Mgr {
 			$post_ids = $meta;
 		}
 
+		$this->add_table_prefix( $batch );
 		$this->add_posts( $batch, $post_ids );
 		$this->add_users( $batch );
 
@@ -271,6 +279,15 @@ class Batch_Mgr {
 		}
 
 		return $postmeta;
+	}
+
+	/**
+	 * Add database table base prefix to batch.
+	 *
+	 * @param Batch $batch
+	 */
+	private function add_table_prefix( Batch $batch ) {
+		$batch->add_custom_data( 'sme_table_base_prefix', $this->custom_dao->get_table_base_prefix() );
 	}
 
 }
