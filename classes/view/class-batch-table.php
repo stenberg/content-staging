@@ -32,7 +32,7 @@ class Batch_Table extends WP_List_Table {
 	 * @param array $column_name
 	 * @return string Text or HTML to be placed inside the column.
 	 */
-	public function column_default( Batch $batch, $column_name ) {
+	public function column_default( $batch, $column_name ) {
 
 		// Display name of user who created the batch.
 		$display_name = '';
@@ -85,7 +85,7 @@ class Batch_Table extends WP_List_Table {
 	 *
 	 * @return string Text to be placed inside the column.
 	 */
-	public function column_cb( Batch $batch ) {
+	public function column_cb( $batch ) {
 		return sprintf(
 			'<input type="checkbox" id="sme_select_batch_%s" class="sme-select-batch" name="%s[]" value="%s"/>',
 			$batch->get_id(),

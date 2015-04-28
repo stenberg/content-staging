@@ -30,7 +30,7 @@ class Batch_History_Table extends WP_List_Table {
 	 * @param array $column_name
 	 * @return string Text or HTML to be placed inside the column.
 	 */
-	public function column_default( Batch $item, $column_name ) {
+	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'post_modified':
 				return $item->get_modified();
