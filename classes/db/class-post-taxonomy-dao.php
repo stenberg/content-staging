@@ -19,27 +19,6 @@ class Post_Taxonomy_DAO extends DAO {
 	}
 
 	/**
-	 * Check if a relationship between a post and a taxonomy has been
-	 * persisted to database.
-	 *
-	 * @param Post_Taxonomy $post_taxonomy
-	 * @return bool
-	 */
-	public function has_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
-		$query = $this->wpdb->prepare(
-			'SELECT COUNT(*) FROM ' . $this->get_table() . ' WHERE object_id = %d AND term_taxonomy_id = %d',
-			$post_taxonomy->get_post()->get_id(),
-			$post_taxonomy->get_taxonomy()->get_id()
-		);
-
-		if ( $this->wpdb->get_var( $query ) > 0 ) {
-			return true;
-		}
-
-		return false;
-	}
-
-	/**
 	 * Populate a Post object with Post_Taxonomy relationships.
 	 *
 	 * @param Post $post
@@ -60,17 +39,12 @@ class Post_Taxonomy_DAO extends DAO {
 	}
 
 	/**
+	 * Clear the Post_Taxonomy relationships informations.
+	 *
 	 * @param Post_Taxonomy $post_taxonomy
 	 */
-	public function update_post_taxonomy( Post_Taxonomy $post_taxonomy ) {
-		$data  = $this->create_array( $post_taxonomy );
-		$where = array(
-			'object_id'        => $post_taxonomy->get_post()->get_id(),
-			'term_taxonomy_id' => $post_taxonomy->get_taxonomy()->get_id(),
-		);
-		$format       = $this->format();
-		$where_format = array( '%d', '%d' );
-		$this->update( $data, $where, $format, $where_format );
+	public function clear_post_taxonomy_relationships( Post_Taxonomy $post_taxonomy ) {
+		$this->wpdb->delete( $this->wpdb->term_relationships, array( 'object_id' => $post_taxonomy->get_post()->get_id() ) );
 	}
 
 	/**

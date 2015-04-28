@@ -215,9 +215,16 @@ abstract class Batch_Importer {
 		// Add post diff to array of post diffs.
 		$this->add_post_diff( $post_diff );
 
+		// Clear old post/taxonomy relationships.
+		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
+			$this->post_taxonomy_dao->clear_post_taxonomy_relationships( $post_taxonomy );
+		}
+
 		// Import post/taxonomy relationships.
 		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
-			$this->import_post_taxonomy_relationship( $post_taxonomy );
+			// Import taxonomy.
+			$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
+			$this->post_taxonomy_dao->insert( $post_taxonomy );
 		}
 
 		// Notify listeners that post has been imported.
@@ -358,35 +365,6 @@ abstract class Batch_Importer {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Import post/taxonomy relationship.
-	 *
-	 * @param Post_Taxonomy $post_taxonomy
-	 */
-	public function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
-
-		// Import taxonomy.
-		$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
-
-		/*
-		 * Check if a relationship between a post and a taxonomy exists on
-		 * production.
-		 */
-		$has_relationship = $this->post_taxonomy_dao->has_post_taxonomy_relationship( $post_taxonomy );
-
-		// Check if this is a new term-taxonomy.
-		if ( ! $has_relationship ) {
-			/*
-			 * This post/taxonomy relationship does not exist on production,
-			 * create it.
-			 */
-			$this->post_taxonomy_dao->insert( $post_taxonomy );
-		} else {
-			// This post/taxonomy relationship exists on production, update it.
-			$this->post_taxonomy_dao->update_post_taxonomy( $post_taxonomy );
-		}
 	}
 
 	/**
