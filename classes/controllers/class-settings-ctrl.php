@@ -24,9 +24,13 @@ class Settings_Ctrl {
 
 	public function init() {
 
+		$is_stage = get_option( 'sme_cs_is_stage' );
+		$is_stage = $is_stage ? true : false;
+
 		$data = array(
 			'endpoint'   => get_option( 'sme_cs_endpoint' ),
 			'secret_key' => get_option( 'sme_cs_secret_key' ),
+			'is_stage'   => $is_stage,
 		);
 
 		$this->template->render( 'settings', $data );
@@ -35,6 +39,7 @@ class Settings_Ctrl {
 	public function register_settings() {
 		register_setting( 'content-staging-settings', 'sme_cs_endpoint' );
 		register_setting( 'content-staging-settings', 'sme_cs_secret_key' );
+		register_setting( 'content-staging-settings', 'sme_cs_is_stage' );
 	}
 
 }

@@ -2,6 +2,7 @@
 /**
  * @var string $endpoint
  * @var string $secret_key
+ * @var string $is_stage
  */
 ?>
 <div class="wrap">
@@ -24,6 +25,10 @@
 			<tr valign="top">
 				<th scope="row">Remote Secret Key:</th>
 				<td><input type="text" id="sme-secret-key" name="sme_cs_secret_key" size="60" value="<?php echo $secret_key; ?>" /> <button id="sme-generate-key">Generate Key</button><p><small>This must be the same on both environments.</small></td>
+			</tr>
+			<tr valign="top">
+				<th scope="row">This is my <strong>Content Stage</strong>:</th>
+				<td><input type="checkbox" id="sme-is-stage" name="sme_cs_is_stage" value="1" <?php checked( $is_stage ); ?> /> <small>Defines whether this is your <strong>Content Stage</strong> or your <strong>Production</strong> environment.</small></td>
 			</tr>
 		</table>
 

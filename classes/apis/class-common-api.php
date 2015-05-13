@@ -652,4 +652,24 @@ class Common_API {
 		return get_post_meta( $batch_id, '_sme_import_key', true );
 	}
 
+	/* **********************************************************************
+	 * Settings API
+	 * **********************************************************************/
+
+	/**
+	 * Check if we are currently on Content Stage or Production.
+	 *
+	 * @return bool
+	 */
+	public function is_content_stage() {
+
+		if ( defined( 'CONTENT_STAGING_IS_STAGE' ) ) {
+			return CONTENT_STAGING_IS_STAGE;
+		}
+
+		$is_stage = get_option( 'sme_cs_is_stage' );
+
+		return $is_stage ? true : false;
+	}
+
 }
