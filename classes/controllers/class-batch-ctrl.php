@@ -56,15 +56,20 @@ class Batch_Ctrl {
 	 *
 	 * @param Template               $template
 	 * @param Batch_Importer_Factory $importer_factory
+	 * @param Client                 $xmlrpc_client
+	 * @param Common_API             $api
+	 * @param Batch_DAO              $batch_dao
+	 * @param Post_DAO               $post_dao
 	 */
-	public function __construct( Template $template, Batch_Importer_Factory $importer_factory ) {
+	public function __construct( Template $template, Batch_Importer_Factory $importer_factory, Client $xmlrpc_client,
+								 Common_API $api, Batch_DAO $batch_dao, Post_DAO $post_dao ) {
 		$this->batch_mgr        = new Batch_Mgr();
 		$this->template         = $template;
 		$this->importer_factory = $importer_factory;
-		$this->xmlrpc_client    = Helper_Factory::get_instance()->get_client();
-		$this->api              = Helper_Factory::get_instance()->get_api( 'Common' );
-		$this->batch_dao        = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->post_dao         = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->xmlrpc_client    = $xmlrpc_client;
+		$this->api              = $api;
+		$this->batch_dao        = $batch_dao;
+		$this->post_dao         = $post_dao;
 
 		// Action hooks.
 		add_action( 'admin_post_sme_delete_batches', array( $this, 'delete_batches' ) );

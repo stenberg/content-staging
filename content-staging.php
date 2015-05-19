@@ -84,6 +84,7 @@ use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
+use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
  * Class Content_Staging
@@ -135,6 +136,7 @@ class Content_Staging {
 
 		// Data access objects.
 		$batch_dao = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$post_dao  = Helper_Factory::get_instance()->get_dao( 'Post' );
 
 		// Managers / Factories.
 		$importer_factory = new Batch_Importer_Factory( $sme_content_staging_api, $batch_dao );
@@ -142,8 +144,14 @@ class Content_Staging {
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
+		// XMLRPC client.
+		$xmlrpc_client = new Client();
+
 		// Controllers.
-		$batch_ctrl         = new Batch_Ctrl( $template, $importer_factory );
+		$batch_ctrl = new Batch_Ctrl(
+			$template, $importer_factory, $xmlrpc_client, $sme_content_staging_api, $batch_dao, $post_dao
+		);
+
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 		$settings_ctrl 		= new Settings_Ctrl( $template );
 
