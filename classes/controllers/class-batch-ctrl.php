@@ -701,21 +701,13 @@ class Batch_Ctrl {
 			return $this->xmlrpc_client->prepare_response( $response );
 		}
 
-		$batch->set_id( null );
-		$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
+		// Get production batch ID (if this is an existing batch).
+		$batch_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+		$batch->set_id( $batch_id );
 
-		if ( $revision !== null ) {
-			/*
-			 * Updating existing batch on production.
-			 */
-			$batch->set_id( $revision->get_id() );
+		if ( $batch_id !== null ) {
 			$this->batch_dao->update_batch( $batch );
-
-			unset( $revision );
 		} else {
-			/*
-			 * Creating new batch on production.
-			 */
 			$this->batch_dao->insert( $batch );
 		}
 

@@ -129,7 +129,13 @@ class Batch_DAO extends DAO {
 			$guid
 		);
 
-		return $this->wpdb->get_var( $query );
+		$id = $this->wpdb->get_var( $query );
+
+		if ( $id === null ) {
+			return $id;
+		}
+
+		return (int) $id;
 	}
 
 	/**

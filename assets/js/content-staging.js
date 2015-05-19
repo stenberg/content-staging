@@ -258,7 +258,7 @@ jQuery( document ).ready(function($) {
 					$('#sme-importing').remove();
 				}
 
-				// If import is not completed, select import method.
+				// If import is not yet completed, ask for deploy status again.
 				if (response.status < 3) {
 					self.deployStatus(data);
 				}
