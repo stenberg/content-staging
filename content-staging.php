@@ -68,7 +68,6 @@ require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
 require_once( 'classes/class-background-process.php' );
 require_once( 'classes/class-object-watcher.php' );
-require_once( 'classes/class-router.php' );
 require_once( 'classes/class-setup.php' );
 require_once( 'classes/view/class-template.php' );
 require_once( 'functions/helpers.php' );
@@ -80,13 +79,11 @@ use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
-use Me\Stenberg\Content\Staging\Router;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
-use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
  * Class Content_Staging
@@ -150,15 +147,12 @@ class Content_Staging {
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 		$settings_ctrl 		= new Settings_Ctrl( $template );
 
-		// Direct requests to the correct entry point.
-		$router = new Router( $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
-
 		// Listeners.
 		$import_messages = new Import_Message_Listener();
 		$common_listener = new Common_Listener();
 
 		// Plugin setup.
-		$setup = new Setup( $router, $plugin_url );
+		$setup = new Setup( $plugin_url, $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
 
 		// Actions.
 		add_action( 'init', array( $setup, 'register_post_types' ) );
@@ -166,11 +160,13 @@ class Content_Staging {
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
 		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );
-		add_action( 'admin_post_sme-save-batch', array( $router, 'batch_save' ) );
-		add_action( 'admin_post_sme-quick-deploy-batch', array( $router, 'batch_deploy_quick' ) );
-		add_action( 'admin_post_sme-delete-batch', array( $router, 'batch_delete' ) );
-		add_action( 'wp_ajax_sme_preflight_request', array( $router, 'ajax_preflight' ) );
-		add_action( 'wp_ajax_sme_import_status_request', array( $router, 'ajax_batch_import' ) );
+
+		// Routing.
+		add_action( 'admin_post_sme-save-batch', array( $batch_ctrl, 'save_batch' ) );
+		add_action( 'admin_post_sme-quick-deploy-batch', array( $batch_ctrl, 'quick_deploy' ) );
+		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );
+		add_action( 'wp_ajax_sme_preflight_request', array( $batch_ctrl, 'preflight_status' ) );
+		add_action( 'wp_ajax_sme_import_status_request', array( $batch_ctrl, 'import_status_request' ) );
 
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );

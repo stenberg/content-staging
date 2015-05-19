@@ -1,16 +1,23 @@
 <?php
 namespace Me\Stenberg\Content\Staging;
 
-use Me\Stenberg\Content\Staging\XMLRPC\Client;
+use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
+use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
+use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 
 class Setup {
 
-	private $router;
 	private $plugin_url;
+	private $batch_ctrl;
+	private $batch_history_ctrl;
+	private $settings_ctrl;
 
-	public function __construct( Router $router, $plugin_url ) {
-		$this->router     = $router;
-		$this->plugin_url = $plugin_url;
+	public function __construct( $plugin_url, Batch_Ctrl $batch_ctrl, Batch_History_Ctrl $batch_history_ctrl,
+								 Settings_Ctrl $settings_ctrl ) {
+		$this->plugin_url         = $plugin_url;
+		$this->batch_ctrl         = $batch_ctrl;
+		$this->batch_history_ctrl = $batch_history_ctrl;
+		$this->settings_ctrl      = $settings_ctrl;
 	}
 
 	/**
@@ -69,14 +76,14 @@ class Setup {
 	}
 
 	public function register_menu_pages() {
-		add_menu_page( 'Content Staging', 'Content Staging', 'manage_options', 'sme-list-batches', array( $this->router, 'batch_list' ) );
-		add_submenu_page( 'sme-list-batches', 'History', 'History', 'manage_options', 'sme-batch-history', array( $this->router, 'batch_history' ) );
-		add_submenu_page( 'sme-list-batches', 'Settings', 'Settings', 'manage_options', 'sme-settings', array( $this->router, 'settings_view' ) );
-		add_submenu_page( null, 'Edit Batch', 'Edit', 'manage_options', 'sme-edit-batch', array( $this->router, 'batch_edit' ) );
-		add_submenu_page( null, 'Delete Batch', 'Delete', 'manage_options', 'sme-delete-batch', array( $this->router, 'batch_confirm_delete' ) );
-		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->router, 'batch_prepare' ) );
-		add_submenu_page( null, 'Quick Deploy Batch', 'Quick Deploy', 'manage_options', 'sme-quick-deploy-batch', array( $this->router, 'batch_deploy_quick' ) );
-		add_submenu_page( null, 'Deploy Batch', 'Deploy', 'manage_options', 'sme-send-batch', array( $this->router, 'batch_deploy' ) );
+		add_menu_page( 'Content Staging', 'Content Staging', 'manage_options', 'sme-list-batches', array( $this->batch_ctrl, 'list_batches' ) );
+		add_submenu_page( 'sme-list-batches', 'History', 'History', 'manage_options', 'sme-batch-history', array( $this->batch_history_ctrl, 'init' ) );
+		add_submenu_page( 'sme-list-batches', 'Settings', 'Settings', 'manage_options', 'sme-settings', array( $this->settings_ctrl, 'init' ) );
+		add_submenu_page( null, 'Edit Batch', 'Edit', 'manage_options', 'sme-edit-batch', array( $this->batch_ctrl, 'edit_batch' ) );
+		add_submenu_page( null, 'Delete Batch', 'Delete', 'manage_options', 'sme-delete-batch', array( $this->batch_ctrl, 'confirm_delete_batch' ) );
+		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->batch_ctrl, 'prepare' ) );
+		add_submenu_page( null, 'Quick Deploy Batch', 'Quick Deploy', 'manage_options', 'sme-quick-deploy-batch', array( $this->batch_ctrl, 'quick_deploy' ) );
+		add_submenu_page( null, 'Deploy Batch', 'Deploy', 'manage_options', 'sme-send-batch', array( $this->batch_ctrl, 'deploy' ) );
 	}
 
 	/**
@@ -100,9 +107,9 @@ class Setup {
 	 */
 	public function register_xmlrpc_methods( $methods ) {
 
-		$methods['smeContentStaging.verify'] = array( $this->router, 'batch_verify' );
-		$methods['smeContentStaging.import'] = array( $this->router, 'batch_import' );
-		$methods['smeContentStaging.importStatus'] = array( $this->router, 'batch_import_status' );
+		$methods['smeContentStaging.verify'] = array( $this->batch_ctrl, 'verify' );
+		$methods['smeContentStaging.import'] = array( $this->batch_ctrl, 'import' );
+		$methods['smeContentStaging.importStatus'] = array( $this->batch_ctrl, 'import_status' );
 
 		return $methods;
 	}
