@@ -6,7 +6,7 @@ use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Message_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
-use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
@@ -20,6 +20,16 @@ class Common_API {
 	 * @var Client
 	 */
 	private $client;
+
+	/**
+	 * @var Batch_Mgr
+	 */
+	private $batch_mgr;
+
+	/**
+	 * @var DAO_Factory
+	 */
+	private $dao_factory;
 
 	/**
 	 * @var Batch_DAO
@@ -44,12 +54,14 @@ class Common_API {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
-		$this->client       = Helper_Factory::get_instance()->get_client();
-		$this->batch_dao    = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->message_dao  = Helper_Factory::get_instance()->get_dao( 'Message' );
-		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
+	public function __construct( Client $client, DAO_Factory $dao_factory ) {
+		$this->client       = $client;
+		$this->dao_factory  = $dao_factory;
+		$this->batch_dao    = $dao_factory->create( 'Batch' );
+		$this->message_dao  = $dao_factory->create( 'Message' );
+		$this->post_dao     = $dao_factory->create( 'Post' );
+		$this->postmeta_dao = $dao_factory->create( 'Postmeta' );
+		$this->batch_mgr    = new Batch_Mgr( $this, $dao_factory );
 	}
 
 	/* **********************************************************************
@@ -85,6 +97,10 @@ class Common_API {
 		return new Batch();
 	}
 
+	public function get_batch( $id = null ) {
+		return $this->batch_mgr->get( $id );
+	}
+
 	/**
 	 * Prepare a batch.
 	 *
@@ -101,8 +117,7 @@ class Common_API {
 		// Hook in before batch is built
 		do_action( 'sme_prepare', $batch );
 
-		$mgr = new Batch_Mgr();
-		$mgr->prepare( $batch );
+		$this->batch_mgr->prepare( $batch );
 
 		// Let third-party developers filter batch data.
 		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );
@@ -232,7 +247,7 @@ class Common_API {
 
 		$this->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
 
-		$factory  = new Batch_Importer_Factory( $this, $this->batch_dao );
+		$factory  = new Batch_Importer_Factory( $this, $this->dao_factory );
 		$importer = $factory->get_importer( $batch );
 
 		$importer->run();

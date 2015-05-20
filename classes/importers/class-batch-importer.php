@@ -86,8 +86,14 @@ abstract class Batch_Importer {
 	 * @param Batch $batch
 	 */
 	protected function __construct( Batch $batch ) {
+
+		/**
+		 * @var Common_API $sme_content_staging_api
+		 */
+		global $sme_content_staging_api;
+
 		$this->batch             = $batch;
-		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->api               = $sme_content_staging_api;
 		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->custom_dao        = Helper_Factory::get_instance()->get_dao( 'Custom' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );

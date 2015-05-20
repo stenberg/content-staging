@@ -9,6 +9,7 @@ use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -60,15 +61,18 @@ class Batch_Mgr {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param Common_API  $api
+	 * @param DAO_Factory $dao_factory
 	 */
-	public function __construct() {
-		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->custom_dao        = Helper_Factory::get_instance()->get_dao( 'Custom' );
-		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
-		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
-		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
-		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
+	public function __construct( Common_API $api, DAO_Factory $dao_factory ) {
+		$this->api               = $api;
+		$this->batch_dao         = $dao_factory->create( 'Batch' );
+		$this->custom_dao        = $dao_factory->create( 'Custom' );
+		$this->post_dao          = $dao_factory->create( 'Post' );
+		$this->post_taxonomy_dao = $dao_factory->create( 'Post_Taxonomy' );
+		$this->postmeta_dao      = $dao_factory->create( 'Postmeta' );
+		$this->user_dao          = $dao_factory->create( 'User' );
 	}
 
 	/**

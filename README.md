@@ -123,11 +123,13 @@ During pre-flight you might want to pass messages from the production environmen
 	 */
 	function my_custom_image_data( $batch ) {
 
-		// Instantiate an instance of the content staging API (common functionality).
-		$api = \Me\Stenberg\Content\Staging\Helper_Factory::get_instance()->get_api( 'Common' );
+		/**
+         * @var Common_API $sme_content_staging_api
+         */
+         global $sme_content_staging_api;
 
 		// Add a message to the batch.
-		$api->add_preflight_message( $batch->get_id(), 'This rocks!', 'success' );
+		$sme_content_staging_api->add_preflight_message( $batch->get_id(), 'This rocks!', 'success' );
 	}
 
 	// Here we use a hook that is triggered in the end of the pre-flight (on production).
@@ -140,14 +142,16 @@ The same thing is possible when deploying content. In addition you can also fail
 	 */
 	function my_custom_image_data( $batch ) {
 
-		// Instantiate an instance of the content staging API (common functionality).
-		$api = \Me\Stenberg\Content\Staging\Helper_Factory::get_instance()->get_api( 'Common' );
+        /**
+         * @var Common_API $sme_content_staging_api
+         */
+         global $sme_content_staging_api;
 
 		// Add a message to the batch.
-		$api->add_deploy_message( $batch->get_id(), 'Oh no, something went wrong!', 'error' );
+		$sme_content_staging_api->add_deploy_message( $batch->get_id(), 'Oh no, something went wrong!', 'error' );
 
 		// Mark batch as failed (2 = Fail).
-		$api->set_deploy_status( $batch->get_id(), 2 );
+		$sme_content_staging_api->set_deploy_status( $batch->get_id(), 2 );
 	}
 
 	// This time we use a hook that is triggered in the end of the deploy process (on production).

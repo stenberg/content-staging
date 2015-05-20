@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Controllers;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
@@ -20,11 +21,6 @@ class Batch_Ctrl {
 	 * @var Template
 	 */
 	private $template;
-
-	/**
-	 * @var Batch_Mgr
-	 */
-	private $batch_mgr;
 
 	/**
 	 * @var Client
@@ -58,18 +54,16 @@ class Batch_Ctrl {
 	 * @param Batch_Importer_Factory $importer_factory
 	 * @param Client                 $xmlrpc_client
 	 * @param Common_API             $api
-	 * @param Batch_DAO              $batch_dao
-	 * @param Post_DAO               $post_dao
+	 * @param DAO_Factory            $dao_factory
 	 */
 	public function __construct( Template $template, Batch_Importer_Factory $importer_factory, Client $xmlrpc_client,
-								 Common_API $api, Batch_DAO $batch_dao, Post_DAO $post_dao ) {
-		$this->batch_mgr        = new Batch_Mgr();
+								 Common_API $api, DAO_Factory $dao_factory ) {
 		$this->template         = $template;
 		$this->importer_factory = $importer_factory;
 		$this->xmlrpc_client    = $xmlrpc_client;
 		$this->api              = $api;
-		$this->batch_dao        = $batch_dao;
-		$this->post_dao         = $post_dao;
+		$this->batch_dao        = $dao_factory->create( 'Batch' );
+		$this->post_dao         = $dao_factory->create( 'Post' );
 
 		// Action hooks.
 		add_action( 'admin_post_sme_delete_batches', array( $this, 'delete_batches' ) );
@@ -147,7 +141,7 @@ class Batch_Ctrl {
 			$batch_id = intval( $_GET['id'] );
 		}
 
-		$batch = $this->batch_mgr->get( $batch_id );
+		$batch = $this->api->get_batch( $batch_id );
 
 		if ( isset( $_GET['orderby'] ) ) {
 			$order_by = $_GET['orderby'];
@@ -240,7 +234,7 @@ class Batch_Ctrl {
 
 		// Get batch.
 		$batch_id = $_GET['id'] > 0 ? intval( $_GET['id'] ) : null;
-		$batch    = $this->batch_mgr->get( $batch_id );
+		$batch    = $this->api->get_batch( $batch_id );
 
 		/*
 		 * Make it possible for third-party developers to modify 'Save Batch'
@@ -349,7 +343,7 @@ class Batch_Ctrl {
 		}
 
 		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get( $_GET['id'] );
+		$batch = $this->api->get_batch( $_GET['id'] );
 
 		// Data to be passed to view.
 		$data = array( 'batch' => $batch );
@@ -625,7 +619,7 @@ class Batch_Ctrl {
 		// Get as integer.
 		$post_id = intval( $_GET['post_id'] );
 
-		$batch = $this->batch_mgr->get();
+		$batch = $this->api->get_batch();
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
 		$this->batch_dao->insert( $batch );

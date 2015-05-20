@@ -44,6 +44,7 @@ require_once( 'classes/db/class-postmeta-dao.php' );
 require_once( 'classes/db/class-taxonomy-dao.php' );
 require_once( 'classes/db/class-term-dao.php' );
 require_once( 'classes/db/class-user-dao.php' );
+require_once( 'classes/factories/class-dao-factory.php' );
 require_once( 'classes/importers/class-batch-importer.php' );
 require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
@@ -75,8 +76,9 @@ require_once( 'functions/helpers.php' );
 /*
  * Import classes.
  */
+use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
-use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Setup;
@@ -108,7 +110,15 @@ class Content_Staging {
 	 */
 	public static function init() {
 
+		/**
+		 * @var Common_API $sme_content_staging_api
+		 */
 		global $sme_content_staging_api;
+
+		/**
+		 * @var wpdb $wpdb
+		 */
+		global $wpdb;
 
 		// Determine plugin URL and plugin path of this plugin.
 		$plugin_path = dirname( __FILE__ );
@@ -125,21 +135,8 @@ class Content_Staging {
 			closedir( $handle );
 		}
 
-		/*
-		 * Content Staging API.
-		 *
-		 * Important! Do not change the name of this variable! It is used as a
-		 * global in the helpers.php scripts so third-party developers have a
-		 * way of working with the plugin using functions instead of classes.
-		 */
-		$sme_content_staging_api = Helper_Factory::get_instance()->get_api( 'Common' );
-
-		// Data access objects.
-		$batch_dao = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$post_dao  = Helper_Factory::get_instance()->get_dao( 'Post' );
-
 		// Managers / Factories.
-		$importer_factory = new Batch_Importer_Factory( $sme_content_staging_api, $batch_dao );
+		$dao_factory = new DAO_Factory( $wpdb );
 
 		// Template engine.
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
@@ -147,17 +144,29 @@ class Content_Staging {
 		// XMLRPC client.
 		$xmlrpc_client = new Client();
 
+		/*
+		 * Content Staging API.
+		 *
+		 * Important! Do not change the name of this variable! It is used as a
+		 * global in the helpers.php scripts so third-party developers have a
+		 * way of working with the plugin using functions instead of classes.
+		 */
+		$sme_content_staging_api = new Common_API( $xmlrpc_client, $dao_factory );
+
+		// Importer.
+		$importer_factory = new Batch_Importer_Factory( $sme_content_staging_api, $dao_factory );
+
 		// Controllers.
 		$batch_ctrl = new Batch_Ctrl(
-			$template, $importer_factory, $xmlrpc_client, $sme_content_staging_api, $batch_dao, $post_dao
+			$template, $importer_factory, $xmlrpc_client, $sme_content_staging_api, $dao_factory
 		);
 
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 		$settings_ctrl 		= new Settings_Ctrl( $template );
 
 		// Listeners.
-		$import_messages = new Import_Message_Listener();
-		$common_listener = new Common_Listener();
+		$import_messages = new Import_Message_Listener( $sme_content_staging_api, $dao_factory );
+		$common_listener = new Common_Listener( $sme_content_staging_api, $dao_factory );
 
 		// Plugin setup.
 		$setup = new Setup( $plugin_url, $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
