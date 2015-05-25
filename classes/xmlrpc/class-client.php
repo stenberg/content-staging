@@ -45,6 +45,7 @@ class Client extends WP_HTTP_IXR_Client {
 	 * @return array
 	 */
 	public function request( $method, $data = array() ) {
+
 		$data = $this->encode( serialize( $data ) );
 
 		$args = array(
@@ -63,62 +64,18 @@ class Client extends WP_HTTP_IXR_Client {
 		$this->disable_ssl_verification();
 
 		/*
-		 * Perform the XML-RPC request. A HTTP status code is returned indicating
-		 * whether the request was successful (200) or not (any other code).
+		 * Perform the XML-RPC request. Returns true on success, false on
+		 * failure.
 		 */
-		$status = call_user_func_array( array( $this, 'query' ), $args );
+		$query_successful = call_user_func_array( array( $this, 'query' ), $args );
 
 		// Enable SSL verification.
 		$this->enable_ssl_verification();
 
-		if ( ! $status ) {
+		if ( ! $query_successful ) {
 
-			if ( strpos( $this->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
-				$message = new Message();
-				$message->set_level( 'error' );
-				$message->set_message(
-					sprintf( 'Content Staging plugin not activated on host <strong>%s</strong>', $this->server )
-				);
-
-				$this->filtered_response = array(
-					'status'   => 2,
-					'messages' => array( $message ),
-				);
-
-				return;
-			}
-
-			if ( strpos( $this->getErrorMessage(), 'Could not resolve host' ) !== false ) {
-				$message = new Message();
-				$message->set_level( 'error' );
-				$message->set_message(
-					sprintf( 'Could not connect to host <strong>%s</strong>', $this->server )
-				);
-
-				$this->filtered_response = array(
-					'status'   => 2,
-					'messages' => array( $message ),
-				);
-
-				return;
-			}
-
-			$message = new Message();
-			$message->set_level( 'error' );
-			$message->set_message(
-				sprintf(
-					'%s - on host: %s (error code %s)',
-					$this->getErrorMessage(),
-					$this->server,
-					$this->getErrorCode()
-				)
-			);
-
-			$this->filtered_response = array(
-				'status'   => 2,
-				'messages' => array( $message ),
-			);
-
+			// Handle failed request.
+			$this->filtered_response = $this->query_failed();
 		} else {
 
 			// Get the XML-RPC response data.
@@ -269,5 +226,82 @@ class Client extends WP_HTTP_IXR_Client {
 			remove_filter( 'https_local_ssl_verify', '__return_false', 999 );
 			remove_filter( 'https_ssl_verify', '__return_false', 999 );
 		}
+	}
+
+	/**
+	 * Handle failed request.
+	 *
+	 * @return array
+	 */
+	private function query_failed() {
+
+		if ( strpos( $this->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
+			return $this->error_plugin_inactive();
+		}
+
+		if ( strpos( $this->getErrorMessage(), 'Could not resolve host' ) !== false ) {
+			return $this->error_host_not_found();
+		}
+
+		return $this->error_general();
+	}
+
+	/**
+	 * Content Staging plugin is not active.
+	 *
+	 * @return array
+	 */
+	private function error_plugin_inactive() {
+		$message = new Message();
+		$message->set_level( 'error' );
+		$message->set_message(
+			sprintf( 'Content Staging plugin not activated on host <strong>%s</strong>', $this->server )
+		);
+
+		return array(
+			'status'   => 2,
+			'messages' => array( $message ),
+		);
+	}
+
+	/**
+	 * Remote host could not be found.
+	 *
+	 * @return array
+	 */
+	private function error_host_not_found() {
+		$message = new Message();
+		$message->set_level( 'error' );
+		$message->set_message(
+			sprintf( 'Could not connect to host <strong>%s</strong>', $this->server )
+		);
+
+		return array(
+			'status'   => 2,
+			'messages' => array( $message ),
+		);
+	}
+
+	/**
+	 * Error occurred during request.
+	 *
+	 * @return array
+	 */
+	private function error_general() {
+		$message = new Message();
+		$message->set_level( 'error' );
+		$message->set_message(
+			sprintf(
+				'%s - on host: %s (error code %s)',
+				$this->getErrorMessage(),
+				$this->server,
+				$this->getErrorCode()
+			)
+		);
+
+		return array(
+			'status'   => 2,
+			'messages' => array( $message ),
+		);
 	}
 }
