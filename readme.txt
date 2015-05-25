@@ -3,7 +3,7 @@ Contributors: stenberg.me, horte
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6L9DXMHNE3A6Q
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
-Tested up to: 4.0
+Tested up to: 4.2.2
 Stable tag: 1.2.2
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -51,6 +51,27 @@ third-party developers.
 4. Deploy your batch from staging environment to your live site.
 
 == Changelog ==
+
+= 2.0.0 =
+* Faster import.
+* Settings page.
+* New import message system.
+* Decide what post statuses are allowed in batch.
+* Support custom importer.
+* Select importer.
+* Delete batch after import.
+* Custom headers in XMLRPC client.
+* Only published posts in batch history.
+* Remove import job post type (only use batches).
+* Unique batch GUIDs.
+* Filter deploy messages.
+* Stage backend URL in batch.
+* Delayed import.
+* Handle taxonomies with incorrect term IDs.
+* Display deploy messages to user.
+* Fix user permission when differing table prefix.
+* Set environment.
+* Bug fixes.
 
 = 1.2.2 =
 * Improved post comparison between content stage and production (better understanding of new vs. updated posts).
