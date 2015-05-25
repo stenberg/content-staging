@@ -254,12 +254,12 @@ jQuery( document ).ready(function($) {
 					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
 				}
 
-				if (response.status > 2 ) {
+				if (response.status > 1) {
 					$('#sme-importing').remove();
 				}
 
 				// If import is not yet completed, ask for deploy status again.
-				if (response.status < 3) {
+				if (response.status < 2) {
 					self.deployStatus(data);
 				}
 			});

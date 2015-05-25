@@ -660,12 +660,14 @@ class Batch_Ctrl {
 		$response = $this->api->deploy( $batch );
 
 		// Get messages received from production.
-		$messages = ( isset( $response['messages'] ) ? $response['messages'] : 0 );
+		$status   = isset( $response['status'] )   ? $response['status']   : 0;
+		$messages = isset( $response['messages'] ) ? $response['messages'] : array();
 
 		// Render page.
 		$this->template->render(
 			'deploy-batch',
 			array(
+				'status'   => $status,
 				'messages' => $messages,
 			)
 		);
@@ -738,14 +740,14 @@ class Batch_Ctrl {
 		$response = $this->api->import_status_request( $batch_id );
 
 		// Deploy status.
-		$status = 2;
+		$status = isset ( $response['status'] ) ? $response['status'] : 2;
 
 		// Get status from content stage.
 		$stage_status = $this->api->get_deploy_status( $batch_id );
 
-		// Ensure no pre-flight status is not set to failed.
-		if ( $response['status'] != 2 && $stage_status != 2 ) {
-			$status = $response['status'];
+		// Use stage status if stage verification has failed.
+		if ( $stage_status == 2 ) {
+			$status = $stage_status;
 		}
 
 		// Get content stage messages.

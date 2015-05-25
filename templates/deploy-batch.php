@@ -1,3 +1,17 @@
+<?php
+/**
+ * @var string $spinner
+ */
+$spinner = '';
+
+if ( isset( $status ) && $status < 2 ) {
+	$spinner  = '<div id="sme-importing" class="sme-cs-message sme-cs-info">';
+	$spinner .= '<p><div class="sme-loader-gif"></div> Importing...</p>';
+	$spinner .= '</div>';
+}
+
+?>
+
 <div class="wrap">
 	<h2>Deploying Batch</h2>
 
@@ -10,7 +24,6 @@
 			</div>
 		<?php } ?>
 	</div>
-	<div id="sme-importing" class="sme-cs-message sme-cs-info">
-		<p><div class="sme-loader-gif"></div> Importing...</p>
-	</div>
+
+	<?php echo $spinner; ?>
 </div>
