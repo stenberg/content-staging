@@ -147,8 +147,7 @@ class Common_API {
 			'batch' => $batch,
 		);
 
-		$this->client->request( 'smeContentStaging.verify', $request );
-		$response = $this->client->get_response_data();
+		$response = $this->client->request( 'smeContentStaging.verify', $request );
 
 		// Hook in after batch has been transferred.
 		$response = apply_filters( 'sme_preflighted', $response, $batch );
@@ -202,8 +201,7 @@ class Common_API {
 			'auto_import' => $auto_import,
 		);
 
-		$this->client->request( 'smeContentStaging.import', $request );
-		$response = $this->client->get_response_data();
+		$response = $this->client->request( 'smeContentStaging.import', $request );
 
 		// Batch deploy in progress.
 		$response = apply_filters( 'sme_deploying', $response, $batch );
@@ -619,8 +617,7 @@ class Common_API {
 			'batch_id' => $batch_id,
 		);
 
-		$this->client->request( 'smeContentStaging.importStatus', $request );
-		$response = $this->client->get_response_data();
+		$response = $this->client->request( 'smeContentStaging.importStatus', $request );
 		$response = apply_filters( 'sme_deploy_status', $response );
 
 		// Get production deploy status.

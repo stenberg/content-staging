@@ -38,21 +38,16 @@ class Client extends WP_HTTP_IXR_Client {
 	}
 
 	/**
-	 * Perform the XML-RPC request and store the response.
+	 * Perform the XML-RPC request and return the response.
 	 *
 	 * @param string $method
-	 * @param array $data
+	 * @param array  $data
+	 *
 	 * @return array
 	 */
 	public function request( $method, $data = array() ) {
 
-		$data = $this->encode( serialize( $data ) );
-
-		$args = array(
-			$method,
-			$this->generate_access_token( $data ),
-			$data,
-		);
+		$args = $this->prepare_request_args( $method, $data );
 
 		// Allow custom path to send XML-RPC request to.
 		$this->path = apply_filters( 'sme_xmlrpc_path', $this->path );
@@ -60,27 +55,38 @@ class Client extends WP_HTTP_IXR_Client {
 		// Allow custom headers.
 		$this->headers = apply_filters( 'sme_client_headers', array() );
 
+		// Send request.
+		$query_successful = $this->send( $args );
+
+		if ( ! $query_successful ) {
+
+			// Handle failed request.
+			return $this->filtered_response = $this->query_failed();
+		}
+
+		// Get the XML-RPC response data.
+		return $this->filtered_response = unserialize( $this->decode( $this->getResponse() ) );
+	}
+
+	/**
+	 * Perform XML-RPC request.
+	 *
+	 * @param array $args
+	 *
+	 * @return bool
+	 */
+	public function send( $args ) {
+
 		// Disable SSL verification (based on user settings).
 		$this->disable_ssl_verification();
 
-		/*
-		 * Perform the XML-RPC request. Returns true on success, false on
-		 * failure.
-		 */
+		// Perform XML-RPC request. Returns true on success, false on failure.
 		$query_successful = call_user_func_array( array( $this, 'query' ), $args );
 
 		// Enable SSL verification.
 		$this->enable_ssl_verification();
 
-		if ( ! $query_successful ) {
-
-			// Handle failed request.
-			$this->filtered_response = $this->query_failed();
-		} else {
-
-			// Get the XML-RPC response data.
-			$this->filtered_response = unserialize( $this->decode( $this->getResponse() ) );
-		}
+		return $query_successful;
 	}
 
 	/**
@@ -89,6 +95,7 @@ class Client extends WP_HTTP_IXR_Client {
 	 * the XML-RPC response data.
 	 *
 	 * @param array $args
+	 *
 	 * @return array
 	 */
 	public function handle_request( $args ) {
@@ -160,13 +167,6 @@ class Client extends WP_HTTP_IXR_Client {
 	}
 
 	/**
-	 * Return the response data.
-	 */
-	public function get_response_data() {
-		return $this->filtered_response;
-	}
-
-	/**
 	 * Generate an access token for request validation.
 	 *
 	 * @param string $data
@@ -185,6 +185,23 @@ class Client extends WP_HTTP_IXR_Client {
 	 */
 	public function prepare_response( $response ) {
 		return $this->encode( serialize( $response ) );
+	}
+
+	/**
+	 * @param string $method
+	 * @param array  $data
+	 *
+	 * @return array
+	 */
+	private function prepare_request_args( $method, $data = array() ) {
+
+		$data = $this->encode( serialize( $data ) );
+
+		return array(
+			$method,
+			$this->generate_access_token( $data ),
+			$data,
+		);
 	}
 
 	/**
