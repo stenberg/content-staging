@@ -4,48 +4,39 @@ namespace Me\Stenberg\Content\Staging\XMLRPC;
 use Me\Stenberg\Content\Staging\Models\Message;
 use \WP_HTTP_IXR_Client;
 
-class Client extends WP_HTTP_IXR_Client {
+class Client {
+
+	/**
+	 * @var WP_HTTP_IXR_Client
+	 */
+	private $ixr_client;
+
+	/**
+	 * Arguments to send with the XML-RPC request.
+	 *
+	 * @var array
+	 */
+	private $request_args;
+
+	/**
+	 * Number of request attempts.
+	 *
+	 * @var int
+	 */
+	private $attempts;
 
 	private $secret_key;
-	private $request_args;
 	private $filtered_request;
 	private $filtered_response;
-	private $attempts;
 
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
-
-		$endpoint   = 'http://[YOUR_ENDPOINT_HERE]';
-		$secret_key = 'YOUR_SECRET_KEY';
-
-		if ( defined( 'CONTENT_STAGING_ENDPOINT' ) && CONTENT_STAGING_ENDPOINT ) {
-			$endpoint = CONTENT_STAGING_ENDPOINT;
-		} else if ( $endpoint_opt = get_option( 'sme_cs_endpoint' ) ) {
-			$endpoint = $endpoint_opt;
-		}
-
-		// Set secret key.
-		if ( defined( 'CONTENT_STAGING_SECRET_KEY' ) && CONTENT_STAGING_SECRET_KEY ) {
-			$secret_key = CONTENT_STAGING_SECRET_KEY;
-		} else if ( $secret_key_opt = get_option( 'sme_cs_secret_key' ) ) {
-			$secret_key = $secret_key_opt;
-		}
-
-		// Allow filtering of endpoint and secret key.
-		$endpoint   = apply_filters( 'sme_endpoint', $endpoint );
-		$secret_key = apply_filters( 'sme_secret_key', $secret_key );
-
-		$this->secret_key = $secret_key;
-
-		// Arguments to send with the XML-RPC request.
+	public function __construct( WP_HTTP_IXR_Client $ixr_client, $secret_key ) {
+		$this->ixr_client   = $ixr_client;
+		$this->secret_key   = $secret_key;
 		$this->request_args = array();
-
-		// Number of request attempts.
-		$this->attempts = 0;
-
-		parent::__construct( trailingslashit( $endpoint ) . 'xmlrpc.php', false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
+		$this->attempts     = 0;
 	}
 
 	/************************************************************************
@@ -65,9 +56,9 @@ class Client extends WP_HTTP_IXR_Client {
 	 */
 	public function request( $method, $data = array() ) {
 
-		$this->request_args = $this->prepare_request_args( $method, $data );
-		$this->path         = $this->prepare_request_path( $this->path );
-		$this->headers      = $this->prepare_request_headers( $this->headers );
+		$this->request_args        = $this->prepare_request_args( $method, $data );
+		$this->ixr_client->path    = $this->prepare_request_path( $this->ixr_client->path );
+		$this->ixr_client->headers = $this->prepare_request_headers( $this->ixr_client->headers );
 
 		// Send request.
 		$query_successful = $this->send();
@@ -91,7 +82,7 @@ class Client extends WP_HTTP_IXR_Client {
 		$this->disable_ssl_verification();
 
 		// Perform XML-RPC request. Returns true on success, false on failure.
-		$query_successful = call_user_func_array( array( $this, 'query' ), $this->request_args );
+		$query_successful = call_user_func_array( array( $this->ixr_client, 'query' ), $this->request_args );
 
 		// Enable SSL verification.
 		$this->enable_ssl_verification();
@@ -106,7 +97,7 @@ class Client extends WP_HTTP_IXR_Client {
 		$this->attempts = 0;
 
 		// Get response.
-		$this->filtered_response = $this->getResponse();
+		$this->filtered_response = $this->ixr_client->getResponse();
 
 		return $query_successful;
 	}
@@ -119,7 +110,7 @@ class Client extends WP_HTTP_IXR_Client {
 	private function retry() {
 
 		// Error message.
-		$msg = $this->getErrorMessage();
+		$msg = $this->ixr_client->getErrorMessage();
 
 		// Error messages that should trigger request to be re-sent.
 		$retry_triggers = array(
@@ -196,11 +187,11 @@ class Client extends WP_HTTP_IXR_Client {
 	 */
 	private function get_error_message() {
 
-		if ( strpos( $this->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
+		if ( strpos( $this->ixr_client->getErrorMessage(), 'requested method smeContentStaging.verify does not exist' ) !== false ) {
 			return $this->error_plugin_inactive();
 		}
 
-		if ( strpos( $this->getErrorMessage(), 'Could not resolve host' ) !== false ) {
+		if ( strpos( $this->ixr_client->getErrorMessage(), 'Could not resolve host' ) !== false ) {
 			return $this->error_host_not_found();
 		}
 
@@ -216,7 +207,7 @@ class Client extends WP_HTTP_IXR_Client {
 		$message = new Message();
 		$message->set_level( 'error' );
 		$message->set_message(
-			sprintf( 'Content Staging plugin not activated on host <strong>%s</strong>', $this->server )
+			sprintf( 'Content Staging plugin not activated on host <strong>%s</strong>', $this->ixr_client->server )
 		);
 
 		return array(
@@ -234,7 +225,7 @@ class Client extends WP_HTTP_IXR_Client {
 		$message = new Message();
 		$message->set_level( 'error' );
 		$message->set_message(
-			sprintf( 'Could not connect to host <strong>%s</strong>', $this->server )
+			sprintf( 'Could not connect to host <strong>%s</strong>', $this->ixr_client->server )
 		);
 
 		return array(
@@ -254,9 +245,9 @@ class Client extends WP_HTTP_IXR_Client {
 		$message->set_message(
 			sprintf(
 				'%s - on host: %s (error code %s)',
-				$this->getErrorMessage(),
-				$this->server,
-				$this->getErrorCode()
+				$this->ixr_client->getErrorMessage(),
+				$this->ixr_client->server,
+				$this->ixr_client->getErrorCode()
 			)
 		);
 

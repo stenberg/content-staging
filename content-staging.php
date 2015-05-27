@@ -45,6 +45,7 @@ require_once( 'classes/db/class-taxonomy-dao.php' );
 require_once( 'classes/db/class-term-dao.php' );
 require_once( 'classes/db/class-user-dao.php' );
 require_once( 'classes/factories/class-dao-factory.php' );
+require_once( 'classes/factories/class-xmlrpc-client-factory.php' );
 require_once( 'classes/importers/class-batch-importer.php' );
 require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
@@ -79,6 +80,7 @@ require_once( 'functions/helpers.php' );
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
 use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
+use Me\Stenberg\Content\Staging\Factories\XMLRPC_Client_Factory;
 use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Setup;
@@ -142,7 +144,8 @@ class Content_Staging {
 		$template = new Template( dirname( __FILE__ ) . '/templates/' );
 
 		// XMLRPC client.
-		$xmlrpc_client = new Client();
+		$xmlrpc_client_factory = new XMLRPC_Client_Factory();
+		$xmlrpc_client         = $xmlrpc_client_factory->create();
 
 		/*
 		 * Content Staging API.
