@@ -112,6 +112,14 @@ class Client {
 		// Error message.
 		$msg = $this->ixr_client->getErrorMessage();
 
+		// Log.
+		error_log(
+			sprintf(
+				'[SME] Request to host %s failed: %s (error code %s)',
+				$this->ixr_client->server, $msg, $this->ixr_client->getErrorCode()
+			)
+		);
+
 		// Error messages that should trigger request to be re-sent.
 		$retry_triggers = array(
 			'transport error - HTTP status code was not 200 (500)'
@@ -133,8 +141,14 @@ class Client {
 			return false;
 		}
 
+		// Wait time until next request.
+		$seconds = 5 * $this->attempts;
+
+		// Log.
+		error_log( sprintf( '[SME] Re-send request in %d seconds...', $seconds ) );
+
 		// Wait before trying to send the request again.
-		sleep( 5 * $this->attempts );
+		sleep( $seconds );
 
 		return $this->send();
 	}
