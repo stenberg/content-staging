@@ -15,9 +15,10 @@ class XMLRPC_Client_Factory {
 
 		$endpoint   = $this->get_endpoint();
 		$secret_key = $this->get_secret_key();
+		$timeout    = $this->get_transfer_timeout();
 
 		// XMLRPC client.
-		$ixr_client = new WP_HTTP_IXR_Client( $endpoint, false, false, CONTENT_STAGING_TRANSFER_TIMEOUT );
+		$ixr_client = new WP_HTTP_IXR_Client( $endpoint, false, false, $timeout );
 
 		 return new Client( $ixr_client, $secret_key );
 	}
@@ -60,6 +61,22 @@ class XMLRPC_Client_Factory {
 
 		// Allow filtering of endpoint and secret key.
 		return apply_filters( 'sme_secret_key', $secret_key );
+	}
+
+	/**
+	 * Get transfer timeout.
+	 *
+	 * @return int
+	 */
+	private function get_transfer_timeout() {
+
+		$timeout = 60;
+
+		if ( defined( 'CONTENT_STAGING_TRANSFER_TIMEOUT' ) ) {
+			$timeout = CONTENT_STAGING_TRANSFER_TIMEOUT;
+		}
+
+		return $timeout;
 	}
 
 }
