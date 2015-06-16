@@ -3,8 +3,8 @@
  * Plugin Name: Content Staging
  * Plugin URI: https://github.com/stenberg/content-staging
  * Description: Content Staging.
- * Author: Joakim Stenberg, Fredrik Hörte
- * Version: 2.0.0
+ * Author: Joakim Stenberg
+ * Version: 2.0.1
  * License: GPLv2
  */
 
@@ -88,7 +88,6 @@ use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
-use Me\Stenberg\Content\Staging\XMLRPC\Client;
 
 /**
  * Class Content_Staging

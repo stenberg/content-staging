@@ -1,10 +1,10 @@
 === Content Staging ===
-Contributors: stenberg.me, horte
+Contributors: stenberg.me
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6L9DXMHNE3A6Q
 Tags: staging, stage, deploy, deploying, sync, syncing, environment, environments, database, databases, enterprise
 Requires at least: 3.7
 Tested up to: 4.2.2
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -51,6 +51,9 @@ third-party developers.
 4. Deploy your batch from staging environment to your live site.
 
 == Changelog ==
+
+= 2.0.1 =
+* Fix undefined constant.
 
 = 2.0.0 =
 * Faster import.
