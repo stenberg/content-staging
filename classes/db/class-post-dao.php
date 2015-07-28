@@ -228,7 +228,7 @@ class Post_DAO extends DAO {
 		// Create numeric array with all post IDs.
 		$post_ids = array_map(
 			function( $post ) {
-				return ! empty( $post['post_id'] ) ? (int) $post['post_id'] : null;
+				return empty( $post['post_id'] ) ? null : (int) $post['post_id'];
 			}, $result
 		);
 
