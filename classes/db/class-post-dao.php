@@ -205,6 +205,62 @@ class Post_DAO extends DAO {
 	}
 
 	/**
+	 * Get post IDs for provided post meta data.
+	 *
+	 * @param string $meta_key
+	 * @param string $meta_value
+	 *
+	 * @return array
+	 */
+	public function get_post_ids_by_meta( $meta_key = '', $meta_value = '' ) {
+
+		// Do not fetch any post IDs if neither key nor value has been specified.
+		if ( ! $meta_key && ! $meta_value ) {
+			return array();
+		}
+
+		// Query.
+		$query = $this->select_post_ids_by_meta_stmt( $meta_key, $meta_value );
+
+		// Fetch result.
+		$result = $this->wpdb->get_results( $query, ARRAY_A );
+
+		// Create numeric array with all post IDs.
+		$post_ids = array_map(
+			function( $post ) {
+				return ! empty( $post['post_id'] ) ? (int) $post['post_id'] : null;
+			}, $result
+		);
+
+		// Filter out null values.
+		return array_filter( $post_ids );
+	}
+
+	/**
+	 * Select statement for retrieving post IDs for provided post meta data.
+	 *
+	 * @param string $meta_key
+	 * @param string $meta_value
+	 *
+	 * @return string
+	 */
+	public function select_post_ids_by_meta_stmt( $meta_key, $meta_value ) {
+
+		// Where clause in SQL query.
+		$where = array();
+
+		if ( $meta_key ) {
+			$where['meta_key'] = sprintf( 'meta_key = "%s"', $meta_key );
+		}
+
+		if ( $meta_value ) {
+			$where['meta_value'] = sprintf( 'meta_value = "%s"', $meta_value );
+		}
+
+		return 'SELECT post_id FROM ' . $this->wpdb->postmeta . ' WHERE ' . implode( ' AND ', $where );
+	}
+
+	/**
 	 * @param Post $post
 	 */
 	public function update_post( Post $post ) {
