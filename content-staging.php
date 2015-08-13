@@ -51,6 +51,7 @@ require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/listeners/class-benchmark.php' );
+require_once( 'classes/listeners/class-delete-listener.php' );
 require_once( 'classes/listeners/class-import-message-listener.php' );
 require_once( 'classes/listeners/class-common-listener.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
@@ -82,6 +83,7 @@ use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
 use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Factories\XMLRPC_Client_Factory;
 use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
+use Me\Stenberg\Content\Staging\Listeners\Delete_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
@@ -169,6 +171,7 @@ class Content_Staging {
 		// Listeners.
 		$import_messages = new Import_Message_Listener( $sme_content_staging_api, $dao_factory );
 		$common_listener = new Common_Listener( $sme_content_staging_api, $dao_factory );
+		$delete_listener = new Delete_Listener( $template, $sme_content_staging_api );
 
 		// Plugin setup.
 		$setup = new Setup( $plugin_url, $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
