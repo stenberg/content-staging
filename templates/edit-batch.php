@@ -22,6 +22,15 @@
 		<?php echo $filters; ?>
 		<?php $table->display(); ?>
 
+		<h2><?php echo $wp_options['title']; ?></h2>
+		<p>
+			<input type="checkbox" name="include_wp_options" id="include_wp_options" <?php echo $wp_options['checked']; ?>>
+			<label for="include_wp_options">
+				<?php echo $wp_options['description']; ?>
+			</label>
+			<br><br>
+		</p>
+
 		<?php do_action( 'sme_view_edit_batch_pre_buttons', $batch ); ?>
 
 		<?php submit_button( 'Save Batch', 'primary', 'submit', false ); ?>

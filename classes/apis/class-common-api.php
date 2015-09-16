@@ -212,12 +212,17 @@ class Common_API {
 		// Get messages received from production.
 		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
 
+		// Delete batch after deploy.
+		$delete_batch = apply_filters( 'sme_delete_batch_after_deploy', true );
+
 		/*
 		 * Batch has been deployed and should no longer be accessible by user,
 		 * delete it (not actually deleting the batch, just setting it to draft
 		 * to make it invisible to users).
 		 */
-		$this->batch_dao->delete_batch( $batch );
+		if ( $delete_batch === true ) {
+			$this->batch_dao->delete_batch( $batch );
+		}
 
 		// Return status and messages.
 		return array(

@@ -33,11 +33,13 @@ require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
 require_once( 'classes/apis/class-common-api.php' );
 require_once( 'classes/controllers/class-batch-ctrl.php' );
 require_once( 'classes/controllers/class-batch-history-ctrl.php' );
+require_once( 'classes/controllers/class-options-ctrl.php' );
 require_once( 'classes/controllers/class-settings-ctrl.php' );
 require_once( 'classes/db/class-dao.php' );
 require_once( 'classes/db/class-batch-dao.php' );
 require_once( 'classes/db/class-custom-dao.php' );
 require_once( 'classes/db/class-message-dao.php' );
+require_once( 'classes/db/class-option-dao.php' );
 require_once( 'classes/db/class-post-dao.php' );
 require_once( 'classes/db/class-post-taxonomy-dao.php' );
 require_once( 'classes/db/class-postmeta-dao.php' );
@@ -51,7 +53,6 @@ require_once( 'classes/importers/class-batch-ajax-importer.php' );
 require_once( 'classes/importers/class-batch-background-importer.php' );
 require_once( 'classes/importers/class-batch-importer-factory.php' );
 require_once( 'classes/listeners/class-benchmark.php' );
-require_once( 'classes/listeners/class-delete-listener.php' );
 require_once( 'classes/listeners/class-import-message-listener.php' );
 require_once( 'classes/listeners/class-common-listener.php' );
 require_once( 'classes/managers/class-batch-mgr.php' );
@@ -59,6 +60,7 @@ require_once( 'classes/managers/class-helper-factory.php' );
 require_once( 'classes/models/class-model.php' );
 require_once( 'classes/models/class-batch.php' );
 require_once( 'classes/models/class-message.php' );
+require_once( 'classes/models/class-option.php' );
 require_once( 'classes/models/class-post.php' );
 require_once( 'classes/models/class-post-env-diff.php' );
 require_once( 'classes/models/class-taxonomy.php' );
@@ -80,10 +82,10 @@ require_once( 'functions/helpers.php' );
  */
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
+use Me\Stenberg\Content\Staging\Controllers\Options_Ctrl;
 use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Factories\XMLRPC_Client_Factory;
 use Me\Stenberg\Content\Staging\Listeners\Common_Listener;
-use Me\Stenberg\Content\Staging\Listeners\Delete_Listener;
 use Me\Stenberg\Content\Staging\Listeners\Import_Message_Listener;
 use Me\Stenberg\Content\Staging\Setup;
 use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
@@ -167,14 +169,14 @@ class Content_Staging {
 
 		$batch_history_ctrl = new Batch_History_Ctrl( $template );
 		$settings_ctrl 		= new Settings_Ctrl( $template );
+		$options_ctrl       = new Options_Ctrl( $template );
 
 		// Listeners.
 		$import_messages = new Import_Message_Listener( $sme_content_staging_api, $dao_factory );
 		$common_listener = new Common_Listener( $sme_content_staging_api, $dao_factory );
-		$delete_listener = new Delete_Listener( $template, $sme_content_staging_api );
 
 		// Plugin setup.
-		$setup = new Setup( $plugin_url, $batch_ctrl, $batch_history_ctrl, $settings_ctrl );
+		$setup = new Setup( $plugin_url, $batch_ctrl, $batch_history_ctrl, $settings_ctrl, $options_ctrl );
 
 		// Actions.
 		add_action( 'init', array( $setup, 'register_post_types' ) );
@@ -184,6 +186,7 @@ class Content_Staging {
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );
 
 		// Routing.
+		add_action( 'admin_post_sme-save-options', array( $options_ctrl, 'save' ) );
 		add_action( 'admin_post_sme-save-batch', array( $batch_ctrl, 'save_batch' ) );
 		add_action( 'admin_post_sme-quick-deploy-batch', array( $batch_ctrl, 'quick_deploy' ) );
 		add_action( 'admin_post_sme-delete-batch', array( $batch_ctrl, 'delete_batch' ) );

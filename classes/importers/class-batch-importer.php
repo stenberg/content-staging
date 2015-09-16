@@ -5,6 +5,7 @@ use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Custom_DAO;
+use Me\Stenberg\Content\Staging\DB\Option_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -49,6 +50,11 @@ abstract class Batch_Importer {
 	 * @var Custom_DAO
 	 */
 	protected $custom_dao;
+
+	/**
+	 * @var Option_DAO
+	 */
+	protected $option_dao;
 
 	/**
 	 * @var Post_DAO
@@ -96,6 +102,7 @@ abstract class Batch_Importer {
 		$this->api               = $sme_content_staging_api;
 		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
 		$this->custom_dao        = Helper_Factory::get_instance()->get_dao( 'Custom' );
+		$this->option_dao        = Helper_Factory::get_instance()->get_dao( 'Option' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
 		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
@@ -343,6 +350,15 @@ abstract class Batch_Importer {
 		}
 
 		$this->postmeta_dao->update_postmeta_by_post( $prod_id, $meta );
+	}
+
+	/**
+	 * Import options.
+	 *
+	 * @param array $options
+	 */
+	public function import_options( array $options ) {
+		$this->option_dao->insert_options( $options );
 	}
 
 	/**

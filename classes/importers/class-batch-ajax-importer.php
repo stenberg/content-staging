@@ -133,13 +133,22 @@ class Batch_AJAX_Importer extends Batch_Importer {
 		if ( $current['method'] == 'import_posts_meta' ) {
 			return array(
 				'method' => 'update_parent_post_relations',
-				'params' => $posts,
+				'params' => $this->batch->get_posts(),
 				'index'  => -1,
 			);
 		}
 
 		// Parent post relationship.
 		if ( $current['method'] == 'update_parent_post_relations' ) {
+			return array(
+				'method' => 'import_options',
+				'params' => $this->batch->get_options(),
+				'index'  => -1,
+			);
+		}
+
+		// Options.
+		if ( $current['method'] == 'import_options' ) {
 			return array(
 				'method' => 'import_custom_data',
 				'params' => array(),

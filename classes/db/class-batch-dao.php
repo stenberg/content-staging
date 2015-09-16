@@ -351,6 +351,10 @@ class Batch_DAO extends DAO {
 			$obj->set_posts( $content['posts'] );
 		}
 
+		if ( isset( $content['options'] ) ) {
+			$obj->set_options( $content['options'] );
+		}
+
 		if ( isset( $content['custom_data'] ) ) {
 			$obj->set_custom_data( $content['custom_data'] );
 		}
@@ -434,6 +438,7 @@ class Batch_DAO extends DAO {
 			'attachments'   => $batch->get_attachments(),
 			'users'         => $batch->get_users(),
 			'posts'         => $batch->get_posts(),
+			'options'       => $batch->get_options(),
 			'custom_data'   => $batch->get_custom_data(),
 			'post_rel_keys' => $batch->get_post_rel_keys(),
 		);

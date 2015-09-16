@@ -5,6 +5,7 @@ use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Custom_DAO;
+use Me\Stenberg\Content\Staging\DB\Option_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -33,6 +34,11 @@ class Batch_Mgr {
 	 * @var Custom_DAO
 	 */
 	private $custom_dao;
+
+	/**
+	 * @var Option_DAO
+	 */
+	private $option_dao;
 
 	/**
 	 * @var Post_DAO
@@ -69,6 +75,7 @@ class Batch_Mgr {
 		$this->api               = $api;
 		$this->batch_dao         = $dao_factory->create( 'Batch' );
 		$this->custom_dao        = $dao_factory->create( 'Custom' );
+		$this->option_dao        = $dao_factory->create( 'Option' );
 		$this->post_dao          = $dao_factory->create( 'Post' );
 		$this->post_taxonomy_dao = $dao_factory->create( 'Post_Taxonomy' );
 		$this->postmeta_dao      = $dao_factory->create( 'Postmeta' );
@@ -116,6 +123,7 @@ class Batch_Mgr {
 		$batch->set_attachments( array() );
 		$batch->set_users( array() );
 		$batch->set_posts( array() );
+		$batch->set_options( array() );
 
 		// Get IDs of posts user has selected to include in this batch.
 		$meta = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
@@ -128,6 +136,7 @@ class Batch_Mgr {
 		$this->add_table_prefix( $batch );
 		$this->add_posts( $batch, $post_ids );
 		$this->add_users( $batch );
+		$this->add_options( $batch );
 
 		// Add the admin URL of content stage to the batch.
 		$batch->add_custom_data( 'sme_content_stage_admin_url', admin_url() );
@@ -206,6 +215,24 @@ class Batch_Mgr {
 		}
 
 		$batch->set_users( $this->user_dao->find_by_ids( $user_ids ) );
+	}
+
+	/**
+	 * Add WordPress options to batch.
+	 *
+	 * @param Batch $batch
+	 */
+	private function add_options( Batch $batch ) {
+
+		// Check if options should be included with this batch.
+		$include_options = get_post_meta( $batch->get_id(), '_sme_include_wp_options', true );
+
+		if ( $include_options !== 'yes' ) {
+			return;
+		}
+
+		$options = $this->option_dao->get_options_to_sync();
+		$batch->set_options( $options );
 	}
 
 	/**

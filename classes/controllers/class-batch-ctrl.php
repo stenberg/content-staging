@@ -208,12 +208,16 @@ class Batch_Ctrl {
 		// Custom filters for finding posts to include in batch.
 		$filters = apply_filters( 'sme_post_filters', $filters = '', $table );
 
+		// Get WordPress options settings for this batch.
+		$wp_options = $this->get_wp_options_settings( $batch );
+
 		$data = array(
-			'batch'    => $batch,
-			'label'    => $label,
-			'filters'  => $filters,
-			'table'    => $table,
-			'post_ids' => implode( ',', $post_ids ),
+			'batch'      => $batch,
+			'label'      => $label,
+			'filters'    => $filters,
+			'table'      => $table,
+			'post_ids'   => implode( ',', $post_ids ),
+			'wp_options' => $wp_options,
 		);
 
 		$this->template->render( 'edit-batch', $data );
@@ -563,7 +567,7 @@ class Batch_Ctrl {
 		do_action( 'sme_verify', $batch );
 
 		// What different type of data needs verification?
-		$types = array( 'attachments', 'users', 'posts' );
+		$types = array( 'attachments', 'users', 'posts', 'options' );
 
 		// Go through each data type.
 		foreach ( $types as $type ) {
@@ -848,6 +852,9 @@ class Batch_Ctrl {
 			$selected_post_ids = array_map( 'intval', explode( ',', $request_data['post_ids'] ) );
 		}
 
+		// Set whether WordPress options should be included in batch or not.
+		$this->should_include_wp_options( $batch, $request_data );
+
 		// Posts that was previously in this batch.
 		$old_post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
 
@@ -866,6 +873,64 @@ class Batch_Ctrl {
 		foreach ( $remove_post_ids as $post_id ) {
 			$this->batch_dao->delete_post_meta( $batch->get_id(), 'sme_selected_post', $post_id );
 		}
+	}
+
+	/**
+	 * Should batch include WordPress options.
+	 *
+	 * @param Batch $batch
+	 * @param array $request
+	 */
+	private function should_include_wp_options( Batch $batch, $request ) {
+
+		$include_wp_options = 'no';
+
+		if ( isset( $request['include_wp_options'] ) ) {
+			$include_wp_options = 'yes';
+		}
+
+		update_post_meta( $batch->get_id(), '_sme_include_wp_options', $include_wp_options );
+	}
+
+	/**
+	 * Get WordPress options settings.
+	 *
+	 * @param Batch $batch
+	 * @return array Associative array containing string values only.
+	 * The following keys will always be available:
+	 * - checked
+	 * - title
+	 * - description
+	 */
+	private function get_wp_options_settings( Batch $batch ) {
+
+		$settings = array(
+			'title'       => '',
+			'description' => '',
+			'checked'     => '',
+		);
+
+		$settings['title'] = __( 'WordPress Options', 'sme-content-staging' );
+
+		$settings['description'] = sprintf(
+			wp_kses(
+				__(
+					'Include WordPress options in batch. Select what options to sync on the <a href="%s">Content Staging WordPress Options</a> page.',
+					'sme-content-staging'
+				),
+				array( 'a' => array( 'href' => array() ) )
+			),
+			esc_url( admin_url( 'admin.php?page=sme-wp-options' ) )
+		);
+
+		// Should WordPress options be included in batch.
+		$wp_options_included = get_post_meta( $batch->get_id(), '_sme_include_wp_options', true );
+
+		if ( $wp_options_included === 'yes' ) {
+			$settings['checked'] = 'checked="checked"';
+		}
+
+		return $settings;
 	}
 
 	/**
@@ -890,6 +955,8 @@ class Batch_Ctrl {
 			case 'posts':
 				$batch_chunk = $batch->get_posts();
 				break;
+			case 'options':
+				$batch_chunk = $batch->get_options();
 		}
 
 		// Verify selected part of batch.

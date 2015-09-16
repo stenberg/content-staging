@@ -83,6 +83,13 @@ class Batch extends Model {
 	private $users;
 
 	/**
+	 * Options in this batch.
+	 *
+	 * @var array
+	 */
+	private $options;
+
+	/**
 	 * Meta keys containing a relationship between two posts. The meta keys
 	 * refers to the 'meta_key' column in the 'postmeta' database table.
 	 *
@@ -108,6 +115,7 @@ class Batch extends Model {
 		$this->posts         = array();
 		$this->attachments   = array();
 		$this->users         = array();
+		$this->options       = array();
 		$this->post_rel_keys = array();
 		$this->custom_data   = array();
 	}
@@ -290,6 +298,24 @@ class Batch extends Model {
 	 */
 	public function get_users() {
 		return $this->users;
+	}
+
+	/**
+	 * Set WordPress options to be synced.
+	 *
+	 * @param array $options
+	 */
+	public function set_options( array $options ) {
+		$this->options = $options;
+	}
+
+	/**
+	 * Get all WordPress options in this batch.
+	 *
+	 * @return array
+	 */
+	public function get_options() {
+		return $this->options;
 	}
 
 	public function set_post_rel_keys( array $keys ) {

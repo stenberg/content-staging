@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging;
 
 use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 use Me\Stenberg\Content\Staging\Controllers\Batch_History_Ctrl;
+use Me\Stenberg\Content\Staging\Controllers\Options_Ctrl;
 use Me\Stenberg\Content\Staging\Controllers\Settings_Ctrl;
 
 class Setup {
@@ -11,13 +12,15 @@ class Setup {
 	private $batch_ctrl;
 	private $batch_history_ctrl;
 	private $settings_ctrl;
+	private $options_ctrl;
 
 	public function __construct( $plugin_url, Batch_Ctrl $batch_ctrl, Batch_History_Ctrl $batch_history_ctrl,
-								 Settings_Ctrl $settings_ctrl ) {
+								 Settings_Ctrl $settings_ctrl, Options_Ctrl $options_ctrl ) {
 		$this->plugin_url         = $plugin_url;
 		$this->batch_ctrl         = $batch_ctrl;
 		$this->batch_history_ctrl = $batch_history_ctrl;
 		$this->settings_ctrl      = $settings_ctrl;
+		$this->options_ctrl       = $options_ctrl;
 	}
 
 	/**
@@ -79,6 +82,7 @@ class Setup {
 		add_menu_page( 'Content Staging', 'Content Staging', 'manage_options', 'sme-list-batches', array( $this->batch_ctrl, 'list_batches' ) );
 		add_submenu_page( 'sme-list-batches', 'History', 'History', 'manage_options', 'sme-batch-history', array( $this->batch_history_ctrl, 'init' ) );
 		add_submenu_page( 'sme-list-batches', 'Settings', 'Settings', 'manage_options', 'sme-settings', array( $this->settings_ctrl, 'init' ) );
+		add_submenu_page( 'sme-list-batches', 'WordPress Options', 'WordPress Options', 'manage_options', 'sme-wp-options', array( $this->options_ctrl, 'init' ) );
 		add_submenu_page( null, 'Edit Batch', 'Edit', 'manage_options', 'sme-edit-batch', array( $this->batch_ctrl, 'edit_batch' ) );
 		add_submenu_page( null, 'Delete Batch', 'Delete', 'manage_options', 'sme-delete-batch', array( $this->batch_ctrl, 'confirm_delete_batch' ) );
 		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->batch_ctrl, 'prepare' ) );

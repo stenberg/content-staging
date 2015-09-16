@@ -249,6 +249,17 @@ abstract class DAO {
 	}
 
 	/**
+	 * Utility method to check if a variable is a string and that the string
+	 * is not empty.
+	 *
+	 * @param string $string
+	 * @return bool
+	 */
+	protected function is_non_empty_string( $string ) {
+		return is_string( $string ) && $string;
+	}
+
+	/**
 	 * Get object that has been instantiated and added to the object watcher.
 	 * Return null if object is not found in watcher.
 	 *

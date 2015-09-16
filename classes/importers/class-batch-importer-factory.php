@@ -104,13 +104,13 @@ class Batch_Importer_Factory {
 	 */
 	private function get_importer_class() {
 
-		$class = null;
-
 		/*
-		 * Make it possible for third-party developer to set decide what importer
+		 * Make it possible for third-party developer to decide what importer
 		 * to use or to set their own importer.
 		 */
-		if ( ( $class = apply_filters( 'sme_importer', $class ) ) !== null ) {
+		$class = apply_filters( 'sme_importer', null );
+
+		if ( $class !== null ) {
 			return $class;
 		}
 
@@ -131,7 +131,7 @@ class Batch_Importer_Factory {
 		}
 
 		// Use default importer class.
-		return apply_filters( 'sme_importer', $class );
+		return $class;
 	}
 
 	/**
