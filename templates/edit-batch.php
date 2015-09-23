@@ -31,6 +31,17 @@
 			<br><br>
 		</p>
 
+		<h2><?php echo $batch_settings['title']; ?></h2>
+		<?php foreach ($batch_settings['settings'] as $_setting): ?>
+			<p>
+				<input type="checkbox" name="<?php echo $_setting['id']; ?>" id="<?php echo $_setting['id']; ?>" <?php echo $_setting['checked']; ?>>
+				<label for="<?php echo $_setting['id']; ?>">
+					<?php echo $_setting['title']; ?>
+				</label>
+				<br><br>
+			</p>
+		<?php endforeach; ?>
+
 		<?php do_action( 'sme_view_edit_batch_pre_buttons', $batch ); ?>
 
 		<?php submit_button( 'Save Batch', 'primary', 'submit', false ); ?>

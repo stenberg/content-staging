@@ -48,6 +48,11 @@ class Batch_Ctrl {
 	private $post_dao;
 
 	/**
+	 * @var Batch_Settings_Prefix
+	 */
+	static public $batch_settings_prefix = '_sme_batch_setting';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param Template               $template
@@ -211,6 +216,9 @@ class Batch_Ctrl {
 		// Get WordPress options settings for this batch.
 		$wp_options = $this->get_wp_options_settings( $batch );
 
+		// Get batch settings specific for this batch.
+		$batch_settings = $this->get_batch_settings( $batch );
+
 		$data = array(
 			'batch'      => $batch,
 			'label'      => $label,
@@ -218,6 +226,7 @@ class Batch_Ctrl {
 			'table'      => $table,
 			'post_ids'   => implode( ',', $post_ids ),
 			'wp_options' => $wp_options,
+			'batch_settings' => $batch_settings
 		);
 
 		$this->template->render( 'edit-batch', $data );
@@ -855,6 +864,9 @@ class Batch_Ctrl {
 		// Set whether WordPress options should be included in batch or not.
 		$this->should_include_wp_options( $batch, $request_data );
 
+		// Additional settings for this batch.
+		$this->process_batch_settings( $batch, $request_data );
+
 		// Posts that was previously in this batch.
 		$old_post_ids = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
 
@@ -891,6 +903,28 @@ class Batch_Ctrl {
 
 		update_post_meta( $batch->get_id(), '_sme_include_wp_options', $include_wp_options );
 	}
+
+	/**
+	 * Save each batch option as post metadata
+	 *
+	 * @param Batch $batch
+	 * @param array $request
+	 */
+	private function process_batch_settings( Batch $batch, $request ) {
+
+		//Reset all settings
+		$_batch_settings = array();
+		$_batch_prefix_len = strlen($this->batch_settings_prefix);
+
+		foreach( $request as  $meta_key => $meta_value ) {
+			if ( substr($meta_key, 0, $_batch_prefix_len) == $this->batch_settings_prefix ) {
+				$_batch_settings[substr($meta_key, $_batch_prefix_len)] = $meta_value;
+			}
+		}
+
+		add_post_meta( $batch->get_id(), $this->batch_settings_prefix, $_batch_settings, true );
+	}
+
 
 	/**
 	 * Get WordPress options settings.
@@ -931,6 +965,57 @@ class Batch_Ctrl {
 		}
 
 		return $settings;
+	}
+
+	/**
+	 * Get batch settings.
+	 *
+	 * @param Batch $batch
+	 * @return array Associative array.
+	 * The following keys will always be available:
+	 * - title (string)
+	 * - settings (array)
+	 */
+	private function get_batch_settings( Batch $batch ) {
+		return array(
+			'title'		=> __( 'Batch Settings', 'sme-content-staging' ),
+			'settings'	=> $this->prepare_batch_settings(
+				$batch,
+				array(
+				)
+			)
+		);
+	}
+
+
+	/**
+	 * Create an array of settings as batch settings.
+	 *
+	 * @param $settings
+	 * @return array Numeric array were each item consist of an associative
+	 * array with the following keys:
+	 * Each array will always contain string values only.
+	 * - (string) id
+	 * - (string) title
+	 * - (string) checked
+	 */
+	private function prepare_batch_settings( Batch $batch, $settings ) {
+
+		$_settings = array();
+		foreach ( $settings as $key => $description ) {
+
+			//Create a unique ID
+			$id = $this->batch_settings_prefix . $key;
+
+			// put everything together and append to $_settings
+			$_settings[] = array(
+				'id'		=> $id,
+				'title'		=> __( $description, 'sme-content-staging' ),
+				'checked'	=> $batch->get_batch_setting( $key ) ? "checked" : ""
+			);
+		}
+
+		return $_settings;
 	}
 
 	/**

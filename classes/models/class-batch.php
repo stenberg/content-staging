@@ -2,6 +2,7 @@
 namespace Me\Stenberg\Content\Staging\Models;
 
 use Exception;
+use Me\Stenberg\Content\Staging\Controllers\Batch_Ctrl;
 
 class Batch extends Model {
 
@@ -96,6 +97,13 @@ class Batch extends Model {
 	 * @var array
 	 */
 	private $post_rel_keys;
+
+	/**
+	 * Custom data added by third-party developer.
+	 *
+	 * @var array
+	 */
+	private $batch_settings;
 
 	/**
 	 * Custom data added by third-party developer.
@@ -330,6 +338,14 @@ class Batch extends Model {
 
 	public function get_post_rel_keys() {
 		return $this->post_rel_keys;
+	}
+
+	public function get_batch_settings() {
+		return get_post_meta( $this->get_id(), Batch_Ctrl::$batch_settings_prefix, true );
+	}
+
+	public function get_batch_setting( $key ) {
+		return (isset($this->get_batch_settings()[$key]));
 	}
 
 	/**
