@@ -144,7 +144,7 @@ class Options_Ctrl {
 			$alt = empty( $alt ) ? 'class="alternate"' : '';
 			$option_items[] = array(
 				'key'     => $key,
-				'value'   => $value,
+				'value'   => htmlspecialchars($value),
 				'alt'     => $alt,
 				'checked' => in_array( $key, $selected_options ) ? 'checked="checked"' : '',
 			);
