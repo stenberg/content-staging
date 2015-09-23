@@ -213,7 +213,7 @@ class Common_API {
 		$messages = ( isset( $response['messages'] ) ? $response['messages'] : array() );
 
 		// Delete batch after deploy.
-		$delete_batch = apply_filters( 'sme_delete_batch_after_deploy', true );
+		$delete_batch = apply_filters( 'sme_delete_batch_after_deploy', $batch->get_batch_setting( 'delete_batch_after_deploy' ));
 
 		/*
 		 * Batch has been deployed and should no longer be accessible by user,

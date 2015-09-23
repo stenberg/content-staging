@@ -982,6 +982,7 @@ class Batch_Ctrl {
 			'settings'	=> $this->prepare_batch_settings(
 				$batch,
 				array(
+					'delete_batch_after_deploy' => 'Delete this batch after deploying?'
 				)
 			)
 		);
