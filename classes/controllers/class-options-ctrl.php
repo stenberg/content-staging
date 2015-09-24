@@ -11,6 +11,40 @@ class Options_Ctrl {
 	private $template;
 
 	/**
+	 * Default whitelist.
+	 *
+	 * Options that by default should be possible to sync to production.
+	 * Only used if a whitelist strategy is used (as opposed to a blacklist
+	 * strategy).
+	 *
+	 * @var array
+	 */
+	private $whitelist = array(
+		'blogname',
+		'admin_email',
+		'blogdescription',
+		'start_of_week',
+		'use_smilies',
+	);
+
+	/**
+	 * Default blacklist.
+	 *
+	 * Options that by default should not be possible to sync to production.
+	 * Only used if a blacklist strategy is used (as opposed to a whitelist
+	 * strategy).
+	 *
+	 * @var array
+	 */
+	private $blacklist = array(
+			'siteurl',
+			'home',
+			'fileupload_url',
+			'sme_wp_options',
+			'rewrite_rules',
+	);
+
+	/**
 	 * @param Template $template
 	 */
 	public function __construct( Template $template ) {
@@ -81,21 +115,62 @@ class Options_Ctrl {
 	 */
 	private function get_whitelisted_options() {
 
-		// Blacklisted options, should not be possible to sync to production.
-		$default_blacklist = $this->get_default_blacklist();
+		// Use whitelist or blacklist.
+		$use_whitelist = apply_filters( 'sme_wp_options_use_whitelist', false );
 
 		// Load all options available for this blog.
 		$options = wp_load_alloptions();
 
+		if ( $use_whitelist ) {
+			return $this->get_whitelist( $options );
+		}
+
+		return $this->get_blacklist( $options );
+	}
+
+	/**
+	 * Get all options that are whitelisted.
+	 *
+	 * @param array $options All available options.
+	 * @return array
+	 */
+	private function get_whitelist( $options ) {
+
+		// Allow third party developers to modify the whitelist.
+		$whitelist = apply_filters( 'sme_wp_options_whitelist', $this->whitelist, $options );
+
+		/*
+		 * If whitelist has been improperly altered (e.g. turned into a string)
+		 * then re-apply the default whitelist.
+		 */
+		if ( ! is_array( $whitelist ) ) {
+			$whitelist = $this->whitelist;
+		}
+
+		// Make sure whitelist only consists of strings.
+		$whitelist = array_filter( $whitelist, 'is_string' );
+
+		// Remove all options that are not whitelisted.
+		return array_intersect_key( $options, array_flip( $whitelist ) );
+	}
+
+	/**
+	 * Get all options that are not blacklisted.
+	 *
+	 * @param array $options All available options.
+	 * @return array
+	 */
+	private function get_blacklist( $options ) {
+
 		// Allow third party developers to modify the blacklist.
-		$blacklist = apply_filters( 'sme_wp_options_blacklist', $default_blacklist, $options );
+		$blacklist = apply_filters( 'sme_wp_options_blacklist', $this->blacklist, $options );
 
 		/*
 		 * If blacklist has been improperly altered (e.g. turned into a string)
 		 * then re-apply the default blacklist.
 		 */
 		if ( ! is_array( $blacklist ) ) {
-			$blacklist = $default_blacklist;
+			$blacklist = $this->blacklist;
 		}
 
 		// Make sure blacklist only consists of strings.
@@ -103,21 +178,6 @@ class Options_Ctrl {
 
 		// Remove blacklisted options from array of options.
 		return array_diff_key( $options, array_flip( $blacklist ) );
-	}
-
-	/**
-	 * Options that should not be possible to sync to production.
-	 *
-	 * @return array
-	 */
-	private function get_default_blacklist() {
-		return array(
-			'siteurl',
-			'home',
-			'fileupload_url',
-			'sme_wp_options',
-			'rewrite_rules',
-		);
 	}
 
 	/**
