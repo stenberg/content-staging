@@ -1,8 +1,6 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Listeners;
 
-use DOMDocument;
-use DOMElement;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Custom_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
@@ -232,51 +230,55 @@ class Delete_Listener {
 				continue;
 			}
 
-			$blog_id  = null;
-			$post_ids = array();
-
-			$dom = new DOMDocument;
-			$dom->loadHTML( $message->get_message() );
-			$elements = $dom->getElementsByTagName( 'span' );
-
-			/**
-			 * @var DOMElement $element
-			 */
-			foreach ( $elements as $element ) {
-
-				if ( ! ( $attr = $element->getAttribute( 'data-blog-id' ) ) ) {
-					continue;
-				}
-
-				$blog_id  = intval( $attr );
-				$post_ids = array_map( 'intval', explode( ',', $element->nodeValue ) );
-			}
-
-			if ( $blog_id && ! empty( $post_ids ) ) {
-
-				/**
-				 * @var Custom_DAO $custom_dao
-				 */
-				$custom_dao = Helper_Factory::get_instance()->get_dao( 'Custom' );
-
-				$current_blog_id = get_current_blog_id();
-
-				// Switch blog if we are not on the correct one.
-				if ( $current_blog_id !== $blog_id ) {
-					switch_to_blog( $blog_id );
-				}
-
-				// Cleanup WP options.
-				$custom_dao->remove_from_deleted_posts_log( $post_ids );
-
-				// Restore blog if we switched before.
-				if ( $current_blog_id !== $blog_id ) {
-					restore_current_blog();
-				}
-			}
+			$this->handle_deleted_posts( $message );
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Look for message indicating that a post has been deleted on production
+	 * and remove these posts from log of deleted posts.
+	 *
+	 * @param Message $message
+	 */
+	private function handle_deleted_posts( Message $message ) {
+
+		$regex = '#<span class="hidden" data-blog-id="(.*?)">(.*?)</span>#';
+		preg_match( $regex, $message->get_message(), $groups );
+
+		// Make sure groups has been set.
+		if ( empty( $groups[1] ) || empty( $groups[2] ) ) {
+			return;
+		}
+
+		$blog_id  = intval( $groups[1] );
+		$post_ids = array_map( 'intval', explode( ',', $groups[2] ) );
+
+		// Make sure blog ID and post IDs has been set.
+		if ( ! $blog_id || empty( $post_ids ) ) {
+			return;
+		}
+
+		/**
+		 * @var Custom_DAO $custom_dao
+		 */
+		$custom_dao = Helper_Factory::get_instance()->get_dao( 'Custom' );
+
+		$current_blog_id = get_current_blog_id();
+
+		// Switch blog if we are not on the correct one.
+		if ( $current_blog_id !== $blog_id ) {
+			switch_to_blog( $blog_id );
+		}
+
+		// Cleanup WP options.
+		$custom_dao->remove_from_deleted_posts_log( $post_ids );
+
+		// Restore blog if we switched before.
+		if ( $current_blog_id !== $blog_id ) {
+			restore_current_blog();
+		}
 	}
 
 	/**
