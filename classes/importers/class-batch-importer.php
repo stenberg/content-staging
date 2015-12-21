@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Importers;
 use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Custom_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
@@ -45,6 +46,11 @@ abstract class Batch_Importer {
 	protected $batch_dao;
 
 	/**
+	 * @var Custom_DAO
+	 */
+	protected $custom_dao;
+
+	/**
 	 * @var Post_DAO
 	 */
 	protected $post_dao;
@@ -80,9 +86,16 @@ abstract class Batch_Importer {
 	 * @param Batch $batch
 	 */
 	protected function __construct( Batch $batch ) {
+
+		/**
+		 * @var Common_API $sme_content_staging_api
+		 */
+		global $sme_content_staging_api;
+
 		$this->batch             = $batch;
-		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->api               = $sme_content_staging_api;
 		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
+		$this->custom_dao        = Helper_Factory::get_instance()->get_dao( 'Custom' );
 		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
 		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
 		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
@@ -127,6 +140,25 @@ abstract class Batch_Importer {
 	 * @see http://codex.wordpress.org/Function_Reference/get_user_by
 	 */
 	public function import_user( User $user ) {
+
+		// Database table base prefix for production and content stage.
+		$prod_prefix  = $this->custom_dao->get_table_base_prefix();
+		$stage_prefix = $this->batch->get_custom_data( 'sme_table_base_prefix' );
+
+		// Change database table base prefix from content staging prefix to
+		// production prefix.
+		$meta = array_map(
+			function( $record ) use ( $stage_prefix, $prod_prefix ) {
+				if ( isset( $record['meta_key'] ) && strpos( $record['meta_key'], $stage_prefix) === 0 ) {
+					$record['meta_key'] = substr_replace( $record['meta_key'], $prod_prefix, 0, strlen( $stage_prefix ) );
+				}
+				return $record;
+			},
+			$user->get_meta()
+		);
+
+		// Update user with new meta.
+		$user->set_meta( $meta );
 
 		// See if user exists in database.
 		$existing = $this->user_dao->get_user_by_user_login( $user->get_login() );
@@ -215,9 +247,16 @@ abstract class Batch_Importer {
 		// Add post diff to array of post diffs.
 		$this->add_post_diff( $post_diff );
 
+		// Clear old post/taxonomy relationships.
+		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
+			$this->post_taxonomy_dao->clear_post_taxonomy_relationships( $post_taxonomy );
+		}
+
 		// Import post/taxonomy relationships.
 		foreach ( $post->get_post_taxonomy_relationships() as $post_taxonomy ) {
-			$this->import_post_taxonomy_relationship( $post_taxonomy );
+			// Import taxonomy.
+			$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
+			$this->post_taxonomy_dao->insert( $post_taxonomy );
 		}
 
 		// Notify listeners that post has been imported.
@@ -358,35 +397,6 @@ abstract class Batch_Importer {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Import post/taxonomy relationship.
-	 *
-	 * @param Post_Taxonomy $post_taxonomy
-	 */
-	public function import_post_taxonomy_relationship( Post_Taxonomy $post_taxonomy ) {
-
-		// Import taxonomy.
-		$this->import_taxonomy( $post_taxonomy->get_taxonomy() );
-
-		/*
-		 * Check if a relationship between a post and a taxonomy exists on
-		 * production.
-		 */
-		$has_relationship = $this->post_taxonomy_dao->has_post_taxonomy_relationship( $post_taxonomy );
-
-		// Check if this is a new term-taxonomy.
-		if ( ! $has_relationship ) {
-			/*
-			 * This post/taxonomy relationship does not exist on production,
-			 * create it.
-			 */
-			$this->post_taxonomy_dao->insert( $post_taxonomy );
-		} else {
-			// This post/taxonomy relationship exists on production, update it.
-			$this->post_taxonomy_dao->update_post_taxonomy( $post_taxonomy );
-		}
 	}
 
 	/**

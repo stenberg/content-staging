@@ -1,10 +1,10 @@
 <?php
 namespace Me\Stenberg\Content\Staging\Controllers;
 
-use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
@@ -21,11 +21,6 @@ class Batch_Ctrl {
 	 * @var Template
 	 */
 	private $template;
-
-	/**
-	 * @var Batch_Mgr
-	 */
-	private $batch_mgr;
 
 	/**
 	 * @var Client
@@ -55,17 +50,24 @@ class Batch_Ctrl {
 	/**
 	 * Constructor.
 	 *
-	 * @param Template $template
+	 * @param Template               $template
 	 * @param Batch_Importer_Factory $importer_factory
+	 * @param Client                 $xmlrpc_client
+	 * @param Common_API             $api
+	 * @param DAO_Factory            $dao_factory
 	 */
-	public function __construct( Template $template, Batch_Importer_Factory $importer_factory ) {
+	public function __construct( Template $template, Batch_Importer_Factory $importer_factory, Client $xmlrpc_client,
+								 Common_API $api, DAO_Factory $dao_factory ) {
 		$this->template         = $template;
-		$this->batch_mgr        = new Batch_Mgr();
 		$this->importer_factory = $importer_factory;
-		$this->api              = Helper_Factory::get_instance()->get_api( 'Common' );
-		$this->xmlrpc_client    = Helper_Factory::get_instance()->get_client();
-		$this->batch_dao        = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->post_dao         = Helper_Factory::get_instance()->get_dao( 'Post' );
+		$this->xmlrpc_client    = $xmlrpc_client;
+		$this->api              = $api;
+		$this->batch_dao        = $dao_factory->create( 'Batch' );
+		$this->post_dao         = $dao_factory->create( 'Post' );
+
+		// Action hooks.
+		add_action( 'admin_post_sme_delete_batches', array( $this, 'delete_batches' ) );
+		add_action( 'admin_notices', array( $this, 'delete_batches_notice' ) );
 	}
 
 	/**
@@ -75,7 +77,7 @@ class Batch_Ctrl {
 
 		$order_by = 'post_modified';
 		$order    = 'desc';
-		$per_page = 10;
+		$per_page = 50;
 		$paged    = 1;
 
 		if ( isset( $_GET['orderby'] ) ) {
@@ -101,7 +103,7 @@ class Batch_Ctrl {
 		// Prepare table of batches.
 		$table        = new Batch_Table();
 		$table->items = $batches;
-		$table->set_bulk_actions( array( 'delete' => 'Delete' ) );
+		$table->set_bulk_actions( array( 'sme_delete_batches' => 'Delete' ) );
 		$table->set_pagination_args(
 			array(
 				'total_items' => $count,
@@ -139,7 +141,7 @@ class Batch_Ctrl {
 			$batch_id = intval( $_GET['id'] );
 		}
 
-		$batch = $this->batch_mgr->get( $batch_id );
+		$batch = $this->api->get_batch( $batch_id );
 
 		if ( isset( $_GET['orderby'] ) ) {
 			$order_by = $_GET['orderby'];
@@ -232,7 +234,7 @@ class Batch_Ctrl {
 
 		// Get batch.
 		$batch_id = $_GET['id'] > 0 ? intval( $_GET['id'] ) : null;
-		$batch    = $this->batch_mgr->get( $batch_id );
+		$batch    = $this->api->get_batch( $batch_id );
 
 		/*
 		 * Make it possible for third-party developers to modify 'Save Batch'
@@ -281,18 +283,53 @@ class Batch_Ctrl {
 			wp_die( __( 'Failed deleting batch.', 'sme-content-staging' ) );
 		}
 
-		// Check that the current request carries a valid nonce.
-		check_admin_referer( 'sme-delete-batch', 'sme_delete_batch_nonce' );
-
 		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get( $_GET['id'] );
+		$batch_id = $_GET['id'];
 
 		// Delete batch.
-		$this->batch_dao->delete_batch( $batch );
+		$this->batch_dao->delete_by_id( $batch_id );
 
 		// Redirect user.
 		wp_redirect( admin_url( 'admin.php?page=sme-list-batches' ) );
 		exit();
+	}
+
+	/**
+	 * Delete multiple batches.
+	 */
+	public function delete_batches() {
+
+		if ( ! current_user_can( 'delete_posts' ) ) {
+			wp_die();
+		}
+
+		// Check that referring URL has been provided.
+		if ( ! isset( $_POST['_wp_http_referer'] ) ) {
+			wp_die();
+		}
+
+		// Get referring URL.
+		$url = $_POST['_wp_http_referer'];
+
+		if ( isset( $_POST['batches'] ) && ! empty( $_POST['batches'] ) ) {
+			$batches = array_map( 'intval', $_POST['batches'] );
+
+			// Delete batches.
+			array_walk( $batches, array( $this->batch_dao, 'delete_by_id' ) );
+		}
+
+		// Get query params from URL.
+		$query = parse_url( $url, PHP_URL_QUERY );
+
+		// Add query param 'deleted' to referring URL.
+		if ( $query && ! strpos( $query, 'deleted' ) ) {
+			$url .= '&deleted';
+		} else if ( ! $query ) {
+			$url .= '?deleted';
+		}
+
+		wp_redirect( $url );
+		exit;
 	}
 
 	/**
@@ -306,13 +343,26 @@ class Batch_Ctrl {
 		}
 
 		// Get batch ID from URL query param.
-		$batch = $this->batch_mgr->get( $_GET['id'] );
+		$batch = $this->api->get_batch( $_GET['id'] );
 
 		// Data to be passed to view.
 		$data = array( 'batch' => $batch );
 
 		// Render view.
 		$this->template->render( 'delete-batch', $data );
+	}
+
+	/**
+	 * Render admin notice confirming that batches has been deleted.
+	 */
+	public function delete_batches_notice() {
+
+		// Look for query params in URL.
+		if ( ! isset( $_GET['deleted'] ) || ! isset( $_GET['page'] ) || $_GET['page'] !== 'sme-list-batches' ) {
+			return;
+		}
+
+		$this->template->render( 'delete-batches-notice' );
 	}
 
 	/**
@@ -569,7 +619,7 @@ class Batch_Ctrl {
 		// Get as integer.
 		$post_id = intval( $_GET['post_id'] );
 
-		$batch = $this->batch_mgr->get();
+		$batch = $this->api->get_batch();
 
 		$batch->set_title( 'Quick Deploy ' . current_time( 'mysql' ) );
 		$this->batch_dao->insert( $batch );
@@ -610,12 +660,14 @@ class Batch_Ctrl {
 		$response = $this->api->deploy( $batch );
 
 		// Get messages received from production.
-		$messages = ( isset( $response['messages'] ) ? $response['messages'] : 0 );
+		$status   = isset( $response['status'] )   ? $response['status']   : 0;
+		$messages = isset( $response['messages'] ) ? $response['messages'] : array();
 
 		// Render page.
 		$this->template->render(
 			'deploy-batch',
 			array(
+				'status'   => $status,
 				'messages' => $messages,
 			)
 		);
@@ -650,21 +702,13 @@ class Batch_Ctrl {
 			return $this->xmlrpc_client->prepare_response( $response );
 		}
 
-		$batch->set_id( null );
-		$revision = $this->batch_dao->get_by_guid( $batch->get_guid() );
+		// Get production batch ID (if this is an existing batch).
+		$batch_id = $this->batch_dao->get_id_by_guid( $batch->get_guid() );
+		$batch->set_id( $batch_id );
 
-		if ( $revision !== null ) {
-			/*
-			 * Updating existing batch on production.
-			 */
-			$batch->set_id( $revision->get_id() );
+		if ( $batch_id !== null ) {
 			$this->batch_dao->update_batch( $batch );
-
-			unset( $revision );
 		} else {
-			/*
-			 * Creating new batch on production.
-			 */
 			$this->batch_dao->insert( $batch );
 		}
 
@@ -693,37 +737,24 @@ class Batch_Ctrl {
 	public function import_status_request() {
 
 		$batch_id = intval( $_POST['batch_id'] );
-
-		$request = array(
-			'batch_id' => $batch_id,
-		);
-
-		$this->xmlrpc_client->request( 'smeContentStaging.importStatus', $request );
-		$response = $this->xmlrpc_client->get_response_data();
-		$response = apply_filters( 'sme_deploy_status', $response );
+		$response = $this->api->import_status_request( $batch_id );
 
 		// Deploy status.
-		$status = 2;
-
-		// Get status from production.
-		$prod_status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+		$status = isset ( $response['status'] ) ? $response['status'] : 2;
 
 		// Get status from content stage.
 		$stage_status = $this->api->get_deploy_status( $batch_id );
 
-		// Ensure no pre-flight status is not set to failed.
-		if ( $prod_status != 2 && $stage_status != 2 ) {
-			$status = $prod_status;
+		// Use stage status if stage verification has failed.
+		if ( $stage_status == 2 ) {
+			$status = $stage_status;
 		}
-
-		// Get production messages.
-		$prod_messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
 
 		// Get content stage messages.
 		$stage_messages = $this->api->get_deploy_messages( $batch_id );
 
 		// All pre-flight messages.
-		$messages = array_merge( $prod_messages, $stage_messages );
+		$messages = array_merge( $response['messages'], $stage_messages );
 
 		// Deploy has finished.
 		if ( $status == 3 ) {

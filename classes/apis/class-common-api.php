@@ -6,7 +6,7 @@ use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Message_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
-use Me\Stenberg\Content\Staging\Helper_Factory;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
 use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
@@ -20,6 +20,16 @@ class Common_API {
 	 * @var Client
 	 */
 	private $client;
+
+	/**
+	 * @var Batch_Mgr
+	 */
+	private $batch_mgr;
+
+	/**
+	 * @var DAO_Factory
+	 */
+	private $dao_factory;
 
 	/**
 	 * @var Batch_DAO
@@ -44,12 +54,14 @@ class Common_API {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
-		$this->client       = Helper_Factory::get_instance()->get_client();
-		$this->batch_dao    = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->message_dao  = Helper_Factory::get_instance()->get_dao( 'Message' );
-		$this->post_dao     = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->postmeta_dao = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
+	public function __construct( Client $client, DAO_Factory $dao_factory ) {
+		$this->client       = $client;
+		$this->dao_factory  = $dao_factory;
+		$this->batch_dao    = $dao_factory->create( 'Batch' );
+		$this->message_dao  = $dao_factory->create( 'Message' );
+		$this->post_dao     = $dao_factory->create( 'Post' );
+		$this->postmeta_dao = $dao_factory->create( 'Postmeta' );
+		$this->batch_mgr    = new Batch_Mgr( $this, $dao_factory );
 	}
 
 	/* **********************************************************************
@@ -66,12 +78,27 @@ class Common_API {
 		return $this->post_dao->get_by_guid( $guid );
 	}
 
+	/**
+	 * Find post ID by providing GUID.
+	 *
+	 * @param string $guid
+	 *
+	 * @return int
+	 */
+	public function get_post_id_by_guid( $guid ) {
+		return $this->post_dao->get_id_by_guid( $guid );
+	}
+
 	/* **********************************************************************
 	 * Batch API
 	 * **********************************************************************/
 
 	public function create_batch() {
 		return new Batch();
+	}
+
+	public function get_batch( $id = null ) {
+		return $this->batch_mgr->get( $id );
 	}
 
 	/**
@@ -90,8 +117,7 @@ class Common_API {
 		// Hook in before batch is built
 		do_action( 'sme_prepare', $batch );
 
-		$mgr = new Batch_Mgr();
-		$mgr->prepare( $batch );
+		$this->batch_mgr->prepare( $batch );
 
 		// Let third-party developers filter batch data.
 		$batch->set_posts( apply_filters( 'sme_prepare_posts', $batch->get_posts() ) );
@@ -121,8 +147,7 @@ class Common_API {
 			'batch' => $batch,
 		);
 
-		$this->client->request( 'smeContentStaging.verify', $request );
-		$response = $this->client->get_response_data();
+		$response = $this->client->request( 'smeContentStaging.verify', $request );
 
 		// Hook in after batch has been transferred.
 		$response = apply_filters( 'sme_preflighted', $response, $batch );
@@ -176,8 +201,7 @@ class Common_API {
 			'auto_import' => $auto_import,
 		);
 
-		$this->client->request( 'smeContentStaging.import', $request );
-		$response = $this->client->get_response_data();
+		$response = $this->client->request( 'smeContentStaging.import', $request );
 
 		// Batch deploy in progress.
 		$response = apply_filters( 'sme_deploying', $response, $batch );
@@ -221,7 +245,7 @@ class Common_API {
 
 		$this->add_deploy_message( $batch->get_id(), $message, 'info', 100 );
 
-		$factory  = new Batch_Importer_Factory( $this, $this->batch_dao );
+		$factory  = new Batch_Importer_Factory( $this, $this->dao_factory );
 		$importer = $factory->get_importer( $batch );
 
 		$importer->run();
@@ -287,7 +311,8 @@ class Common_API {
 	 * @return int
 	 */
 	public function get_preflight_status( $batch_id ) {
-		return get_post_meta( $batch_id, '_sme_preflight_status', true );
+		$status = get_post_meta( $batch_id, '_sme_preflight_status', true );
+		return intval( $status );
 	}
 
 	/**
@@ -298,7 +323,8 @@ class Common_API {
 	 * @return int
 	 */
 	public function get_deploy_status( $batch_id ) {
-		return get_post_meta( $batch_id, '_sme_deploy_status', true );
+		$status = get_post_meta( $batch_id, '_sme_deploy_status', true );
+		return intval( $status );
 	}
 
 	/**
@@ -577,6 +603,36 @@ class Common_API {
 	 * **********************************************************************/
 
 	/**
+	 * Ask Production for current deploy status and messages.
+	 *
+	 * Runs on Content Stage.
+	 *
+	 * @param int $batch_id
+	 *
+	 * @return array
+	 */
+	public function import_status_request( $batch_id ) {
+
+		$request = array(
+			'batch_id' => $batch_id,
+		);
+
+		$response = $this->client->request( 'smeContentStaging.importStatus', $request );
+		$response = apply_filters( 'sme_deploy_status', $response );
+
+		// Get production deploy status.
+		$status = ( isset( $response['status'] ) ) ? $response['status'] : 2;
+
+		// Get production deploy messages.
+		$messages = ( isset( $response['messages'] ) ) ? $response['messages'] : array();
+
+		return array(
+			'status'   => $status,
+			'messages' => $messages,
+		);
+	}
+
+	/**
 	 * Generate an import key that can be used in background imports.
 	 *
 	 * @param Batch $batch
@@ -606,6 +662,26 @@ class Common_API {
 	 */
 	public function get_import_key( $batch_id ) {
 		return get_post_meta( $batch_id, '_sme_import_key', true );
+	}
+
+	/* **********************************************************************
+	 * Settings API
+	 * **********************************************************************/
+
+	/**
+	 * Check if we are currently on Content Stage or Production.
+	 *
+	 * @return bool
+	 */
+	public function is_content_stage() {
+
+		if ( defined( 'CONTENT_STAGING_IS_STAGE' ) ) {
+			return CONTENT_STAGING_IS_STAGE;
+		}
+
+		$is_stage = get_option( 'sme_cs_is_stage' );
+
+		return $is_stage ? true : false;
 	}
 
 }

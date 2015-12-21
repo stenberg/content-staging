@@ -4,10 +4,12 @@ namespace Me\Stenberg\Content\Staging\Managers;
 use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\DB\Custom_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -26,6 +28,11 @@ class Batch_Mgr {
 	 * @var Batch_DAO
 	 */
 	private $batch_dao;
+
+	/**
+	 * @var Custom_DAO
+	 */
+	private $custom_dao;
 
 	/**
 	 * @var Post_DAO
@@ -54,14 +61,18 @@ class Batch_Mgr {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param Common_API  $api
+	 * @param DAO_Factory $dao_factory
 	 */
-	public function __construct() {
-		$this->batch_dao         = Helper_Factory::get_instance()->get_dao( 'Batch' );
-		$this->post_dao          = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->post_taxonomy_dao = Helper_Factory::get_instance()->get_dao( 'Post_Taxonomy' );
-		$this->postmeta_dao      = Helper_Factory::get_instance()->get_dao( 'Postmeta' );
-		$this->user_dao          = Helper_Factory::get_instance()->get_dao( 'User' );
-		$this->api               = Helper_Factory::get_instance()->get_api( 'Common' );
+	public function __construct( Common_API $api, DAO_Factory $dao_factory ) {
+		$this->api               = $api;
+		$this->batch_dao         = $dao_factory->create( 'Batch' );
+		$this->custom_dao        = $dao_factory->create( 'Custom' );
+		$this->post_dao          = $dao_factory->create( 'Post' );
+		$this->post_taxonomy_dao = $dao_factory->create( 'Post_Taxonomy' );
+		$this->postmeta_dao      = $dao_factory->create( 'Postmeta' );
+		$this->user_dao          = $dao_factory->create( 'User' );
 	}
 
 	/**
@@ -105,7 +116,6 @@ class Batch_Mgr {
 		$batch->set_attachments( array() );
 		$batch->set_users( array() );
 		$batch->set_posts( array() );
-		$batch->set_custom_data( array() );
 
 		// Get IDs of posts user has selected to include in this batch.
 		$meta = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
@@ -115,6 +125,7 @@ class Batch_Mgr {
 			$post_ids = $meta;
 		}
 
+		$this->add_table_prefix( $batch );
 		$this->add_posts( $batch, $post_ids );
 		$this->add_users( $batch );
 
@@ -272,6 +283,15 @@ class Batch_Mgr {
 		}
 
 		return $postmeta;
+	}
+
+	/**
+	 * Add database table base prefix to batch.
+	 *
+	 * @param Batch $batch
+	 */
+	private function add_table_prefix( Batch $batch ) {
+		$batch->add_custom_data( 'sme_table_base_prefix', $this->custom_dao->get_table_base_prefix() );
 	}
 
 }

@@ -4,6 +4,7 @@ namespace Me\Stenberg\Content\Staging\Listeners;
 use Exception;
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -23,10 +24,10 @@ class Common_Listener {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
+	public function __construct( Common_API $api, DAO_Factory $dao_factory ) {
 
-		$this->post_dao = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->api      = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->post_dao = $dao_factory->create( 'Post' );
+		$this->api      = $api;
 
 		// Register listeners.
 		add_action( 'sme_prepare', array( $this, 'prepare_preflight' ) );

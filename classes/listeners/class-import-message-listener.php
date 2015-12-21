@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\Listeners;
 
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Post;
@@ -22,10 +23,10 @@ class Import_Message_Listener {
 	/**
 	 * Constructor.
 	 */
-	public function __construct() {
+	public function __construct( Common_API $api, DAO_Factory $dao_factory ) {
 
-		$this->post_dao = Helper_Factory::get_instance()->get_dao( 'Post' );
-		$this->api      = Helper_Factory::get_instance()->get_api( 'Common' );
+		$this->api      = $api;
+		$this->post_dao = $dao_factory->create( 'Post' );
 
 		// Register listeners.
 		add_action( 'sme_post_imported', array( $this, 'post_imported' ), 10, 2 );

@@ -35,21 +35,6 @@ jQuery( document ).ready(function($) {
 						break;
 				}
 			}
-			
-			// Bind this anonymous function to create a random 25
-			// character string, for the "secret key"
-			$( "#generate_key" ).click(function(event) {
-			    event.preventDefault();
-			    
-			    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXWZabcdefghijklmnopqrstuvwxyz0123456789";
-				var text = [];
-				
-				for(var i = 0; i < 36; i++) {
-					text.push(possible.charAt(Math.floor(Math.random() * possible.length)));	
-				}
-				
-			    $( '#secret_key' ).val(text.join(""));
-			});
 		},
 
 		/**
@@ -269,12 +254,12 @@ jQuery( document ).ready(function($) {
 					$('.sme-deploy-messages').append('<div class="sme-cs-message sme-cs-' + response.messages[i].level + '"><p>' + response.messages[i].message + '</p></div>');
 				}
 
-				if (response.status > 2 ) {
+				if (response.status > 1) {
 					$('#sme-importing').remove();
 				}
 
-				// If import is not completed, select import method.
-				if (response.status < 3) {
+				// If import is not yet completed, ask for deploy status again.
+				if (response.status < 2) {
 					self.deployStatus(data);
 				}
 			});
@@ -302,6 +287,21 @@ jQuery( document ).ready(function($) {
 			return newArray;
 		}
 	};
+
+	// Bind this anonymous function to create a random 25
+	// character string, for the "secret key".
+	$( '#sme-generate-key' ).click(function(event) {
+		event.preventDefault();
+
+		var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXWZabcdefghijklmnopqrstuvwxyz0123456789';
+		var text = [];
+
+		for(var i = 0; i < 36; i++) {
+			text.push(possible.charAt(Math.floor(Math.random() * possible.length)));
+		}
+
+		$( '#sme-secret-key' ).val(text.join(""));
+	});
 
 	// Initialize application.
 	app.init();

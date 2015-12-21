@@ -72,15 +72,17 @@ abstract class DAO {
 
 	/**
 	 * @param array $raw
+	 * @param array $args Additional information passed to implementing class.
+	 *
 	 * @return Model
 	 */
-	public function create_object( array $raw ) {
+	public function create_object( array $raw, $args = array() ) {
 		$key = $this->unique_key( $raw );
 		$old = $this->get_from_map( $key );
 		if ( ! is_null( $old ) ) {
 			return $old;
 		}
-		$obj = $this->do_create_object( $raw );
+		$obj = $this->do_create_object( $raw, $args );
 		$this->add_to_map( $obj );
 		return $obj;
 	}
@@ -241,6 +243,10 @@ abstract class DAO {
 				$where .= 'post_status = %s';
 				$values[] = $statuses[$i];
 			}
+
+			// TODO: is this the best way?
+			$where .= " OR (post_status = 'inherit' AND post_type = 'attachment')";
+
 			$where .= ')';
 		}
 		return $where;

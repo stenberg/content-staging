@@ -23,10 +23,11 @@ class Batch_DAO extends DAO {
 	 * @param string $order
 	 * @param int    $per_page
 	 * @param int    $paged
+	 * @param bool   $skip_content
 	 *
 	 * @return array
 	 */
-	public function get_batches( $statuses = array(), $order_by = null, $order = 'asc', $per_page = 5, $paged = 1 ) {
+	public function get_batches( $statuses = array(), $order_by = null, $order = 'asc', $per_page = 5, $paged = 1, $skip_content = true ) {
 		$batches = array();
 		$values  = array();
 		$where   = '';
@@ -62,7 +63,7 @@ class Batch_DAO extends DAO {
 		$query = $this->wpdb->prepare( $stmt, $values );
 
 		foreach ( $this->wpdb->get_results( $query, ARRAY_A ) as $batch ) {
-			$batches[] = $this->create_object( $batch );
+			$batches[] = $this->create_object( $batch, array( 'skip_content' => $skip_content ) );
 		}
 
 		if ( $order_by == 'post_author' ) {
@@ -128,7 +129,13 @@ class Batch_DAO extends DAO {
 			$guid
 		);
 
-		return $this->wpdb->get_var( $query );
+		$id = $this->wpdb->get_var( $query );
+
+		if ( $id === null ) {
+			return $id;
+		}
+
+		return (int) $id;
 	}
 
 	/**
@@ -189,8 +196,8 @@ class Batch_DAO extends DAO {
 		$where        = array( 'ID' => $batch->get_id() );
 		$format       = $this->format();
 		$where_format = array( '%d' );
-
 		$this->update( $data, $where, $format, $where_format );
+		$this->update_batch_content( $batch );
 	}
 
 	/**
@@ -206,17 +213,34 @@ class Batch_DAO extends DAO {
 	 * @param Batch $batch
 	 */
 	public function delete_batch( Batch $batch ) {
+		$this->delete_by_id( $batch->get_id() );
+	}
+
+	/**
+	 * Delete batch.
+	 *
+	 * Set 'post_status' for batch with provided ID to 'draft'. This will
+	 * hide the batch from users, but keeping it for future references.
+	 *
+	 * Empty 'post_content'. Since batches can be huge this is just a
+	 * precaution so we do not fill the users database with a lot of
+	 * unnecessary data.
+	 * @param int $batch_id
+	 */
+	public function delete_by_id( $batch_id ) {
 		$this->update(
 			array(
 				'post_content' => '',
 				'post_status'  => 'draft',
 			),
 			array(
-				'ID' => $batch->get_id(),
+				'ID' => $batch_id,
 			),
 			array( '%s', '%s' ),
 			array( '%d' )
 		);
+
+		delete_post_meta( $batch_id, '_sme_batch_content' );
 	}
 
 	/**
@@ -280,15 +304,15 @@ class Batch_DAO extends DAO {
 		$array  = $this->create_array( $obj );
 		$format = $this->format();
 		$this->wpdb->insert( $this->get_table(), $array, $format );
-		$post_id = $this->wpdb->insert_id;
-		$obj->set_id( $post_id );
+		$obj->set_id( $this->wpdb->insert_id );
+		$this->update_batch_content( $obj );
 	}
 
 	/**
 	 * @param array $raw
 	 * @return Batch
 	 */
-	protected function do_create_object( array $raw ) {
+	protected function do_create_object( array $raw, $args = array() ) {
 
 		$obj  = new Batch( $raw['ID'] );
 		$user = $this->user_dao->find( $raw['post_author'] );
@@ -301,7 +325,11 @@ class Batch_DAO extends DAO {
 		$obj->set_modified_gmt( $raw['post_modified_gmt'] );
 		$obj->set_status( $raw['post_status'] );
 
-		$content = unserialize( base64_decode( $raw['post_content'] ) );
+		// Skip loading batch content?
+		$skip_content = ( isset( $args['skip_content'] ) ) ? $args['skip_content'] : false;
+
+		$content = $this->get_batch_content( $raw, $skip_content );
+		$content = unserialize( base64_decode( $content ) );
 
 		/*
 		 * Previously $content would have contained a Batch object. This check
@@ -343,23 +371,9 @@ class Batch_DAO extends DAO {
 			$batch['post_author'] = $user->get_id();
 		}
 
-		/*
-		 * Take content of a batch (attachments, users, post, custom data) and
-		 * prepare it for being inserted into database.
-		 */
-		$content = array(
-			'attachments'   => $obj->get_attachments(),
-			'users'         => $obj->get_users(),
-			'posts'         => $obj->get_posts(),
-			'custom_data'   => $obj->get_custom_data(),
-			'post_rel_keys' => $obj->get_post_rel_keys(),
-		);
-
-		$content = base64_encode( serialize( $content ) );
-
 		$batch['post_date']         = $obj->get_date();
 		$batch['post_date_gmt']     = $obj->get_date_gmt();
-		$batch['post_content']      = $content;
+		$batch['post_content']      = '';
 		$batch['post_title']        = $obj->get_title();
 		$batch['post_status']       = $obj->get_status();
 		$batch['comment_status']    = 'closed';
@@ -408,4 +422,54 @@ class Batch_DAO extends DAO {
 		return $a->get_creator()->get_display_name() == $b->get_creator()->get_display_name() ? 0 : ( $a->get_creator()->get_display_name() > $b->get_creator()->get_display_name() ) ? 1 : -1;
 	}
 
+	/**
+	 * Take content of a batch (attachments, users, post, custom data) and
+	 * inserted into database.
+	 *
+	 * @param Batch $batch
+	 */
+	private function update_batch_content( Batch $batch ) {
+
+		$content = array(
+			'attachments'   => $batch->get_attachments(),
+			'users'         => $batch->get_users(),
+			'posts'         => $batch->get_posts(),
+			'custom_data'   => $batch->get_custom_data(),
+			'post_rel_keys' => $batch->get_post_rel_keys(),
+		);
+
+		$content = base64_encode( serialize( $content ) );
+
+		update_post_meta( $batch->get_id(), '_sme_batch_content', $content );
+	}
+
+	/**
+	 * Get batch content (users, posts, etc) as encoded string.
+	 *
+	 * @param array $batch
+	 * @param bool  $skip_content
+	 *
+	 * @return string
+	 */
+	private function get_batch_content( array $batch, $skip_content = false ) {
+
+		$content = '';
+
+		if ( ! array_key_exists( 'ID', $batch ) || ! array_key_exists( 'post_content', $batch ) ) {
+			return $content;
+		}
+
+		// Get batch content from postmeta table.
+		if ( ! $skip_content && ! $batch['post_content'] ) {
+			return get_post_meta( $batch['ID'], '_sme_batch_content', true );
+		}
+
+		// In the past all batch data (posts, users, etc) was stored in the post_content
+		// field. Get rid of this data if $skip_content is set to true.
+		if ( $skip_content ) {
+			return $content;
+		}
+
+		return $batch['post_content'];
+	}
 }

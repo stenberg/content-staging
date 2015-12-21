@@ -49,10 +49,13 @@ class Post_Table extends WP_List_Table {
 	 * @param array $column_name
 	 * @return string Text or HTML to be placed inside the column.
 	 */
-	public function column_default( Post $post, $column_name ) {
+	public function column_default( $post, $column_name ) {
 		switch ( $column_name ) {
 			case 'post_title':
 				$value = $this->column_title( $post );
+				break;
+			case 'post_type':
+				$value = $this->column_type( $post );
 				break;
 			case 'post_modified':
 				$value = call_user_func( array( $post, 'get_modified' ) );
@@ -71,11 +74,25 @@ class Post_Table extends WP_List_Table {
 			$parents = $this->get_parent_title( $post->get_parent(), $parents );
 		}
 
+		// TODO: I hate that this is here... can I move it somewhere more general? Maybe in the model?
+		
+		$post_id = null;
+		$post_title = null;
+
+		if ($post->get_type() == 'nav_menu_item' && empty($post->get_title())) {
+			$actual_post = get_post(get_post_meta($post->get_id(), '_menu_item_object_id', true));
+			$post_title = $actual_post->post_title;
+			$post_id = $actual_post->ID;
+		} else {
+			$post_title = $post->get_title();
+			$post_id = $post->get_id();
+		}
+
 		return sprintf(
 			'%s<strong><span class="row-title"><a href="%s" target="_blank">%s</a></span></strong>',
 			$parents,
-			get_edit_post_link( $post->get_id() ),
-			$post->get_title()
+			get_edit_post_link( $post_id ),
+			$post_title
 		);
 	}
 
@@ -84,7 +101,18 @@ class Post_Table extends WP_List_Table {
 		if ( $post->get_parent() !== null ) {
 			$content = $this->get_parent_title( $post->get_parent(), $content );
 		}
+
 		return $content;
+	}
+
+	public function column_type( Post $post ) {
+		$post_type = get_post_type_object( $post->get_type() );
+		$type = (is_object($post_type)) ? $post_type->label : $post->get_type();
+
+		return sprintf(
+			'<span class="row-type">%s</span>',
+			$type
+		);
 	}
 
 	/**
@@ -94,7 +122,7 @@ class Post_Table extends WP_List_Table {
 	 * @param Post $post
 	 * @return string Text to be placed inside the column.
 	 */
-	public function column_cb( Post $post ) {
+	public function column_cb( $post ) {
 		return sprintf(
 			'<input type="checkbox" id="sme_select_post_%s" class="sme-select-post" name="%s[]" value="%s"/>',
 			$post->get_id(),
@@ -116,7 +144,7 @@ class Post_Table extends WP_List_Table {
 	public function get_columns() {
 		$columns = array( 'cb' => '<input type="checkbox" />' );
 		foreach ( $this->custom_items as $key => $item ) {
-			$columns[$key] = $item['title'];
+			$columns[ $key ] = $item['title'];
 		}
 		return $columns;
 	}
@@ -131,8 +159,8 @@ class Post_Table extends WP_List_Table {
 	public function get_sortable_columns() {
 		$columns = array();
 		foreach ( $this->custom_items as $key => $item ) {
-			if ( $item['sortable'] === true ) {
-				$columns[$key] = array( $item['sort_by'], $item['pre_sorted'] );
+			if ( true === $item['sortable'] ) {
+				$columns[ $key ] = array( $item['sort_by'], $item['pre_sorted'] );
 			}
 		}
 		return $columns;
@@ -147,6 +175,12 @@ class Post_Table extends WP_List_Table {
 				'title'      => 'Post Title',
 				'sortable'   => true,
 				'sort_by'    => 'post_title',
+				'pre_sorted' => false,
+			),
+			'post_type' => array(
+				'title'      => 'Post Type',
+				'sortable'   => true,
+				'sort_by'    => 'post_type',
 				'pre_sorted' => false,
 			),
 			'post_modified' => array(

@@ -8,7 +8,6 @@ class Helper_Factory {
 	private $wpdb;
 	private $mappers;
 	private $clients;
-	private $apis;
 
 	private static $instance;
 
@@ -16,7 +15,6 @@ class Helper_Factory {
 		$this->wpdb    = $wpdb;
 		$this->mappers = array();
 		$this->clients = array();
-		$this->apis    = array();
 	}
 
 	public static function get_instance() {
@@ -55,21 +53,6 @@ class Helper_Factory {
 
 		$this->clients[$client] = new $client( $this->wpdb );
 		return $this->clients[$client];
-	}
-
-	public function get_api( $key ) {
-		$api = 'Me\Stenberg\Content\Staging\Apis\\' . $key . '_API';
-
-		if ( isset( $this->apis[$api] ) ) {
-			return $this->apis[$api];
-		}
-
-		if ( ! class_exists( $api ) ) {
-			throw new Exception( 'Class ' . $api . ' not found' );
-		}
-
-		$this->apis[$api] = new $api();
-		return $this->apis[$api];
 	}
 
 }

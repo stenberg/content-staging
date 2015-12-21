@@ -3,6 +3,7 @@ namespace Me\Stenberg\Content\Staging\Importers;
 
 use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
+use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
 
@@ -14,16 +15,16 @@ class Batch_Importer_Factory {
 	private $api;
 
 	/**
-	 * @var Batch_DAO
+	 * @var DAO_Factory
 	 */
-	private $batch_dao;
+	private $dao_factory;
 
 	/**
 	 * Constructor.
 	 */
-	public function __construct( Common_API $api, Batch_DAO $batch_dao ) {
-		$this->api       = Helper_Factory::get_instance()->get_api( 'Common' );
-		$this->batch_dao = Helper_Factory::get_instance()->get_dao( 'Batch' );
+	public function __construct( Common_API $api, DAO_Factory $dao_factory ) {
+		$this->api         = $api;
+		$this->dao_factory = $dao_factory;
 	}
 
 	/**
@@ -64,9 +65,10 @@ class Batch_Importer_Factory {
 
 		$batch_id   = intval( $_GET['sme_batch_id'] );
 		$import_key = $_GET['sme_import_key'];
+		$batch_dao  = $this->dao_factory->create( 'Batch' );
 
 		// Get batch from database.
-		$batch = $this->batch_dao->find( $batch_id );
+		$batch = $batch_dao->find( $batch_id );
 
 		// No batch to import found, error.
 		if ( ! $batch ) {
