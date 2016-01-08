@@ -93,14 +93,21 @@ class Setup {
 	/**
 	 * Display a "Deploy To Production" button whenever a post is updated.
 	 */
-	public function quick_deploy_batch() {
-		if ( isset( $_GET['post'] ) && isset( $_GET['action'] ) && isset( $_GET['message'] ) && $_GET['action'] == 'edit' ) {
-			?>
-			<div class="updated">
-				  <p><?php echo '<a href="' . admin_url( 'admin-post.php?action=sme-quick-deploy-batch&post_id=' . $_GET['post'] ) . '">Deploy To Production</a>'; ?></p>
-			</div>
-			<?php
+
+	public function quick_deploy_batch( $messages ) {
+		global $post;
+
+		$post_ID = $post->ID;
+		$post_type = get_post_type( $post_ID );
+
+		$obj = get_post_type_object( $post_type );
+		$singular = $obj->labels->singular_name;
+
+		foreach ( $messages[$post_type] as $key => $message ) {
+			$messages[$post_type][$key] = $message . ' or <a href="' . admin_url( 'admin-post.php?action=sme-quick-deploy-batch&post_id=' . $_GET['post'] ) . '">Deploy To Production</a>';
 		}
+
+		return $messages;
 	}
 
 	/**
