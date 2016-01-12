@@ -42,7 +42,8 @@ class Import_Message_Listener {
 	public function post_imported( Post $post, Batch $batch ) {
 
 		$message = sprintf(
-			'Post <strong>%s</strong> has been successfully imported.',
+			'%s <strong>%s</strong> has been successfully imported.',
+			ucfirst($post->get_type()),
 			$post->get_title()
 		);
 
