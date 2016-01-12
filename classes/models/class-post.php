@@ -335,6 +335,14 @@ class Post extends Model {
 	}
 
 	/**
+	 * @return mixed
+	 */
+	public function get_type_labels() {
+		$content = get_post_type_object( $this->type );
+		return $content->labels->singular_name;
+	}
+	
+	/**
 	 * @param string $to_ping
 	 */
 	public function set_to_ping( $to_ping ) {

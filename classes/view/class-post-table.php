@@ -57,6 +57,9 @@ class Post_Table extends WP_List_Table {
 			case 'post_modified':
 				$value = call_user_func( array( $post, 'get_modified' ) );
 				break;
+			case 'post_type':
+				$value = $post->get_type_labels();
+				break;
 			default:
 				$value = '';
 		}
@@ -147,6 +150,12 @@ class Post_Table extends WP_List_Table {
 				'title'      => 'Post Title',
 				'sortable'   => true,
 				'sort_by'    => 'post_title',
+				'pre_sorted' => false,
+			),
+			'post_type' => array(
+				'title'      => 'Type',
+				'sortable'   => true,
+				'sort_by'    => 'post_type',
 				'pre_sorted' => false,
 			),
 			'post_modified' => array(
