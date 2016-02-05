@@ -62,8 +62,8 @@ class Post_Taxonomy extends Model {
 	/**
 	 * @return int
 	 */
-	 public function get_term_order() {
-     return ( $this->term_order !== null ) ? $this->term_order : 0;
-   }
+	public function get_term_order() {
+		return $this->term_order;
+	}
 
 }

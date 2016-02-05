@@ -59,6 +59,9 @@ class Delete_Listener {
 		// Hook in to Content Staging preparation of batch.
 		add_action( 'sme_save_batch', array( $this, 'prepare' ) );
 
+		// Add deleted menu items to batch.
+		add_action( 'sme_prepare_menu_options', array( $this, 'prepare_delete_menu_items') );
+
 		// Hook in to Content Staging import of extension data.
 		add_action( 'sme_import_' . $this->extension, array( $this, 'import' ), 10, 2 );
 
@@ -165,6 +168,32 @@ class Delete_Listener {
 		} );
 
 		$batch->add_custom_data( $this->extension, $deleted_posts );
+	}
+
+	/**
+	 * Add deleted menu items to batch.
+	 *
+	 * @param Batch $batch
+	 */
+	public function prepare_delete_menu_items( Batch $batch ) {
+
+		/**
+		 * @var Custom_DAO $custom_dao
+		 */
+		$custom_dao = Helper_Factory::get_instance()->get_dao( 'Custom' );
+		$deleted_posts = $custom_dao->get_deleted_posts();
+
+		$deleted_menu_posts = array_filter(
+			$deleted_posts,
+			function( $post ) {
+				return $post['title'] === ' (nav_menu_item)';
+			}
+		);
+
+		$deleted_posts_in_batch = $batch->get_custom_data( $this->extension );
+		$deleted_posts_in_batch = array_merge( $deleted_posts_in_batch, $deleted_menu_posts );
+
+		$batch->add_custom_data( $this->extension, $deleted_posts_in_batch );
 	}
 
 	/**

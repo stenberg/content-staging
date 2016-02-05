@@ -79,35 +79,28 @@ class Setup {
 	}
 
 	public function register_menu_pages() {
-		add_menu_page( 'Content Staging', 'Content Staging', apply_filters( 'sme-list-batches-capability', 'manage_options' ), 'sme-list-batches', array( $this->batch_ctrl, 'list_batches' ) );
-		add_submenu_page( 'sme-list-batches', 'History', 'History', apply_filters( 'sme-batch-history-capability', 'manage_options' ), 'sme-batch-history', array( $this->batch_history_ctrl, 'init' ) );
-		add_submenu_page( 'sme-list-batches', 'Settings', 'Settings', apply_filters( 'sme-settings-capability', 'manage_options' ), 'sme-settings', array( $this->settings_ctrl, 'init' ) );
-		add_submenu_page( 'sme-list-batches', 'WordPress Options', 'WordPress Options', apply_filters( 'sme-wp-options-capability', 'manage_options' ), 'sme-wp-options', array( $this->options_ctrl, 'init' ) );
-		add_submenu_page( null, 'Edit Batch', 'Edit', apply_filters( 'sme-edit-batch-capability', 'manage_options' ), 'sme-edit-batch', array( $this->batch_ctrl, 'edit_batch' ) );
-		add_submenu_page( null, 'Delete Batch', 'Delete', apply_filters( 'sme-delete-batch-capability', 'manage_options' ), 'sme-delete-batch', array( $this->batch_ctrl, 'confirm_delete_batch' ) );
-		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', apply_filters( 'sme-preflight-batch-capability', 'manage_options' ), 'sme-preflight-batch', array( $this->batch_ctrl, 'prepare' ) );
-		add_submenu_page( null, 'Quick Deploy Batch', 'Quick Deploy', apply_filters( 'sme-quick-deploy-batch-capability', 'manage_options' ), 'sme-quick-deploy-batch', array( $this->batch_ctrl, 'quick_deploy' ) );
-		add_submenu_page( null, 'Deploy Batch', 'Deploy', apply_filters( 'sme-send-batch-capability', 'manage_options' ), 'sme-send-batch', array( $this->batch_ctrl, 'deploy' ) );
+		add_menu_page( 'Content Staging', 'Content Staging', 'manage_options', 'sme-list-batches', array( $this->batch_ctrl, 'list_batches' ) );
+		add_submenu_page( 'sme-list-batches', 'History', 'History', 'manage_options', 'sme-batch-history', array( $this->batch_history_ctrl, 'init' ) );
+		add_submenu_page( 'sme-list-batches', 'Settings', 'Settings', 'manage_options', 'sme-settings', array( $this->settings_ctrl, 'init' ) );
+		add_submenu_page( 'sme-list-batches', 'WordPress Options', 'WordPress Options', 'manage_options', 'sme-wp-options', array( $this->options_ctrl, 'init' ) );
+		add_submenu_page( null, 'Edit Batch', 'Edit', 'manage_options', 'sme-edit-batch', array( $this->batch_ctrl, 'edit_batch' ) );
+		add_submenu_page( null, 'Delete Batch', 'Delete', 'manage_options', 'sme-delete-batch', array( $this->batch_ctrl, 'confirm_delete_batch' ) );
+		add_submenu_page( null, 'Pre-Flight Batch', 'Pre-Flight', 'manage_options', 'sme-preflight-batch', array( $this->batch_ctrl, 'prepare' ) );
+		add_submenu_page( null, 'Quick Deploy Batch', 'Quick Deploy', 'manage_options', 'sme-quick-deploy-batch', array( $this->batch_ctrl, 'quick_deploy' ) );
+		add_submenu_page( null, 'Deploy Batch', 'Deploy', 'manage_options', 'sme-send-batch', array( $this->batch_ctrl, 'deploy' ) );
 	}
 
 	/**
 	 * Display a "Deploy To Production" button whenever a post is updated.
 	 */
-
-	public function quick_deploy_batch( $messages ) {
-		global $post;
-
-		$post_ID = $post->ID;
-		$post_type = get_post_type( $post_ID );
-
-		$obj = get_post_type_object( $post_type );
-		$singular = $obj->labels->singular_name;
-
-		foreach ( $messages[$post_type] as $key => $message ) {
-			$messages[$post_type][$key] = $message . ' or <a href="' . admin_url( 'admin-post.php?action=sme-quick-deploy-batch&post_id=' . $_GET['post'] ) . '">Deploy To Production</a>';
+	public function quick_deploy_batch() {
+		if ( isset( $_GET['post'] ) && isset( $_GET['action'] ) && isset( $_GET['message'] ) && $_GET['action'] == 'edit' ) {
+			?>
+			<div class="updated">
+				  <p><?php echo '<a href="' . admin_url( 'admin-post.php?action=sme-quick-deploy-batch&post_id=' . $_GET['post'] ) . '">Deploy To Production</a>'; ?></p>
+			</div>
+			<?php
 		}
-
-		return $messages;
 	}
 
 	/**
@@ -126,8 +119,16 @@ class Setup {
 	}
 
 	public function set_postmeta_post_relation_keys( $meta_keys ) {
-		if ( ! in_array( '_thumbnail_id', $meta_keys ) ) {
-			$meta_keys[] = '_thumbnail_id';
+
+		$rel_keys = array(
+			'_thumbnail_id',
+			'_menu_item_menu_item_parent',
+		);
+
+		foreach ( $rel_keys as $key ) {
+			if ( ! in_array( $key, $meta_keys ) ) {
+				$meta_keys[] = $key;
+			}
 		}
 
 		return $meta_keys;

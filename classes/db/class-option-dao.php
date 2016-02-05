@@ -76,22 +76,70 @@ class Option_DAO extends DAO {
 	}
 
 	/**
-	 * Insert options.
+	 * Get options by pattern.
 	 *
-	 * Using the WordPress method 'update_option()' to insert/update options
-	 * one by one.
-	 *
-	 * @todo Consider changing the implementation so that all options are
-	 * imported in one query.
+	 * @param string $pattern
+	 * @return array
+	 */
+	public function get_option_names_by_pattern( $pattern ) {
+
+		$options = array();
+		$stmt    = 'SELECT option_name FROM ' . $this->get_table() . ' WHERE option_name LIKE %s';
+		$query   = $this->wpdb->prepare( $stmt, $pattern );
+		$result  = $this->wpdb->get_results( $query, ARRAY_A );
+
+		foreach ( $result as $option ) {
+			$options[] = $option['option_name'];
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Update options.
 	 *
 	 * @param array $options
 	 */
-	public function insert_options( array $options ) {
+	public function update_options( array $options ) {
 		foreach ( $options as $option ) {
 			if ( $option instanceof Option ) {
-				update_option( $option->get_name(), $option->get_value(), $option->get_autoload() );
+				$old_value = get_option( $option->get_name() );
+
+				if ( $old_value === false ) {
+					$this->insert( $option );
+				} else {
+					$this->do_update( $option );
+				}
 			}
 		}
+	}
+
+	/**
+	 * Update option. Create option if it does not already exist.
+	 *
+	 * @param Option $option
+	 */
+	public function update_option( Option $option) {
+		$old_value = get_option( $option->get_name() );
+
+		if ( $old_value === false ) {
+			$this->insert( $option );
+		} else {
+			$this->do_update( $option );
+		}
+	}
+
+	/**
+	 * Update option.
+	 *
+	 * @param Option $option
+	 */
+	public function do_update( Option $option ) {
+		$data         = $this->create_array( $option );
+		$where        = array( 'option_name' => $option->get_name() );
+		$format       = $this->format();
+		$where_format = array( '%s' );
+		$this->update( $data, $where, $format, $where_format );
 	}
 
 	/**

@@ -39,6 +39,31 @@ class Post_Taxonomy_DAO extends DAO {
 	}
 
 	/**
+	 * Get IDs of all object IDs that are connected to one of the provided
+	 * taxonomy IDs.
+	 *
+	 * @param array $taxonomy_ids
+	 * @return array
+	 */
+	public function get_object_ids_by_taxonomy_ids( $taxonomy_ids ) {
+
+		$placeholders = $this->in_clause_placeholders( $taxonomy_ids, '%d' );
+
+		$query = $this->wpdb->prepare(
+			'SELECT object_id FROM ' . $this->get_table() . ' WHERE term_taxonomy_id in (' . $placeholders . ')',
+			$taxonomy_ids
+		);
+
+		$object_ids = array_map(
+			function( $record ) {
+				return (int) $record['object_id'];
+			}, $this->wpdb->get_results( $query, ARRAY_A )
+		);
+
+		return $object_ids;
+	}
+
+	/**
 	 * Clear the Post_Taxonomy relationships informations.
 	 *
 	 * @param Post_Taxonomy $post_taxonomy
