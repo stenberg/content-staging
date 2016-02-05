@@ -134,6 +134,7 @@ class Post_DAO extends DAO {
 		$nbr_of_selected = count( $selected );
 		$limit           = $per_page;
 		$values          = array();
+		$where           = array();
 
 		if ( ( $offset = ( ( $paged - 1 ) * $per_page ) - $nbr_of_selected ) < 0 ) {
 			$offset = 0;
@@ -152,17 +153,35 @@ class Post_DAO extends DAO {
 			$order = 'desc';
 		}
 
-		$where  = 'post_type != "sme_content_batch" AND post_type != "sme_batch_import_job"';
-		$where  = $this->where_statuses( $where, $statuses, $values );
-		$where  = apply_filters( 'sme_query_posts_where', $where );
-		$values = apply_filters( 'sme_values_posts_where', $values );
-		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ' . $where;
+		// Post type.
+		$blacklisted_post_types = $this->get_blacklisted_post_types();
 
-		if ( ( $nbr_of_selected = count( $selected ) ) > 0 ) {
-			$placeholders = implode( ',', array_fill( 0, $nbr_of_selected, '%d' ) );
-			$values       = array_merge( $values, $selected );
-			$stmt        .= ' AND ID NOT IN (' . $placeholders . ')';
+		if ( ( $nbr_of_blacklisted_post_types = count( $blacklisted_post_types ) ) > 0 ) {
+			$blacklist_placeholders = implode( ',', array_fill( 0, $nbr_of_blacklisted_post_types, '%s' ) );
+			$where[] = 'post_type NOT IN (' . $blacklist_placeholders . ')';
+			$values  = array_merge( $values, $blacklisted_post_types );
 		}
+
+		// Post status.
+		if ( ( $nbr_of_post_statuses = count( $statuses ) ) > 0 ) {
+			$post_status_placeholders = implode( ',', array_fill( 0, $nbr_of_post_statuses, '%s' ) );
+			$where[] = 'post_status IN (' . $post_status_placeholders . ')';
+			$values  = array_merge( $values, $statuses );
+		}
+
+		// Post ID.
+		if ( ( $nbr_of_selected = count( $selected ) ) > 0 ) {
+			$id_placeholders = implode( ',', array_fill( 0, $nbr_of_selected, '%d' ) );
+			$where[] = 'ID NOT IN (' . $id_placeholders . ')';
+			$values  = array_merge( $values, $selected );
+		}
+
+		// Implode where clauses into single where clause.
+		$where_clause = implode( ' AND ', $where );
+
+		$where_clause = apply_filters( 'sme_query_posts_where', $where_clause );
+		$values       = apply_filters( 'sme_values_posts_where', $values );
+		$stmt   = 'SELECT * FROM ' . $this->wpdb->posts . ' WHERE ' . $where_clause;
 
 		if ( ! is_null( $order_by ) ) {
 			$stmt .= ' ORDER BY ' . $order_by . ' ' . $order;
@@ -534,6 +553,15 @@ class Post_DAO extends DAO {
 			'%s', // post_mime_type
 			'%d', // comment_count
 		);
+	}
+
+	private function get_blacklisted_post_types() {
+
+		$blacklist = array(
+			'sme_content_batch', 'sme_batch_import_job', 'nav_menu_item',
+		);
+
+		return apply_filters( 'sme_blacklisted_post_types', $blacklist );
 	}
 
 }

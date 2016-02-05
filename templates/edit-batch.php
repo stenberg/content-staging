@@ -22,6 +22,16 @@
 		<?php echo $filters; ?>
 		<?php $table->display(); ?>
 
+		<!-- Menus -->
+
+		<h2><?php _e( 'Menus', 'sme-content-staging' ); ?></h2>
+		<p>
+			<?php _e( 'Menus you wish to sync to your Production environment.', 'sme-content-staging' ); ?>
+		</p>
+		<?php $menu_table->display(); ?>
+
+		<!-- WordPress Options -->
+
 		<h2><?php echo $wp_options['title']; ?></h2>
 		<p>
 			<input type="checkbox" name="include_wp_options" id="include_wp_options" <?php echo $wp_options['checked']; ?>>

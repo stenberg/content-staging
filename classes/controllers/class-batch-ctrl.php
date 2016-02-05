@@ -5,15 +5,14 @@ use Me\Stenberg\Content\Staging\Apis\Common_API;
 use Me\Stenberg\Content\Staging\DB\Batch_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
-use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Importers\Batch_Importer_Factory;
-use Me\Stenberg\Content\Staging\Managers\Batch_Mgr;
 use Me\Stenberg\Content\Staging\Models\Batch;
 use Me\Stenberg\Content\Staging\Models\Message;
 use Me\Stenberg\Content\Staging\View\Batch_Table;
 use Me\Stenberg\Content\Staging\View\Post_Table;
 use Me\Stenberg\Content\Staging\View\Template;
 use Me\Stenberg\Content\Staging\XMLRPC\Client;
+use SonyMobile\Content\Staging\View\Menu_Table;
 
 class Batch_Ctrl {
 
@@ -198,6 +197,8 @@ class Batch_Ctrl {
 		);
 		$table->prepare_items();
 
+		$menu_table = $this->get_menu_table( $batch );
+
 		$type = get_post_type_object( 'sme_content_batch' );
 		if ( ! $batch->get_id() ) {
 			$label = $type->labels->new_item;
@@ -216,6 +217,7 @@ class Batch_Ctrl {
 			'label'      => $label,
 			'filters'    => $filters,
 			'table'      => $table,
+			'menu_table' => $menu_table,
 			'post_ids'   => implode( ',', $post_ids ),
 			'wp_options' => $wp_options,
 		);
@@ -852,6 +854,8 @@ class Batch_Ctrl {
 			$selected_post_ids = array_map( 'intval', explode( ',', $request_data['post_ids'] ) );
 		}
 
+		$this->save_selected_menus( $batch, $request_data );
+
 		// Set whether WordPress options should be included in batch or not.
 		$this->should_include_wp_options( $batch, $request_data );
 
@@ -963,6 +967,36 @@ class Batch_Ctrl {
 		foreach ( $batch_chunk as $item ) {
 			do_action( 'sme_verify_' . $type, $item, $batch );
 		}
+	}
+
+	private function get_menu_table( Batch $batch ) {
+
+		$menus    = wp_get_nav_menus();
+		$selected = get_post_meta( $batch->get_id(), '_sme_selected_menus', true );
+
+		if ( ! is_array( $selected ) ) {
+			$selected = array();
+		}
+
+		$table        = new Menu_Table( $selected );
+		$table->items = $menus;
+
+		$table->prepare_items();
+
+		return $table;
+	}
+
+	private function save_selected_menus( Batch $batch, array $request_data ) {
+
+		// IDs of menus user has selected to include in this batch.
+		$selected_menu_ids = array();
+
+		// Check if any menus to include in batch has been selected.
+		if ( isset( $request_data['menus'] ) && $request_data['menus'] ) {
+			$selected_menu_ids = array_map( 'intval', $request_data['menus'] );
+		}
+
+		update_post_meta( $batch->get_id(), '_sme_selected_menus', $selected_menu_ids );
 	}
 
 }

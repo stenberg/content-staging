@@ -181,6 +181,21 @@ class Options_Ctrl {
 	}
 
 	/**
+	 * Options that should not be possible to sync to production.
+	 *
+	 * @return array
+	 */
+	private function get_default_blacklist() {
+		return array(
+			'siteurl',
+			'home',
+			'fileupload_url',
+			'sme_wp_options',
+			'rewrite_rules',
+		);
+	}
+
+	/**
 	 * Options as presented in the view. Includes presentation specific data
 	 * such as table row classes, input values etc.
 	 *

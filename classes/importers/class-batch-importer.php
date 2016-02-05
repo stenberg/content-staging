@@ -14,6 +14,7 @@ use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Option;
 use Me\Stenberg\Content\Staging\Models\Post;
 use Me\Stenberg\Content\Staging\Models\Post_Env_Diff;
 use Me\Stenberg\Content\Staging\Models\Relationships\Post_Taxonomy;
@@ -358,7 +359,19 @@ abstract class Batch_Importer {
 	 * @param array $options
 	 */
 	public function import_options( array $options ) {
-		$this->option_dao->insert_options( $options );
+		foreach ( $options as $option ) {
+			$this->import_option( $option );
+		}
+	}
+
+	/**
+	 * Import option.
+	 *
+	 * @param Option $option
+	 */
+	public function import_option( Option $option ) {
+		$this->update_menu_locations( $option );
+		$this->option_dao->update_option( $option );
 	}
 
 	/**
@@ -594,5 +607,44 @@ abstract class Batch_Importer {
 			// Store diff in property.
 			$this->post_diffs[$diff->get_stage_id()] = $diff;
 		}
+	}
+
+	/**
+	 * Update location of menus for a theme so it gets a menu ID (term ID)
+	 * set on production instead of the slug provided from stage.
+	 *
+	 * @param Option $option
+	 */
+	private function update_menu_locations( Option $option ) {
+
+		if ( 0 !== strpos( $option->get_name(), 'theme_mods_' ) ) {
+			return;
+		}
+
+		if ( ! is_serialized( $option->get_value() ) ) {
+			return;
+		}
+
+		$value = unserialize( $option->get_value() );
+
+		if ( ! is_array( $value['nav_menu_locations'] ) ) {
+			return;
+		}
+
+		foreach ( $value['nav_menu_locations'] as &$location ) {
+
+			if ( ! is_string( $location ) ) {
+				continue;
+			}
+
+			$term = $this->term_dao->get_term_by_slug( $location );
+
+			if ( $term instanceof Term ) {
+				$location = $term->get_id();
+			}
+		}
+
+		$value['nav_menu_locations'] = array_filter( $value['nav_menu_locations'], 'is_int' );
+		$option->set_value( serialize( $value ) );
 	}
 }

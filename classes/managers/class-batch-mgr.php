@@ -9,11 +9,14 @@ use Me\Stenberg\Content\Staging\DB\Option_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_DAO;
 use Me\Stenberg\Content\Staging\DB\Post_Taxonomy_DAO;
 use Me\Stenberg\Content\Staging\DB\Postmeta_DAO;
+use Me\Stenberg\Content\Staging\DB\Term_DAO;
 use Me\Stenberg\Content\Staging\DB\User_DAO;
 use Me\Stenberg\Content\Staging\Factories\DAO_Factory;
 use Me\Stenberg\Content\Staging\Helper_Factory;
 use Me\Stenberg\Content\Staging\Models\Batch;
+use Me\Stenberg\Content\Staging\Models\Option;
 use Me\Stenberg\Content\Staging\Models\Post;
+use Me\Stenberg\Content\Staging\Models\Term;
 
 /**
  * Class Batch_Mgr
@@ -24,6 +27,15 @@ use Me\Stenberg\Content\Staging\Models\Post;
  * @package Me\Stenberg\Content\Staging\Managers
  */
 class Batch_Mgr {
+
+	/**
+	 * Post meta field keys that holds a reference to another post.
+	 *
+	 * @var array
+	 */
+	private $post_relationship_keys = array(
+		'_menu_item_menu_item_parent'
+	);
 
 	/**
 	 * @var Batch_DAO
@@ -56,6 +68,11 @@ class Batch_Mgr {
 	private $postmeta_dao;
 
 	/**
+	 * @var Term_DAO
+	 */
+	private $term_dao;
+
+	/**
 	 * @var User_DAO
 	 */
 	private $user_dao;
@@ -79,6 +96,7 @@ class Batch_Mgr {
 		$this->post_dao          = $dao_factory->create( 'Post' );
 		$this->post_taxonomy_dao = $dao_factory->create( 'Post_Taxonomy' );
 		$this->postmeta_dao      = $dao_factory->create( 'Postmeta' );
+		$this->term_dao          = $dao_factory->create( 'Term' );
 		$this->user_dao          = $dao_factory->create( 'User' );
 	}
 
@@ -116,25 +134,15 @@ class Batch_Mgr {
 			return;
 		}
 
-		$post_ids = array();
-		$batch->set_post_rel_keys( apply_filters( 'sme_post_relationship_keys', array() ) );
-
 		// Clean batch from any old content.
 		$batch->set_attachments( array() );
 		$batch->set_users( array() );
 		$batch->set_posts( array() );
 		$batch->set_options( array() );
 
-		// Get IDs of posts user has selected to include in this batch.
-		$meta = $this->batch_dao->get_post_meta( $batch->get_id(), 'sme_selected_post' );
-
-		// Ensure that we got an array back when looking for posts IDs in DB.
-		if ( is_array( $meta ) ) {
-			$post_ids = $meta;
-		}
-
+		$this->add_post_relationship_keys( $batch );
 		$this->add_table_prefix( $batch );
-		$this->add_posts( $batch, $post_ids );
+		$this->add_posts( $batch );
 		$this->add_users( $batch );
 		$this->add_options( $batch );
 
@@ -146,9 +154,11 @@ class Batch_Mgr {
 	 * Provide IDs of posts you want to add to the current batch.
 	 *
 	 * @param Batch $batch
-	 * @param array $post_ids
 	 */
-	private function add_posts( Batch $batch, $post_ids ) {
+	private function add_posts( Batch $batch ) {
+
+		// Get IDs of posts user has selected to include in this batch.
+		$post_ids = $this->get_post_ids( $batch->get_id() );
 
 		$post_ids = apply_filters( 'sme_prepare_post_ids', $post_ids );
 		$post_ids = array_unique( $post_ids );
@@ -224,15 +234,23 @@ class Batch_Mgr {
 	 */
 	private function add_options( Batch $batch ) {
 
+		$wp_options = array();
+
 		// Check if options should be included with this batch.
 		$include_options = get_post_meta( $batch->get_id(), '_sme_include_wp_options', true );
 
-		if ( $include_options !== 'yes' ) {
-			return;
+
+		if ( $include_options === 'yes' ) {
+			$option_names = $this->option_dao->get_option_names_to_sync();
+
+			$wp_options = $this->option_dao->get_options_by_names( $option_names );
+
 		}
 
-		$options = $this->option_dao->get_options_to_sync();
-		$batch->set_options( $options );
+		$menu_options = $this->get_menu_options( $batch );
+		$all_options  = array_merge( $wp_options, $menu_options );
+
+		$batch->set_options( $all_options );
 	}
 
 	/**
@@ -313,12 +331,149 @@ class Batch_Mgr {
 	}
 
 	/**
+	 * Set keys of post meta fields that holds a reference to another post.
+	 *
+	 * @param Batch $batch
+	 */
+	private function add_post_relationship_keys( Batch $batch ) {
+		$batch->set_post_rel_keys( apply_filters( 'sme_post_relationship_keys', $this->post_relationship_keys ) );
+	}
+
+	/**
 	 * Add database table base prefix to batch.
 	 *
 	 * @param Batch $batch
 	 */
 	private function add_table_prefix( Batch $batch ) {
 		$batch->add_custom_data( 'sme_table_base_prefix', $this->custom_dao->get_table_base_prefix() );
+	}
+
+	/**
+	 * Get IDs of posts user has selected to include in a batch.
+	 *
+	 * @param int $batch_id
+	 * @return array
+	 */
+	private function get_post_ids( $batch_id ) {
+
+		$post_ids = $this->batch_dao->get_post_meta( $batch_id, 'sme_selected_post' );
+		$menu_ids = $this->get_menu_post_ids( $batch_id );
+
+		$post_ids = array_merge( $post_ids, $menu_ids );
+
+		// Make sure we got an array back when looking for post IDs in DB.
+		return is_array( $post_ids ) ? $post_ids : array();
+	}
+
+	/**
+	 * Get options related to menu.
+	 *
+	 * @param Batch $batch
+	 * @return array
+	 */
+	private function get_menu_options( Batch $batch ) {
+
+		// IDs of menu items to include in batch.
+		$menu_ids = $this->get_menu_post_ids( $batch->get_id() );
+
+		// Abort if no menus should be included in batch.
+		if ( empty( $menu_ids ) ) {
+			return array();
+		}
+
+		do_action( 'sme_prepare_menu_options', $batch );
+
+		$option_names = $this->get_menu_option_names();
+		$wp_options   = $this->option_dao->get_options_by_names( $option_names );
+
+		// Include custom menu information in batch.
+		$this->add_custom_menu_info( $batch, $wp_options );
+
+		return $wp_options;
+	}
+
+	/**
+	 * Get menu options to include with this batch.
+	 *
+	 * @return array
+	 */
+	private function get_menu_option_names() {
+		$names = $this->option_dao->get_option_names_by_pattern( 'theme_mods_%' );
+
+		array_push( $names, 'nav_menu_options' );
+		return $names;
+	}
+
+	/**
+	 * Get post IDs of menu items user has selected to include in batch.
+	 *
+	 * @param int $batch_id
+	 * @return array
+	 */
+	private function get_menu_post_ids( $batch_id ) {
+		$menu_ids = get_post_meta( $batch_id, '_sme_selected_menus', true );
+
+		if ( ! is_array( $menu_ids ) || empty( $menu_ids ) ) {
+			return array();
+		}
+
+		return $this->post_taxonomy_dao->get_object_ids_by_taxonomy_ids( $menu_ids );
+	}
+
+	/**
+	 * Include custom menu information in batch.
+	 *
+	 * @param Batch $batch
+	 * @param $options
+	 */
+	private function add_custom_menu_info( Batch $batch, $options ) {
+		foreach ( $options as $option ) {
+			$this->add_menu_position_info( $batch, $option );
+		}
+	}
+
+	/**
+	 * Include information about what menus are places where in the themes.
+	 *
+	 * @param Batch $batch
+	 * @param Option $option
+	 */
+	private function add_menu_position_info( Batch $batch, Option $option ) {
+
+		if ( 0 !== strpos( $option->get_name(), 'theme_mods_' ) ) {
+			return;
+		}
+
+		$value = $option->get_value();
+
+		if ( ! is_serialized( $value ) ) {
+			return;
+		}
+
+		$value = unserialize( $value );
+
+		if ( empty( $value['nav_menu_locations'] ) ) {
+			return;
+		}
+
+		if ( ! is_array( $value['nav_menu_locations'] ) ) {
+			return;
+		}
+
+		foreach ( $value['nav_menu_locations'] as &$location ) {
+
+			if ( ! is_int( $location ) ) {
+				continue;
+			}
+
+			$term = $this->term_dao->find( $location );
+
+			if ( $term instanceof Term ) {
+				$location = $term->get_slug();
+			}
+		}
+
+		$option->set_value( serialize( $value ) );
 	}
 
 }

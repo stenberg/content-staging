@@ -70,6 +70,7 @@ require_once( 'classes/models/class-user.php' );
 require_once( 'classes/models/class-post-taxonomy.php' );
 require_once( 'classes/view/class-batch-table.php' );
 require_once( 'classes/view/class-batch-history-table.php' );
+require_once( 'classes/view/class-menu-table.php' );
 require_once( 'classes/view/class-post-table.php' );
 require_once( 'classes/xmlrpc/class-client.php' );
 require_once( 'classes/class-background-process.php' );
@@ -185,6 +186,7 @@ class Content_Staging {
 		add_action( 'init', array( $setup, 'register_post_types' ) );
 		add_action( 'init', array( $importer_factory, 'run_background_import' ) );
 		add_action( 'admin_menu', array( $setup, 'register_menu_pages' ) );
+		add_action( 'admin_notices', array( $setup, 'quick_deploy_batch' ) );
 		add_action( 'admin_enqueue_scripts', array( $setup, 'load_assets' ) );
 
 		// Routing.
@@ -198,7 +200,6 @@ class Content_Staging {
 		// Filters.
 		add_filter( 'xmlrpc_methods', array( $setup, 'register_xmlrpc_methods' ) );
 		add_filter( 'sme_post_relationship_keys', array( $setup, 'set_postmeta_post_relation_keys' ) );
-		add_filter( 'post_updated_messages', array( $setup, 'quick_deploy_batch' ) );
 
 		// Content Staging loaded.
 		do_action( 'content_staging_loaded' );

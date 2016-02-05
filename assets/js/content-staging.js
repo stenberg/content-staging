@@ -48,13 +48,14 @@ jQuery( document ).ready(function($) {
 		 * cleared.
 		 */
 		editBatch: function() {
-			var self       = this;
-			var batchId    = $('#sme-batch-id').html();
-			var titleObj   = $('input[name="batch_title"]');
-			var posts      = $('.sme-select-post');
-			var postIdsObj = $('input[name="post_ids"]');
-			var postIds    = [];
-			var selectAll  = $('[id^=cb-select-all-]');
+			var self           = this;
+			var batchId        = $('#sme-batch-id').html();
+			var titleObj       = $('input[name="batch_title"]');
+			var posts          = $('.sme-select-post');
+			var postIdsObj     = $('input[name="post_ids"]');
+			var postIds        = [];
+			var selectAll      = $('[id^=cb-select-all-]');
+			var selectAllPosts = $('.posts [id^=cb-select-all-]');
 			var cookie;
 			var batch;
 
@@ -118,17 +119,20 @@ jQuery( document ).ready(function($) {
 				self.updateSelectedPosts(batchId, postIds, postIdsObj, titleObj.val());
 			});
 
-			// User has selected/unselected all posts.
+			// User has selected/unselected all pages or menu items.
 			selectAll.click(function() {
 				var isChecked = $(this).prop('checked');
-
 				posts.each(function() {
 					self.selectPost(postIds, parseInt($(this).val()), isChecked);
 				});
+			});
 
+			// User has selected/unselected all posts.
+			selectAllPosts.click(function() {
 				// Update selected posts.
 				self.updateSelectedPosts(batchId, postIds, postIdsObj, titleObj.val());
 			});
+
 		},
 
 		/**
