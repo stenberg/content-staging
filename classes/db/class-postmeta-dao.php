@@ -209,7 +209,15 @@ class Postmeta_DAO extends DAO {
 				unset( $prod_records[$prod_key] );
 			} else {
 				foreach ( $stage_records as $stage_key => $stage_record ) {
-					if ( $stage_record['meta_key'] == $prod_record['meta_key'] ) {
+				  /**
+		      * Fixing issue with thumbnails that don't get deployed
+		      * as value come as an array, instead of string
+		      */
+				  if( $stage_record['meta_key'] == '_thumbnail_id' && isset($stage_record['meta_value'][0]) ){
+		       $stage_record['meta_value'] = $stage_record['meta_value'][0];
+		      }
+					
+          if ( $stage_record['meta_key'] == $prod_record['meta_key'] ) {
 						$stage_record['meta_id'] = $prod_record['meta_id'];
 						$update[] = $stage_record;
 						unset( $stage_records[$stage_key] );
